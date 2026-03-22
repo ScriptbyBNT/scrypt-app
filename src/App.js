@@ -87,6 +87,7 @@ const rowToPost = r => {
 
 const rowToUser = r => {
   if (!r) return null;
+  const village = tryParse(r.village, []);
   return {
     id: r.id,
     username: r.username,
@@ -96,7 +97,7 @@ const rowToUser = r => {
     isBot: r.is_bot ?? r.isBot ?? false,
     isSpecial: r.is_special ?? r.isSpecial ?? false,
     verified: r.verified ?? false,
-    village: tryParse(r.village, []),
+    village: Array.isArray(village) ? village : [],
     joinedAt: r.joined_at || r.joinedAt || r.created_at,
     mood: r.mood || null,
     accentColor: r.accent_color || r.accentColor || null,
@@ -105,6 +106,7 @@ const rowToUser = r => {
     profileSongName: r.profile_song_name || r.profileSongName || null,
     profileSong: r.profile_song || null,
     wallpaper: tryParse(r.wallpaper, null),
+    dark: r.dark ?? null,
     ...(r.info_fields ? tryParse(r.info_fields, {}) : {}),
   };
 };
@@ -158,6 +160,7 @@ const userToRow = u => ({
   profile_song_name: u.profileSongName || null,
   profile_song: u.profileSong || null,
   wallpaper: u.wallpaper ? JSON.stringify(u.wallpaper) : null,
+  dark: u.dark !== undefined ? (u.dark ? 1 : 0) : null,
   info_fields: JSON.stringify({
     infoMovie: u.infoMovie || null,
     infoArtist: u.infoArtist || null,
@@ -187,7 +190,7 @@ const claudeFetch = (body) => {
   const key = getKey();
   if (!key) return Promise.resolve({ ok: true, json: () => Promise.resolve({ content: [{ type: "text", text: "" }] }) });
   if (key.startsWith("gsk_")) {
-    const groqBody = { model: "llama3-70b-8192", max_tokens: body.max_tokens || 500, messages: body.system ? [{ role: "system", content: body.system }, ...(body.messages || [])] : (body.messages || []) };
+    const groqBody = { model: "llama-3.3-70b-versatile", max_tokens: body.max_tokens || 500, messages: body.system ? [{ role: "system", content: body.system }, ...(body.messages || [])] : (body.messages || []) };
     return fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key }, body: JSON.stringify(groqBody) }).then(r => ({ ok: r.ok, json: async () => { const d = await r.json(); return { content: [{ type: "text", text: d.choices?.[0]?.message?.content || "" }] }; } }));
   }
   return fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify(body) });
@@ -1768,7 +1771,7 @@ export default function App() {
     setSerr("");
   }, [me?.id]);
 
-  // Sync browser chrome color with dark/light mode
+  // Sync browser chrome color with dark/light mode + save to Supabase
   useEffect(() => {
     const color = dark ? "#000000" : "#ffffff";
     let meta = document.querySelector("meta[name='theme-color']");
@@ -1776,6 +1779,10 @@ export default function App() {
     meta.content = color;
     document.body.style.backgroundColor = color;
     LS.set("dark", dark ? "1" : "0");
+    // Save to Supabase so it persists across devices
+    if (me?.id) {
+      DB.updateUser(me.id, { dark: dark ? 1 : 0 }).catch(() => {});
+    }
   }, [dark]);
 
   useEffect(() => {
@@ -1883,10 +1890,15 @@ export default function App() {
         try {
           const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
           const u = rows && rows[0] ? rowToUser(rows[0]) : null;
-          if (u) { setMe({ ...u, village: u.village || [] }); setPg("app"); return; }
+          if (u) {
+            setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] });
+            // Restore dark mode preference from DB if available
+            if (u.dark !== null && u.dark !== undefined) setDark(!!u.dark);
+            setPg("app"); return;
+          }
         } catch {}
         // Session invalid — clear it
-        LS.set("session_uid", null);
+        localStorage.removeItem("session_uid");
         setPg("login");
       }
     };
@@ -2772,30 +2784,31 @@ export default function App() {
       if (sf.pw !== sf.pw2) { setSerr("Passwords don't match."); return; }
       upd.password = sf.pw;
     }
-    // bio: save if it was touched (even if empty — lets user clear their bio)
     if (sf.bio !== undefined) upd.bio = sf.bio || null;
     if (sf.mood !== undefined) upd.mood = sf.mood || null;
     if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
     if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
-    // Profile song — save to Supabase AND localStorage
+    // Profile song — stored separately to avoid bloating users array
     if (sf.profileSong !== undefined) {
       LS.set(`psong_${me.id}`, sf.profileSong ? { song: sf.profileSong, name: sf.profileSongName } : null);
       upd.hasProfileSong = !!sf.profileSong;
       upd.profileSongName = sf.profileSongName || null;
       upd.profileSong = sf.profileSong || null;
     }
-    // Info card fields
+    // Info card text fields
     INFO_FIELDS.forEach(f => {
       if (sf[f.key] !== undefined) upd[f.key] = sf[f.key] || null;
+      // Info card photos — stored separately per card to avoid freezing users array
       if (sf[f.photoKey] !== undefined) {
         LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
         upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
       }
     });
+    const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
+    setUsers(updatedUsers);
+    setMe(p => ({ ...p, ...upd }));
+    // Save to Supabase
     const updatedMe = { ...me, ...upd };
-    setUsers(users.map(u => u.id === me.id ? updatedMe : u));
-    setMe(updatedMe);
-    // Save everything to Supabase
     (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
     setSf({ u: "", pw: "", pw2: "", bio: undefined });
     notify("Profile saved! ✓");
@@ -2823,12 +2836,12 @@ export default function App() {
     </div>
     <div style={{ color: T.sub, fontSize: 14 }}>Loading…</div>
   </div>;
-  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] }); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] }); LS.set("session_uid", u.id); setDbLoading(false); if (u.dark !== null && u.dark !== undefined) setDark(!!u.dark); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
   if (pg === "signup") return <Signup onDone={u => { setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] }); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
   const myV = Array.isArray(me?.village) ? me.village : [];
   const feed = (() => {
-    const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (u.village || []).includes(me.id)).map(u => u.id));
+    const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (Array.isArray(u.village) ? u.village : []).includes(me.id)).map(u => u.id));
     const villageIds = new Set(myV);
     const filtered = posts.filter(p => !p.parentId && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId))));
     const priorityScore = p => {
@@ -2845,7 +2858,7 @@ export default function App() {
   })();
   const mine = posts.filter(p => p.userId === me.id && !p.parentId);
   const villagers = users.filter(u => myV.includes(u.id));
-  const mutuals = users.filter(u => myV.includes(u.id) && (u.village || []).includes(me.id));
+  const mutuals = users.filter(u => myV.includes(u.id) && (Array.isArray(u.village) ? u.village : []).includes(me.id));
   const notifCount = posts.filter(p => p.userId === me.id && (((p.likes || []).filter(x => x !== me.id).length > 0) || (p.reposts || []).filter(x => x !== me.id).length > 0)).length;
 
   const inp = { width: "100%", background: T.input, border: "none", borderRadius: 10, padding: "10px 14px", color: T.text, fontSize: 14, outline: "none", boxSizing: "border-box" };
@@ -3297,7 +3310,8 @@ export default function App() {
                 const r = new FileReader();
                 r.onload = x => setSf(p => ({ ...p, profileSong: x.target.result, profileSongName: f.name }));
                 r.readAsDataURL(f);
-              }} />            </label>
+              }} />
+            </label>
             {(sf.profileSong || me.profileSong) && <button onClick={() => setSf(p => ({ ...p, profileSong: null, profileSongName: null }))} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
             {sf.profileSong && <div style={{ fontSize: 11, color: T.sub, marginTop: 6 }}>Preview: {sf.profileSongName}</div>}
           </div>
