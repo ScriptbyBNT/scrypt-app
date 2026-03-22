@@ -1793,6 +1793,12 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
+    // Safety net: if initDB hangs for 12s, force to login screen
+    const safetyTimer = setTimeout(() => {
+      setDbLoading(false);
+      setPg(prev => prev === "loading" ? "login" : prev);
+    }, 12000);
+
     const initDB = async () => {
       setDbLoading(true);
       // Restore session
@@ -1908,7 +1914,10 @@ export default function App() {
         setPg("login");
       }
     };
-    initDB();
+    initDB().catch(() => {
+      setDbLoading(false);
+      setPg("login");
+    }).finally(() => clearTimeout(safetyTimer));
   }, []);
 
   const T = {
