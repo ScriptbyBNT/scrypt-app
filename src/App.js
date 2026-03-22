@@ -3661,7 +3661,32 @@ export default function App() {
     </div>
 
     {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
-    {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
+    {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => {
+  if (cropKey === "__avatar__") {
+    const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u);
+    setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl }));
+    DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {});
+  } else {
+    // Save info card photo directly — same pattern as avatar
+    const updatedMe = { ...me, [cropKey]: dataUrl };
+    setMe(updatedMe);
+    setUsers(prev => prev.map(u => u.id === me.id ? updatedMe : u));
+    setSf(p => ({ ...p, [cropKey]: dataUrl }));
+    // Save to localStorage immediately
+    const saved = LS.get(`profile_${me.id}`) || {};
+    saved[cropKey] = dataUrl;
+    LS.set(`profile_${me.id}`, saved);
+    // Save to IDB
+    IDB.set(`icard_${me.id}_${cropKey}`, dataUrl).catch(() => {});
+    // Save village+profile to DB
+    const prof = LS.get(`profile_${me.id}`) || {};
+    const dbProf = {};
+    Object.keys(prof).forEach(k => { if (prof[k] && !prof[k].startsWith("data:")) dbProf[k] = prof[k]; });
+    DB.updateUser(me.id, { village: JSON.stringify({ v: me.village || [], p: dbProf }) }).catch(() => {});
+    notify("Photo saved ✓");
+  }
+  setCropSrc(null); setCropKey(null);
+}} />}
 
     {/* BOTTOM NAV */}
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 8000, background: dark ? "rgba(0,0,0,0.97)" : "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", borderTop: `1px solid ${T.border}` }}>
