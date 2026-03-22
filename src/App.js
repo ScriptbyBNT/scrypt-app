@@ -14,18 +14,16 @@ const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 const sbFetch = async (path, options = {}) => {
   const url = `${SUPA_URL}/rest/v1/${path}`;
-  const isGet = !options.method || options.method === "GET";
-  const headers = {
-    "apikey": SUPA_KEY,
-    "Authorization": `Bearer ${SUPA_KEY}`,
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
-  // Only send Prefer header on write operations (POST/PATCH/DELETE)
-  if (!isGet) {
-    headers["Prefer"] = options.prefer || "return=representation";
-  }
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "apikey": SUPA_KEY,
+      "Authorization": `Bearer ${SUPA_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": options.prefer || "return=representation",
+      ...(options.headers || {}),
+    },
+  });
   if (!res.ok) {
     const err = await res.text().catch(() => res.statusText);
     console.error("Supabase error:", path, res.status, err);
@@ -40,7 +38,7 @@ const sbFetch = async (path, options = {}) => {
 const DB = {
   // USERS
   getUsers: () => sbFetch("users?select=*&order=created_at.asc&limit=1000"),
-  getUserByUsername: (username) => sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=*`, { prefer: "" }),
+  getUserByUsername: (username) => sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=*`),
   upsertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
   updateUser: (id, data) => sbFetch(`users?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
   insertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user) }),
@@ -1031,7 +1029,7 @@ const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
 
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
 const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
-  const myV = me.village || [];
+  const myV = Array.isArray(me.village) ? me.village : [];
   const inV = myV.includes(user.id);
   const isMe = user.id === me.id;
   const theirV = user.village || [];
@@ -1495,7 +1493,6 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
       // Then try lowercase (covers new accounts stored in lowercase)
       let rows = await DB.getUserByUsername(raw);
       if (!rows || rows.length === 0) rows = await DB.getUserByUsername(raw.toLowerCase());
-      if (rows === null) { setErr("Connection error. Please try again."); return; }
       const f = rows && rows[0] ? rowToUser(rows[0]) : null;
       if (!f || f.password !== pw) { setErr("Invalid username or password."); return; }
       onLogin(f);
@@ -2815,10 +2812,10 @@ export default function App() {
     </div>
     <div style={{ color: T.sub, fontSize: 14 }}>Loading…</div>
   </div>;
-  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: u.village || [] }); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
-  if (pg === "signup") return <Signup onDone={u => { setMe(u); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] }); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "signup") return <Signup onDone={u => { setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] }); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
-  const myV = me?.village || [];
+  const myV = Array.isArray(me?.village) ? me.village : [];
   const feed = (() => {
     const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (u.village || []).includes(me.id)).map(u => u.id));
     const villageIds = new Set(myV);
