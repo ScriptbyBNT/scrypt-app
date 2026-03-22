@@ -1413,15 +1413,6 @@ const HomeTrending = ({ posts, T }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function App() {
   const [dark, setDark] = useState(false);
-
-  // Sync browser chrome color with dark/light mode
-  useEffect(() => {
-    const color = dark ? "#000000" : "#ffffff";
-    let meta = document.querySelector("meta[name='theme-color']");
-    if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.appendChild(meta); }
-    meta.content = color;
-    document.body.style.backgroundColor = color;
-  }, [dark]);
   const [pg, setPg] = useState("login");
   const [tab, setTab] = useState("home");
   const [me, setMe] = useState(null);
@@ -1456,6 +1447,15 @@ export default function App() {
   const avRef = useRef();
   const avRef2 = useRef();
   const cImgRef = useRef();
+
+  // Sync browser chrome color with dark/light mode
+  useEffect(() => {
+    const color = dark ? "#000000" : "#ffffff";
+    let meta = document.querySelector("meta[name='theme-color']");
+    if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.appendChild(meta); }
+    meta.content = color;
+    document.body.style.backgroundColor = color;
+  }, [dark]);
 
   useEffect(() => {
     const V = "v20";
