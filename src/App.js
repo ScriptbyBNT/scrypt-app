@@ -615,27 +615,27 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
     if (!f) { setErr("Invalid username or password."); return; }
     onLogin(f);
   };
-  const s = { width: "100%", background: "#EFEFEF", border: "none", borderRadius: 14, padding: "16px 18px", color: "#1C1C1E", fontSize: 16, outline: "none", boxSizing: "border-box" };
-  return <div style={{ minHeight: "100vh", background: "#F0F2F5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+  const s = { width: "100%", background: T.input, border: "none", borderRadius: 14, padding: "16px 18px", color: T.text, fontSize: 16, outline: "none", boxSizing: "border-box" };
+  return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
     <div style={{ maxWidth: 400, width: "100%" }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: BLUE, padding: "14px 28px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", marginBottom: 14 }}>
-          <img src={LOGO} style={{ width: 44, height: 44, objectFit: "contain" }} alt="Scrypt logo" />
-          <span style={{ fontWeight: 800, fontSize: 26, color: "white" }}>Scrypt</span>
+          <img src={LOGO} style={{ width: 132, height: 132, objectFit: "contain" }} alt="Scrypt logo" />
+          <span style={{ fontWeight: 700, fontSize: 26, color: "white", fontFamily: "\"TwitterChirp\", \"Chirp\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif", letterSpacing: "-0.5px" }}>Scrypt</span>
         </div>
-        <p style={{ margin: 0, color: "#6B7280", fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
+        <p style={{ margin: 0, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
       </div>
-      <div style={{ background: "white", borderRadius: 20, padding: "28px 24px", boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
+      <div style={{ background: T.card, borderRadius: 20, padding: "28px 24px", boxShadow: dark ? "0 4px 32px rgba(0,0,0,0.4)" : "0 2px 16px rgba(0,0,0,0.08)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <input value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} onKeyDown={e => e.key === "Enter" && go()} />
           <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} onKeyDown={e => e.key === "Enter" && go()} />
-          {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: "#fff0f5", borderRadius: 8 }}>{err}</div>}
+          {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8 }}>{err}</div>}
           <button onClick={go} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "16px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginTop: 4 }}>Sign In</button>
-          <button onClick={onSignup} style={{ background: "white", color: "#1C1C1E", border: "1.5px solid #D1D5DB", borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Create account</button>
+          <button onClick={onSignup} style={{ background: T.card, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Create account</button>
         </div>
       </div>
       <div style={{ textAlign: "center", marginTop: 20 }}>
-        <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14 }}><MoonI /> Dark mode</button>
+        <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14 }}>{dark ? <SunI /> : <MoonI />} {dark ? "Light mode" : "Dark mode"}</button>
       </div>
     </div>
   </div>;
