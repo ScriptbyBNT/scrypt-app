@@ -103,6 +103,8 @@ const rowToUser = r => {
     featuredPostId: r.featured_post_id || r.featuredPostId || null,
     hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
     profileSongName: r.profile_song_name || r.profileSongName || null,
+    profileSong: r.profile_song || null,
+    wallpaper: tryParse(r.wallpaper, null),
     ...(r.info_fields ? tryParse(r.info_fields, {}) : {}),
   };
 };
@@ -154,6 +156,15 @@ const userToRow = u => ({
   featured_post_id: u.featuredPostId || null,
   has_profile_song: u.hasProfileSong || false,
   profile_song_name: u.profileSongName || null,
+  wallpaper: u.wallpaper ? JSON.stringify(u.wallpaper) : null,
+  profile_song: u.profileSong || null,
+  info_fields: JSON.stringify({
+    infoMovie:  u.infoMovie  || null,
+    infoArtist: u.infoArtist || null,
+    infoShow:   u.infoShow   || null,
+    infoBook:   u.infoBook   || null,
+    infoGame:   u.infoGame   || null,
+  }),
 });
 
 const clickToRow = c => ({
@@ -2765,11 +2776,12 @@ export default function App() {
     if (sf.mood !== undefined) upd.mood = sf.mood;
     if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
     if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
-    // Profile song — stored separately to avoid bloating users array
+    // Profile song — save to Supabase AND localStorage as backup
     if (sf.profileSong !== undefined) {
       LS.set(`psong_${me.id}`, { song: sf.profileSong, name: sf.profileSongName });
       upd.hasProfileSong = !!sf.profileSong;
       upd.profileSongName = sf.profileSongName || null;
+      upd.profileSong = sf.profileSong || null;
     }
     // Info card text fields
     INFO_FIELDS.forEach(f => {
