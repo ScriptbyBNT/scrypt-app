@@ -1998,9 +1998,21 @@ export default function App() {
             const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
             const dbVersion = rows && rows[0] ? rowToUser(rows[0]) : null;
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-            // Merge: use DB data for mutable fields (avatar, bio, wallpaper), hardcoded for fixed fields (id, username, password, isSpecial, verified)
             if (dbVersion && hardcoded) {
-              setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: dbVersion.village || hardcoded.village || [] });
+              // Load ALL fields from DB, but keep fixed identity from hardcoded
+              setMe({
+                ...dbVersion,
+                id: hardcoded.id,
+                username: hardcoded.username,
+                password: hardcoded.password,
+                isBot: hardcoded.isBot,
+                isSpecial: hardcoded.isSpecial,
+                verified: hardcoded.verified,
+                // fallback to hardcoded avatar/bio if DB has none
+                avatar: dbVersion.avatar || hardcoded.avatar,
+                bio: dbVersion.bio || hardcoded.bio,
+                village: dbVersion.village || hardcoded.village || [],
+              });
             } else if (hardcoded) {
               setMe({ ...hardcoded, village: hardcoded.village || [] });
             }
@@ -2990,7 +3002,16 @@ export default function App() {
         } catch(e) {}
       }
       const result = await DB.upsertUser(row);
+      console.log("[doSave] row sent to DB:", JSON.stringify(row, null, 2));
       console.log("[doSave] upsert result:", result === null ? "FAILED" : "OK");
+      // Verify what DB actually stored
+      const verify = await fetch(`https://wzrxrgybdwoawhaleuah.supabase.co/rest/v1/users?id=eq.${encodeURIComponent(meSnapshot.id)}&select=*`, {
+        headers: {
+          "apikey": SUPA_KEY,
+          "Authorization": `Bearer ${SUPA_KEY}`,
+        }
+      }).then(r => r.json()).catch(() => null);
+      console.log("[doSave] DB row after save:", JSON.stringify(verify?.[0], null, 2));
 
       // Update state with final upd (may have storage URLs now)
       setMe({ ...upd });
