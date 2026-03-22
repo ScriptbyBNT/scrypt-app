@@ -170,12 +170,42 @@ function tryParse(v, fallback) {
   if (typeof v !== "string") return v;
   try { return JSON.parse(v); } catch { return fallback; }
 }
-const getKey = () => { try { return JSON.parse(localStorage.getItem("apiKey")) || ""; } catch { return ""; } };
-const claudeFetch = (body) => fetch("https://api.anthropic.com/v1/messages", {
-  method: "POST",
-  headers: { "Content-Type": "application/json", "x-api-key": getKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-  body: JSON.stringify(body)
-});
+// API key stored globally so all bot accounts can use it
+const getKey = () => { try { return localStorage.getItem("sharedApiKey") || JSON.parse(localStorage.getItem("apiKey")) || ""; } catch { return ""; } };
+const setSharedKey = (k) => { try { localStorage.setItem("sharedApiKey", k); } catch {} };
+// Groq-compatible fetch — works with gsk_... keys, falls back to Anthropic for sk-ant-... keys
+const claudeFetch = (body) => {
+  const key = getKey();
+  if (!key) return Promise.resolve({ json: () => Promise.resolve({}) });
+  if (key.startsWith("gsk_")) {
+    // Groq API — remap model name to llama
+    const groqBody = {
+      model: "llama3-70b-8192",
+      max_tokens: body.max_tokens || 500,
+      messages: body.system
+        ? [{ role: "system", content: body.system }, ...(body.messages || [])]
+        : (body.messages || []),
+    };
+    return fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+      body: JSON.stringify(groqBody)
+    }).then(r => ({
+      json: async () => {
+        const d = await r.json();
+        // Remap Groq response shape to Anthropic shape
+        const text = d.choices?.[0]?.message?.content || "";
+        return { content: [{ type: "text", text }] };
+      }
+    }));
+  }
+  // Anthropic API
+  return fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body)
+  });
+};
 
 const BAD = ["fuck","shit","bitch","asshole","dick","pussy","cunt","bastard","crap","piss","cock","damn","hell","wtf","ass"];
 const hasBad = t => { if (!t) return false; return BAD.some(w => t.toLowerCase().includes(w)); };
@@ -1308,7 +1338,7 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
     setModErr("");
     setModBusy(true);
     try {
-      if (getKey()) {
+      if (getKey() && !me?.isBot && !me?.isSpecial) {
         const result = await moderateWithClaude(text, img);
         if (!result.safe) {
           setModErr(`⚠️ Post blocked: ${result.reason || "Content violates community guidelines."}`);
@@ -1741,7 +1771,7 @@ export default function App() {
   const [cImg, setCImg] = useState(null);
   const [cropSrc, setCropSrc] = useState(null);
   const [cropKey, setCropKey] = useState(null);
-  const [apiKey, setApiKey] = useState(() => LS.get("apiKey") || "");
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("sharedApiKey") || LS.get("apiKey") || "");
   const avRef = useRef();
   const avRef2 = useRef();
   const cImgRef = useRef();
@@ -3321,7 +3351,7 @@ export default function App() {
             <input
               type="password"
               value={apiKey}
-              onChange={e => { setApiKey(e.target.value); LS.set("apiKey", e.target.value); }}
+              onChange={e => { setApiKey(e.target.value); LS.set("apiKey", e.target.value); setSharedKey(e.target.value); }}
               placeholder="sk-ant-..."
               style={{ ...inp13, fontFamily: "monospace", marginBottom: 8 }}
             />
