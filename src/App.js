@@ -2968,6 +2968,7 @@ export default function App() {
     if (sfSnapshot.profileSongLabel !== undefined) upd.profileSongLabel = sfSnapshot.profileSongLabel;
     INFO_FIELDS.forEach(f => {
       if (sfSnapshot[f.key] !== undefined) upd[f.key] = sfSnapshot[f.key];
+      if (sfSnapshot[f.photoKey] !== undefined) upd[f.photoKey] = sfSnapshot[f.photoKey];
     });
 
     // Check if there's anything to save
