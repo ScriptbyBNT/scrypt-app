@@ -89,7 +89,7 @@ const DB = {
   // USERS
   getUsers: () => sbFetch("users?select=*&order=created_at.asc&limit=1000"),
   getUserByUsername: (username) => sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=*`),
-  upsertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
+  upsertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user), prefer: "resolution=merge-duplicates,return=minimal", headers: { "Prefer": "resolution=merge-duplicates,return=minimal" } }),
   updateUser: (id, data) => sbFetch(`users?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data), prefer: "return=minimal", headers: { "Prefer": "return=minimal" } }),
   insertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user) }),
 
@@ -2978,30 +2978,19 @@ export default function App() {
         }
       }
 
-      // Write to DEDICATED columns — only columns that exist in the original schema
-      // Extra data (info cards, song label, photo URLs) goes into info_fields as JSON
-      const infoExtra = {};
-      INFO_TEXT_KEYS.forEach(k => { if (upd[k]) infoExtra[k] = upd[k]; });
-      INFO_PHOTO_KEYS.forEach(k => { if (upd[k]) infoExtra[k] = upd[k]; });
-      if (upd.profileSongLabel) infoExtra.profileSongLabel = upd.profileSongLabel;
-      // Only store song URL in info_fields (not base64)
-      if (upd.profileSong && upd.profileSong.startsWith("http")) infoExtra.profileSong = upd.profileSong;
-
-      // Build patch using known-good column names
-      const dbPatch = {
-        bio: upd.bio || null,
-        mood: upd.mood || null,
-        accent_color: upd.accentColor || null,
-        featured_post_id: upd.featuredPostId || null,
-        has_profile_song: upd.hasProfileSong || false,
-        profile_song_name: upd.profileSongName || null,
-        info_fields: JSON.stringify(infoExtra),
-      };
-      if (upd.username !== meSnapshot.username) dbPatch.username = upd.username;
-      if (upd.password !== meSnapshot.password) dbPatch.password = upd.password;
-
-      const result = await DB.updateUser(meSnapshot.id, dbPatch);
-      console.log("[doSave] DB patch sent. Result:", result === null ? "FAILED (null)" : "OK");
+      // Build full row and upsert — works regardless of which optional columns exist
+      const row = userToRow(upd);
+      // Strip base64 blobs from info_fields — DB only gets URLs
+      if (row.info_fields) {
+        try {
+          const f = JSON.parse(row.info_fields);
+          INFO_PHOTO_KEYS.forEach(pk => { if (f[pk] && !f[pk].startsWith("http")) delete f[pk]; });
+          if (f.profileSong && !f.profileSong.startsWith("http")) delete f.profileSong;
+          row.info_fields = JSON.stringify(f);
+        } catch(e) {}
+      }
+      const result = await DB.upsertUser(row);
+      console.log("[doSave] upsert result:", result === null ? "FAILED" : "OK");
 
       // Update state with final upd (may have storage URLs now)
       setMe({ ...upd });
