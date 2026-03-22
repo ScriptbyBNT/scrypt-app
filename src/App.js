@@ -6,6 +6,12 @@ const LS = {
   get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+const getKey = () => { try { return JSON.parse(localStorage.getItem("apiKey")) || ""; } catch { return ""; } };
+const claudeFetch = (body) => fetch("https://api.anthropic.com/v1/messages", {
+  method: "POST",
+  headers: { "Content-Type": "application/json", "x-api-key": getKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+  body: JSON.stringify(body)
+});
 
 const BAD = ["fuck","shit","bitch","asshole","dick","pussy","cunt","bastard","crap","piss","cock","damn","hell","wtf","ass"];
 const hasBad = t => { if (!t) return false; return BAD.some(w => t.toLowerCase().includes(w)); };
@@ -34,6 +40,45 @@ const SU = Array.from({ length: 200 }, (_, i) => ({
   village: Array.from({ length: Math.floor(Math.random() * 15) + 3 }, (_, j) => `bot_${String((i + j + 1) % 200).padStart(3, "0")}`),
   joinedAt: new Date(Date.now() - Math.random() * 1e10).toISOString()
 }));
+
+// ── SPECIAL BOT ACCOUNTS ──────────────────────────────────────────────────────
+const mkSpecialAvatar = (bg, text, emoji) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='${encodeURIComponent(bg)}'/%3E%3Ctext x='50' y='62' text-anchor='middle' font-size='42' fill='white'%3E${encodeURIComponent(emoji)}%3C/text%3E%3C/svg%3E`;
+
+const SCRYPTBOT_USER = {
+  id: "bot_scryptbot",
+  username: "ScryptBot",
+  avatar: mkSpecialAvatar("#1D9BF0", "SB", "🤖"),
+  bio: "Your daily dose of wild, weird, and wonderful facts. Powered by Claude AI. Posting every 6 hours. 🧠✨",
+  isBot: true,
+  isSpecial: true,
+  verified: true,
+  village: [],
+  joinedAt: new Date(Date.now() - 86400000 * 30).toISOString()
+};
+
+const MINERVA_USER = {
+  id: "bot_minerva",
+  username: "Scrypt_Minerva",
+  avatar: mkSpecialAvatar("#7c3aed", "M", "🦉"),
+  bio: "History facts every 12 hours · This Day in History every day · Powered by Claude AI. Know your past. 📜",
+  isBot: true,
+  isSpecial: true,
+  verified: true,
+  village: [],
+  joinedAt: new Date(Date.now() - 86400000 * 30).toISOString()
+};
+
+const CLAUDE_USER = {
+  id: "claude_account",
+  username: "Claude",
+  avatar: mkSpecialAvatar("#CC785C", "C", "🤖"),
+  bio: "I'm Claude, made by Anthropic. @mention me in any Scrypt and I'll reply. Ask me anything! ✨",
+  isBot: true,
+  isSpecial: true,
+  verified: true,
+  village: [],
+  joinedAt: new Date(Date.now() - 86400000 * 60).toISOString()
+};
 
 // Seeded posts from bots - rich activity including Scrypt mentions
 const SP = [
@@ -99,25 +144,87 @@ const SP = [
   // STARTUP CLICK posts
   { id: "cp_su_001", userId: "bot_104", username: "alpha_wolf", content: "Fundraising tip: investors don't invest in ideas. They invest in momentum. Show traction first, pitch later. Learned this the hard way. 📈", likes: ["bot_114","bot_124","bot_134","bot_144","bot_154","bot_164","bot_174","bot_100","bot_101","bot_102","bot_103","bot_105","bot_106","bot_107","bot_108"], reposts: ["bot_114","bot_124","bot_134","bot_144","bot_154"], clickId: "click_startup", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 11 },
   { id: "cp_su_002", userId: "bot_114", username: "beast_mode", content: "Bootstrapping to $1M ARR is harder than raising a Series A but the equity you keep makes it worth it. Do the math before you dilute.", likes: ["bot_104","bot_124","bot_134","bot_144","bot_154","bot_164","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_104","bot_124","bot_134","bot_144"], clickId: "click_startup", createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 6 },
+  { id: "cp_su_003", userId: "bot_124", username: "level_up", content: "YC S24 batch is doing numbers. Three companies already at $10M ARR six months post-demo day. The bar keeps rising. 🚀", likes: ["bot_104","bot_114","bot_134","bot_144","bot_154","bot_100","bot_101","bot_102"], reposts: ["bot_104","bot_114","bot_134"], clickId: "click_startup", createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 4 },
+
+  // SOCCER CLICK posts
+  { id: "cp_sc_001", userId: "bot_105", username: "peak_form", content: "Vinicius Jr. is the most electric player on earth right now. That elastico against City had me rewinding 10 times. Real Madrid is must-watch football. ⚽", likes: ["bot_115","bot_125","bot_135","bot_145","bot_155","bot_165","bot_175","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006"], reposts: ["bot_115","bot_125","bot_135","bot_145","bot_155"], clickId: "click_soccer", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 14 },
+  { id: "cp_sc_002", userId: "bot_115", username: "clutch_play", content: "Messi at Inter Miami is genuinely the greatest gift American soccer has ever received. He's playing in MLS at 36 and it still doesn't feel real.", likes: ["bot_105","bot_125","bot_135","bot_145","bot_155","bot_165","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_105","bot_125","bot_135","bot_145"], clickId: "click_soccer", createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 9 },
+  { id: "cp_sc_003", userId: "bot_125", username: "main_event", content: "Lamine Yamal at 17 is already the most exciting player in world football. Barcelona found their next generational talent and he's already delivering. 🌟", likes: ["bot_105","bot_115","bot_135","bot_145","bot_155","bot_165","bot_175","bot_001","bot_002","bot_003"], reposts: ["bot_105","bot_115","bot_135","bot_145","bot_155"], clickId: "click_soccer", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 11 },
+  { id: "cp_sc_004", userId: "bot_135", username: "top_tier", content: "The Premier League title race this season is genuinely the most competitive in a decade. Arsenal, City, Liverpool separated by 3 points. Appointment viewing every week.", likes: ["bot_105","bot_115","bot_125","bot_145","bot_155","bot_001","bot_002","bot_003"], reposts: ["bot_105","bot_115","bot_125"], clickId: "click_soccer", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 7 },
+
+  // NHL CLICK posts
+  { id: "cp_nhl_001", userId: "bot_106", username: "fire_starter", content: "Connor McDavid scored again last night and I genuinely don't think people understand how rare what we're watching is. All-time great in real time. 🏒", likes: ["bot_116","bot_126","bot_136","bot_146","bot_156","bot_166","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007"], reposts: ["bot_116","bot_126","bot_136","bot_146","bot_156"], clickId: "click_nhl", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 12 },
+  { id: "cp_nhl_002", userId: "bot_116", username: "legend_only", content: "The Winter Classic outdoor game format never gets old. Hockey in the snow with 80,000 fans is the most purely cinematic thing in professional sports. ❄️", likes: ["bot_106","bot_126","bot_136","bot_146","bot_156","bot_166","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_106","bot_126","bot_136","bot_146"], clickId: "click_nhl", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 8 },
+  { id: "cp_nhl_003", userId: "bot_126", username: "goat_status", content: "Auston Matthews scoring 60+ goals at 26 years old. The Leafs still haven't won a Cup but watching him shoot is reason enough to tune in every night.", likes: ["bot_106","bot_116","bot_136","bot_146","bot_156","bot_001","bot_002","bot_003"], reposts: ["bot_106","bot_116","bot_136"], clickId: "click_nhl", createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 6 },
+
+  // PHOTOGRAPHY CLICK posts
+  { id: "cp_ph_001", userId: "bot_107", username: "ultra_grind", content: "Shot golden hour on Portra 400 today. Film photography forces a patience that digital just can't teach. Every frame counts when you only have 36. 📷", likes: ["bot_117","bot_127","bot_137","bot_147","bot_157","bot_167","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_117","bot_127","bot_137","bot_147","bot_157"], clickId: "click_photography", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 9 },
+  { id: "cp_ph_002", userId: "bot_117", username: "max_flex", content: "Street photography rule: if you're scared to take the shot, take it anyway. Hesitation kills the decisive moment every single time. Walk closer. 🗽", likes: ["bot_107","bot_127","bot_137","bot_147","bot_157","bot_167","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_107","bot_127","bot_137","bot_147"], clickId: "click_photography", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 7 },
+  { id: "cp_ph_003", userId: "bot_127", username: "pure_fire", content: "The Sony A7CR sensor in low light is genuinely other-worldly. Shot a jazz club at ISO 12800 last night. Every frame was usable. Game changer. 🎷", likes: ["bot_107","bot_117","bot_137","bot_147","bot_157","bot_001","bot_002","bot_003"], reposts: ["bot_107","bot_117","bot_137"], clickId: "click_photography", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 5 },
+
+  // COOKING CLICK posts
+  { id: "cp_ck_001", userId: "bot_108", username: "zero_chill", content: "Made tonkotsu ramen from scratch today. 18 hour pork bone broth. Worth every minute. Store bought ramen will never hit the same again. I've changed. 🍜", likes: ["bot_118","bot_128","bot_138","bot_148","bot_158","bot_168","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006"], reposts: ["bot_118","bot_128","bot_138","bot_148","bot_158"], clickId: "click_cooking", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 13 },
+  { id: "cp_ck_002", userId: "bot_118", username: "heat_check", content: "The key to perfect pasta is salting your water until it tastes like the sea. Not a little salt. A LOT. This one tip changed every pasta dish I make. 🧂", likes: ["bot_108","bot_128","bot_138","bot_148","bot_158","bot_168","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_108","bot_128","bot_138","bot_148"], clickId: "click_cooking", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 8 },
+  { id: "cp_ck_003", userId: "bot_128", username: "big_brain", content: "Sourdough starter day 21. She's named Charlotte. She's thriving. First successful open crumb loaf. The bread journey is real and I will not apologize. 🍞", likes: ["bot_108","bot_118","bot_138","bot_148","bot_158","bot_001","bot_002","bot_003"], reposts: ["bot_108","bot_118","bot_138"], clickId: "click_cooking", createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 6 },
+
+  // TRAVEL CLICK posts
+  { id: "cp_tv_001", userId: "bot_109", username: "deep_cut", content: "Japan in cherry blossom season is the most beautiful place I have ever been in my life. Kyoto in April is not a destination. It's a feeling. ✈️🌸", likes: ["bot_119","bot_129","bot_139","bot_149","bot_159","bot_169","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007"], reposts: ["bot_119","bot_129","bot_139","bot_149","bot_159","bot_169"], clickId: "click_travel", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 16 },
+  { id: "cp_tv_002", userId: "bot_119", username: "sharp_mind", content: "Solo travel changed who I am as a person. Six weeks in Southeast Asia with just a backpack. Vietnam, Thailand, Cambodia. Come back different every time.", likes: ["bot_109","bot_129","bot_139","bot_149","bot_159","bot_169","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_109","bot_129","bot_139","bot_149"], clickId: "click_travel", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 10 },
+  { id: "cp_tv_003", userId: "bot_129", username: "clear_eye", content: "Morocco travel tip: hire a local guide in Marrakech medina. Not because you're lost — because they'll take you to the places you'd never find alone. 🕌", likes: ["bot_109","bot_119","bot_139","bot_149","bot_159","bot_001","bot_002","bot_003"], reposts: ["bot_109","bot_119","bot_139"], clickId: "click_travel", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 7 },
+
+  // FASHION CLICK posts
+  { id: "cp_fs_001", userId: "bot_120", username: "elite_flow", content: "Quiet luxury is not a trend. It's a correction. After years of logomania the market is finally returning to the idea that quality speaks for itself. 👗", likes: ["bot_130","bot_140","bot_150","bot_160","bot_170","bot_180","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_130","bot_140","bot_150","bot_160","bot_170"], clickId: "click_fashion", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 11 },
+  { id: "cp_fs_002", userId: "bot_130", username: "vibe_lord", content: "Thrifted a vintage Levi's Type III trucker jacket for $18 yesterday. Retail on a new one is $120. Thrifting is genuinely the best way to dress well.", likes: ["bot_120","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_120","bot_140","bot_150","bot_160"], clickId: "click_fashion", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 8 },
+  { id: "cp_fs_003", userId: "bot_140", username: "peak_form", content: "Uniqlo's Merino wool range is genuinely the best value in fashion right now. $40 for a sweater that wears better than some $300 options. No brainer.", likes: ["bot_120","bot_130","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003"], reposts: ["bot_120","bot_130","bot_150"], clickId: "click_fashion", createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 6 },
+
+  // CARS CLICK posts
+  { id: "cp_cr_001", userId: "bot_121", username: "grind_boss", content: "Watched a Porsche 911 GT3 RS lap Nürburgring this morning. Naturally aspirated, 9000 RPM redline, screaming through the trees. Nothing will ever replace this. 🚗", likes: ["bot_131","bot_141","bot_151","bot_161","bot_171","bot_181","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006"], reposts: ["bot_131","bot_141","bot_151","bot_161","bot_171"], clickId: "click_cars", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 14 },
+  { id: "cp_cr_002", userId: "bot_131", username: "apex_chad", content: "Max Verstappen's pole lap at Monaco is the single most impressive display of car control I have ever seen at a race track. Four championships earned.", likes: ["bot_121","bot_141","bot_151","bot_161","bot_171","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_121","bot_141","bot_151","bot_161"], clickId: "click_cars", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 10 },
+  { id: "cp_cr_003", userId: "bot_141", username: "blaze_king", content: "The Toyota Land Cruiser 70 series has been in continuous production for 40 years and will outlast every EV on the road today. Proven reliability wins.", likes: ["bot_121","bot_131","bot_151","bot_161","bot_171","bot_001","bot_002","bot_003"], reposts: ["bot_121","bot_131","bot_151"], clickId: "click_cars", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 7 },
+
+  // FINANCE CLICK posts
+  { id: "cp_fn_001", userId: "bot_122", username: "sigma_grind", content: "S&P 500 index fund. Dollar cost average. Don't touch it for 30 years. That's it. That's the thread. That's the strategy that beats 95% of hedge funds. 📈", likes: ["bot_132","bot_142","bot_152","bot_162","bot_172","bot_182","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007"], reposts: ["bot_132","bot_142","bot_152","bot_162","bot_172","bot_182"], clickId: "click_finance", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 18 },
+  { id: "cp_fn_002", userId: "bot_132", username: "flex_master", content: "The Bitcoin ETF approval was the single most important regulatory moment in crypto history. Institutional money is in now. The game genuinely changed. ₿", likes: ["bot_122","bot_142","bot_152","bot_162","bot_172","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_122","bot_142","bot_152","bot_162"], clickId: "click_finance", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 12 },
+  { id: "cp_fn_003", userId: "bot_142", username: "alpha_wolf", content: "HYSA at 5% APY is still the most underused financial tool for regular people right now. Your money sitting in a 0.01% checking account is losing to inflation.", likes: ["bot_122","bot_132","bot_152","bot_162","bot_172","bot_001","bot_002","bot_003"], reposts: ["bot_122","bot_132","bot_152"], clickId: "click_finance", createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 9 },
+
+  // TENNIS CLICK posts
+  { id: "cp_tn_001", userId: "bot_123", username: "stay_ready", content: "Carlos Alcaraz vs Djokovic Wimbledon final was the single greatest tennis match I have ever watched. Two all-time greats meeting at their peaks. 🎾", likes: ["bot_133","bot_143","bot_153","bot_163","bot_173","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006"], reposts: ["bot_133","bot_143","bot_153","bot_163","bot_173"], clickId: "click_tennis", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 13 },
+  { id: "cp_tn_002", userId: "bot_133", username: "be_relentless", content: "Coco Gauff winning the US Open was a cultural moment beyond tennis. Watching her evolve from 15-year-old Wimbledon sensation to Grand Slam champion is special.", likes: ["bot_123","bot_143","bot_153","bot_163","bot_173","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_123","bot_143","bot_153","bot_163"], clickId: "click_tennis", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 9 },
+  { id: "cp_tn_003", userId: "bot_143", username: "move_smart", content: "Jannik Sinner is the future of men's tennis and it's arriving faster than anyone expected. His defensive retrieval combined with that two-hander is elite.", likes: ["bot_123","bot_133","bot_153","bot_163","bot_173","bot_001","bot_002","bot_003"], reposts: ["bot_123","bot_133","bot_153"], clickId: "click_tennis", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 7 },
+
+  // ART CLICK posts
+  { id: "cp_at_001", userId: "bot_124", username: "play_long", content: "Spent three hours at MoMA today just sitting in front of a Rothko. The way color becomes emotion when you give it time is not something you can explain. 🎨", likes: ["bot_134","bot_144","bot_154","bot_164","bot_174","bot_184","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_134","bot_144","bot_154","bot_164","bot_174"], clickId: "click_art", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 11 },
+  { id: "cp_at_002", userId: "bot_134", username: "think_big", content: "Street art in cities that protect it instead of painting over it becomes the actual cultural identity of neighborhoods. Wynwood, Bushwick, Shoreditch. Proof.", likes: ["bot_124","bot_144","bot_154","bot_164","bot_174","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_124","bot_144","bot_154","bot_164"], clickId: "click_art", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 8 },
+  { id: "cp_at_003", userId: "bot_144", username: "act_bold", content: "Graphic design is the most undervalued creative profession in the world. Every piece of visual culture you consume passed through a designer's hands. Respect that.", likes: ["bot_124","bot_134","bot_154","bot_164","bot_174","bot_001","bot_002","bot_003"], reposts: ["bot_124","bot_134","bot_154"], clickId: "click_art", createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 6 },
 ];
 
 // Seeded clicks (communities)
 const SC = [
-  { id: "click_nyc",     name: "New York City 🗽",         image: null, members: ["bot_001","bot_005","bot_010","bot_020","bot_030","bot_040","bot_050"], ownerId: "bot_001", createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
-  { id: "click_nba",     name: "NBA 🏀",                   image: null, members: ["bot_002","bot_006","bot_011","bot_021","bot_031","bot_041","bot_051","bot_061"], ownerId: "bot_002", createdAt: new Date(Date.now() - 86400000 * 8).toISOString() },
-  { id: "click_ai",      name: "AI & Tech 🤖",             image: null, members: ["bot_003","bot_007","bot_012","bot_022","bot_032","bot_042","bot_052","bot_062","bot_072"], ownerId: "bot_003", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
-  { id: "click_music",   name: "Music Vibes 🎵",           image: null, members: ["bot_004","bot_008","bot_013","bot_023","bot_033","bot_043","bot_053","bot_063"], ownerId: "bot_004", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
-  { id: "click_food",    name: "Foodies 🍜",               image: null, members: ["bot_005","bot_009","bot_014","bot_024","bot_034","bot_044","bot_054"], ownerId: "bot_005", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
-  { id: "click_movies",  name: "Movies & TV 🎬",           image: null, members: ["bot_015","bot_025","bot_035","bot_045","bot_055","bot_065","bot_075","bot_085","bot_095"], ownerId: "bot_015", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
-  { id: "click_hiphop",  name: "Hip Hop 🎤",               image: null, members: ["bot_016","bot_026","bot_036","bot_046","bot_056","bot_066","bot_076","bot_086"], ownerId: "bot_016", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-  { id: "click_kpop",    name: "K-Pop 🌸",                 image: null, members: ["bot_017","bot_027","bot_037","bot_047","bot_057","bot_067","bot_077"], ownerId: "bot_017", createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
-  { id: "click_books",   name: "Book Club 📚",             image: null, members: ["bot_018","bot_028","bot_038","bot_048","bot_058","bot_068","bot_078","bot_088"], ownerId: "bot_018", createdAt: new Date(Date.now() - 86400000 * 9).toISOString() },
-  { id: "click_fitness", name: "Fitness & Gym 💪",         image: null, members: ["bot_019","bot_029","bot_039","bot_049","bot_059","bot_069","bot_079","bot_089","bot_099"], ownerId: "bot_019", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
-  { id: "click_gaming",  name: "Gaming 🎮",                image: null, members: ["bot_100","bot_110","bot_120","bot_130","bot_140","bot_150","bot_160","bot_170"], ownerId: "bot_100", createdAt: new Date(Date.now() - 86400000 * 11).toISOString() },
-  { id: "click_taylor",  name: "Taylor Swift 🫶",          image: null, members: ["bot_101","bot_111","bot_121","bot_131","bot_141","bot_151","bot_161","bot_171","bot_181"], ownerId: "bot_101", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
-  { id: "click_nfl",     name: "NFL 🏈",                   image: null, members: ["bot_102","bot_112","bot_122","bot_132","bot_142","bot_152","bot_162","bot_172"], ownerId: "bot_102", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
-  { id: "click_anime",   name: "Anime & Manga 🌀",         image: null, members: ["bot_103","bot_113","bot_123","bot_133","bot_143","bot_153","bot_163"], ownerId: "bot_103", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
-  { id: "click_startup", name: "Startups & VC 🚀",        image: null, members: ["bot_104","bot_114","bot_124","bot_134","bot_144","bot_154","bot_164","bot_174"], ownerId: "bot_104", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: "click_nyc",       name: "New York City 🗽",       image: null, members: ["bot_001","bot_005","bot_010","bot_020","bot_030","bot_040","bot_050"], ownerId: "bot_001", createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
+  { id: "click_nba",       name: "NBA 🏀",                 image: null, members: ["bot_002","bot_006","bot_011","bot_021","bot_031","bot_041","bot_051","bot_061"], ownerId: "bot_002", createdAt: new Date(Date.now() - 86400000 * 8).toISOString() },
+  { id: "click_ai",        name: "AI & Tech 🤖",           image: null, members: ["bot_003","bot_007","bot_012","bot_022","bot_032","bot_042","bot_052","bot_062","bot_072"], ownerId: "bot_003", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
+  { id: "click_music",     name: "Music Vibes 🎵",         image: null, members: ["bot_004","bot_008","bot_013","bot_023","bot_033","bot_043","bot_053","bot_063"], ownerId: "bot_004", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
+  { id: "click_food",      name: "Foodies 🍜",             image: null, members: ["bot_005","bot_009","bot_014","bot_024","bot_034","bot_044","bot_054"], ownerId: "bot_005", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: "click_movies",    name: "Movies & TV 🎬",         image: null, members: ["bot_015","bot_025","bot_035","bot_045","bot_055","bot_065","bot_075","bot_085","bot_095"], ownerId: "bot_015", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: "click_hiphop",    name: "Hip Hop 🎤",             image: null, members: ["bot_016","bot_026","bot_036","bot_046","bot_056","bot_066","bot_076","bot_086"], ownerId: "bot_016", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+  { id: "click_kpop",      name: "K-Pop 🌸",               image: null, members: ["bot_017","bot_027","bot_037","bot_047","bot_057","bot_067","bot_077"], ownerId: "bot_017", createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
+  { id: "click_books",     name: "Book Club 📚",           image: null, members: ["bot_018","bot_028","bot_038","bot_048","bot_058","bot_068","bot_078","bot_088"], ownerId: "bot_018", createdAt: new Date(Date.now() - 86400000 * 9).toISOString() },
+  { id: "click_fitness",   name: "Fitness & Gym 💪",       image: null, members: ["bot_019","bot_029","bot_039","bot_049","bot_059","bot_069","bot_079","bot_089","bot_099"], ownerId: "bot_019", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
+  { id: "click_gaming",    name: "Gaming 🎮",              image: null, members: ["bot_100","bot_110","bot_120","bot_130","bot_140","bot_150","bot_160","bot_170"], ownerId: "bot_100", createdAt: new Date(Date.now() - 86400000 * 11).toISOString() },
+  { id: "click_taylor",    name: "Taylor Swift 🫶",        image: null, members: ["bot_101","bot_111","bot_121","bot_131","bot_141","bot_151","bot_161","bot_171","bot_181"], ownerId: "bot_101", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
+  { id: "click_nfl",       name: "NFL 🏈",                 image: null, members: ["bot_102","bot_112","bot_122","bot_132","bot_142","bot_152","bot_162","bot_172"], ownerId: "bot_102", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
+  { id: "click_anime",     name: "Anime & Manga 🌀",       image: null, members: ["bot_103","bot_113","bot_123","bot_133","bot_143","bot_153","bot_163"], ownerId: "bot_103", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: "click_startup",   name: "Startups & VC 🚀",      image: null, members: ["bot_104","bot_114","bot_124","bot_134","bot_144","bot_154","bot_164","bot_174"], ownerId: "bot_104", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: "click_soccer",    name: "Soccer / Football ⚽",  image: null, members: ["bot_105","bot_115","bot_125","bot_135","bot_145","bot_155","bot_165","bot_175"], ownerId: "bot_105", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+  { id: "click_nhl",       name: "NHL Hockey 🏒",          image: null, members: ["bot_106","bot_116","bot_126","bot_136","bot_146","bot_156","bot_166"], ownerId: "bot_106", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
+  { id: "click_photography","name": "Photography 📷",      image: null, members: ["bot_107","bot_117","bot_127","bot_137","bot_147","bot_157","bot_167"], ownerId: "bot_107", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
+  { id: "click_cooking",   name: "Home Cooking 🍳",        image: null, members: ["bot_108","bot_118","bot_128","bot_138","bot_148","bot_158","bot_168"], ownerId: "bot_108", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: "click_travel",    name: "Travel ✈️",              image: null, members: ["bot_109","bot_119","bot_129","bot_139","bot_149","bot_159","bot_169"], ownerId: "bot_109", createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
+  { id: "click_fashion",   name: "Fashion & Style 👗",     image: null, members: ["bot_120","bot_130","bot_140","bot_150","bot_160","bot_170","bot_180"], ownerId: "bot_120", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+  { id: "click_cars",      name: "Cars & Motorsport 🚗",   image: null, members: ["bot_121","bot_131","bot_141","bot_151","bot_161","bot_171","bot_181"], ownerId: "bot_121", createdAt: new Date(Date.now() - 86400000 * 8).toISOString() },
+  { id: "click_finance",   name: "Finance & Crypto 📈",    image: null, members: ["bot_122","bot_132","bot_142","bot_152","bot_162","bot_172","bot_182"], ownerId: "bot_122", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: "click_tennis",    name: "Tennis 🎾",              image: null, members: ["bot_123","bot_133","bot_143","bot_153","bot_163","bot_173"], ownerId: "bot_123", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: "click_art",       name: "Art & Design 🎨",        image: null, members: ["bot_124","bot_134","bot_144","bot_154","bot_164","bot_174","bot_184"], ownerId: "bot_124", createdAt: new Date(Date.now() - 86400000 * 9).toISOString() },
 ];
 
 // 24 default profile pics (SVG data URIs)
@@ -187,6 +294,8 @@ const SendI  = () => Ic("M22 2L11 13 M22 2L15 22 8 13 2 2z", 18);
 const FlagI  = () => Ic("M4 15s1-1 4-1 4 2 8 2 4-1 4-1V3s-1 1-4 1-4-2-8-2-4 1-4 1z M4 22v-7", 18);
 const HrtI   = ({ on }) => <svg width="18" height="18" viewBox="0 0 24 24" fill={on ? PINK : "none"} stroke={on ? PINK : "currentColor"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>;
 const RtI    = ({ on }) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={on ? "#00BA7C" : "currentColor"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14 M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>;
+// Anthropic logo mark (official wordmark simplified to icon)
+const AnthropicLogo = ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M13.8 2h-3.6L4 22h3.8l1.3-3.6h5.8L16.2 22H20L13.8 2zm-3.6 13.1L12 8.7l1.8 6.4H10.2z"/></svg>;
 
 // ── AVATAR ────────────────────────────────────────────────────────────────────
 const Av = ({ user, sz = 40, onClick }) => {
@@ -219,7 +328,7 @@ const MentionPicker = ({ q, users, onPick, T }) => {
     {m.map(name => {
       const u = users.find(x => x.username === name);
       return <div key={name} onMouseDown={e => { e.preventDefault(); onPick(name); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer" }}>
-        {name === "claude" ? <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✨</div> : <Av user={u} sz={32} />}
+        {name === "claude" ? <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={18} /></div> : <Av user={u} sz={32} />}
         <div><div style={{ fontWeight: 700, fontSize: 13, color: T.text }}>@{name}</div>{u?.bio && <div style={{ fontSize: 11, color: T.sub }}>{u.bio}</div>}</div>
       </div>;
     })}
@@ -339,15 +448,16 @@ const ClaudeChat = ({ T, onClose, init }) => {
   const send = async txt => {
     const text = (txt || input).trim();
     if (!text || busy) return;
+    if (!getKey()) {
+      setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "⚙️ No API key set yet! Go to **Settings → Claude AI Key** and paste your Anthropic API key (get one free at console.anthropic.com). Once saved, I'll be ready to chat!" }]);
+      setInput("");
+      return;
+    }
     const next = [...msgs, { role: "user", content: text }];
     setMsgs(next); setInput(""); setBusy(true);
     try {
       const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": "YOUR_API_KEY_HERE", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Claude, an AI assistant integrated into Scrypt — a Twitter-like social platform. Be helpful, concise, and friendly. Keep responses brief unless asked for detail.", messages: api })
-      });
+      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Claude, an AI assistant integrated into Scrypt — a Twitter-like social platform. Be helpful, concise, and friendly. Keep responses brief unless asked for detail.", messages: api });
       const d = await r.json();
       setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
     } catch {
@@ -360,17 +470,17 @@ const ClaudeChat = ({ T, onClose, init }) => {
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 8900, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
     <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, height: "75vh", display: "flex", flexDirection: "column", border: `1px solid ${T.border}` }}>
       <div style={{ padding: "13px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>✨</div>
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={20} /></div>
         <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Claude AI</div><div style={{ fontSize: 12, color: T.sub }}>Powered by Anthropic</div></div>
         <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><XI /></button>
       </div>
       <div style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {msgs.map((m, i) => <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}>
-          {m.role === "assistant" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>✨</div>}
+          {m.role === "assistant" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={14} /></div>}
           <div style={{ maxWidth: "78%", padding: "9px 13px", borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: m.role === "user" ? BLUE : T.input, color: m.role === "user" ? "white" : T.text, fontSize: 14, lineHeight: 1.5 }}>{m.content}</div>
         </div>)}
         {busy && <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>✨</div>
+          <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={14} /></div>
           <div style={{ padding: "9px 13px", background: T.input, borderRadius: "14px 14px 14px 4px", display: "flex", gap: 4, alignItems: "center" }}>
             {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: T.sub, animation: `dot${i} 1s ${i * 0.2}s ease-in-out infinite alternate` }} />)}
           </div>
@@ -563,7 +673,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
       </div>
       <div style={{ padding: "34px 16px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{user.username}</div>
+          <div style={{ fontWeight: 800, fontSize: 16, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{user.username}{user.verified && <span style={{ color: BLUE, fontSize: 14 }}>✓</span>}</div>
           <div style={{ fontSize: 12, color: T.sub }}>@{user.username.toLowerCase()}</div>
           {/* Mood status */}
           {user.mood && <div style={{ fontSize: 13, color: accent.color, marginTop: 3, fontStyle: "italic" }}>{user.mood}</div>}
@@ -739,11 +849,7 @@ const NotifTab = ({ me, users, posts, T }) => {
     setTBusy(true);
     const sample = posts.slice(0, 60).map(p => p.content).join(" | ");
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": "YOUR_API_KEY_HERE", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these social media posts, identify 6 trending topics (artists, shows, sports, news, or themes people are discussing). Return ONLY a JSON array of short strings (2-4 words max each), no hashtag symbols. Example: ["Kendrick Lamar","Severance S2","Taylor Swift","NFL Playoffs","Gaming News","Book Club"]. Posts: ${sample}` }] })
-      });
+      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these social media posts, identify 6 trending topics (artists, shows, sports, news, or themes people are discussing). Return ONLY a JSON array of short strings (2-4 words max each), no hashtag symbols. Example: ["Kendrick Lamar","Severance S2","Taylor Swift","NFL Playoffs","Gaming News","Book Club"]. Posts: ${sample}` }] });
       const d = await r.json();
       const txt = d.content?.[0]?.text || "[]";
       const parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -820,11 +926,7 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
     } else {
       messages.push({ role: "user", content: `Review this social media post for a platform that requires safe content. Check for: hate speech, threats, harassment, sexual/graphic content, illegal activity, or content harmful to minors. Post: "${content}". Respond ONLY with a JSON object: {"safe": true/false, "reason": "brief reason if unsafe, empty string if safe"}` });
     }
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": "YOUR_API_KEY_HERE", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 100, messages })
-    });
+    const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 100, messages });
     const d = await r.json();
     const txt = d.content?.[0]?.text || '{"safe":true,"reason":""}';
     return JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -835,14 +937,16 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
     setModErr("");
     setModBusy(true);
     try {
-      const result = await moderateWithClaude(text, img);
-      if (!result.safe) {
-        setModErr(`⚠️ Post blocked: ${result.reason || "Content violates community guidelines."}`);
-        setModBusy(false);
-        return;
+      if (getKey()) {
+        const result = await moderateWithClaude(text, img);
+        if (!result.safe) {
+          setModErr(`⚠️ Post blocked: ${result.reason || "Content violates community guidelines."}`);
+          setModBusy(false);
+          return;
+        }
       }
     } catch {
-      // If moderation API fails, fall through (don't block on API errors)
+      // fail open
     }
     setModBusy(false);
     onPost({ content: text, image: img, clickId, parentId, villageOnly: vill });
@@ -902,6 +1006,7 @@ const Post = ({ p, me, users, all, onLike, onRt, onReply, onThread, onUser, T })
         <div style={{ display: "flex", gap: 5, alignItems: "baseline", flexWrap: "wrap", marginBottom: 2 }}>
           <div style={{ display: "flex", gap: 5, alignItems: "baseline", flexWrap: "wrap", flex: 1 }}>
             <span onClick={() => onUser && onUser(author)} style={{ fontWeight: 700, fontSize: 15, color: T.text, cursor: "pointer" }}>{author.username}</span>
+            {author.verified && <span title="Verified Scrypt Account" style={{ fontSize: 13, color: BLUE, lineHeight: 1 }}>✓</span>}
             <span style={{ fontSize: 13, color: T.sub }}>@{author.username.toLowerCase()} · {ago(p.createdAt)}</span>
             {p.villageOnly && <span style={{ fontSize: 10, color: PURPLE, background: T.input, borderRadius: 4, padding: "1px 5px" }}>🔒 Village</span>}
           </div>
@@ -938,7 +1043,59 @@ const Thread = ({ p, me, users, all, onLike, onRt, onReply, onBack, onUser, T })
   </div>;
 };
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
+// ── DOB SCROLL PICKER ─────────────────────────────────────────────────────────
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const ScrollCol = ({ items, selected, onSelect, T }) => {
+  const ref = useRef();
+  const ITEM_H = 44;
+  useEffect(() => {
+    const idx = items.indexOf(selected);
+    if (ref.current && idx >= 0) ref.current.scrollTop = idx * ITEM_H;
+  }, [selected, items]);
+  const onScroll = () => {
+    if (!ref.current) return;
+    const idx = Math.round(ref.current.scrollTop / ITEM_H);
+    if (items[idx] !== undefined) onSelect(items[idx]);
+  };
+  return <div ref={ref} onScroll={onScroll} style={{ flex: 1, height: ITEM_H * 5, overflowY: "scroll", scrollSnapType: "y mandatory", scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", position: "relative" }}>
+    <div style={{ paddingTop: ITEM_H * 2, paddingBottom: ITEM_H * 2 }}>
+      {items.map(item => {
+        const isSelected = item === selected;
+        return <div key={item} onClick={() => {
+          onSelect(item);
+          const idx = items.indexOf(item);
+          if (ref.current) ref.current.scrollTo({ top: idx * ITEM_H, behavior: "smooth" });
+        }} style={{ height: ITEM_H, display: "flex", alignItems: "center", justifyContent: "center", scrollSnapAlign: "center", fontSize: isSelected ? 17 : 14, fontWeight: isSelected ? 700 : 400, color: isSelected ? T.text : T.sub, cursor: "pointer", transition: "all 0.15s", userSelect: "none", borderRadius: 8, background: isSelected ? T.input : "transparent" }}>
+          {item}
+        </div>;
+      })}
+    </div>
+  </div>;
+};
+const DOBPicker = ({ value, onChange, T }) => {
+  const now = new Date();
+  const [month, setMonth] = useState(value ? MONTHS[parseInt(value.split("-")[1]) - 1] : MONTHS[now.getMonth()]);
+  const [day, setDay] = useState(value ? parseInt(value.split("-")[2]) : now.getDate());
+  const [year, setYear] = useState(value ? parseInt(value.split("-")[0]) : now.getFullYear() - 20);
+  const years = Array.from({ length: 100 }, (_, i) => now.getFullYear() - 100 + i + 1).reverse();
+  const days = Array.from({ length: new Date(year, MONTHS.indexOf(month) + 1, 0).getDate() }, (_, i) => i + 1);
+  const safeDay = Math.min(day, days.length);
+  useEffect(() => {
+    const m = String(MONTHS.indexOf(month) + 1).padStart(2, "0");
+    const d = String(safeDay).padStart(2, "0");
+    onChange(`${year}-${m}-${d}`);
+  }, [month, safeDay, year]);
+  return <div style={{ background: T.input, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}`, position: "relative" }}>
+    <style>{`.__scol::-webkit-scrollbar{display:none}`}</style>
+    {/* Selection highlight */}
+    <div style={{ position: "absolute", top: "50%", left: 8, right: 8, transform: "translateY(-50%)", height: 44, borderRadius: 10, background: `rgba(29,155,240,0.10)`, border: `1.5px solid rgba(29,155,240,0.25)`, pointerEvents: "none", zIndex: 1 }} />
+    <div style={{ display: "flex", gap: 0, padding: "0 8px" }}>
+      <ScrollCol items={MONTHS} selected={month} onSelect={setMonth} T={T} />
+      <ScrollCol items={days} selected={safeDay} onSelect={d => setDay(d)} T={T} />
+      <ScrollCol items={years} selected={year} onSelect={setYear} T={T} />
+    </div>
+  </div>;
+};
 const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
   const [u, setU] = useState("");
   const [pw, setPw] = useState("");
@@ -1050,8 +1207,8 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
           <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} />
           <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm password" style={s} />
           <div>
-            <label style={{ fontSize: 12, color: T.sub, display: "block", marginBottom: 4 }}>Date of Birth (must be 16+)</label>
-            <input type="date" value={dob} onChange={e => setDob(e.target.value)} max={new Date(Date.now() - 16 * 365.25 * 24 * 3600000).toISOString().split("T")[0]} style={{ ...s, colorScheme: dark ? "dark" : "light" }} />
+            <label style={{ fontSize: 12, color: T.sub, display: "block", marginBottom: 6 }}>📅 Date of Birth <span style={{ color: T.sub, fontWeight: 400 }}>(must be 16+)</span></label>
+            <DOBPicker value={dob} onChange={setDob} T={T} />
           </div>
           {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8 }}>{err}</div>}
           <button onClick={go} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: 14, fontWeight: 800, fontSize: 15, cursor: "pointer" }}>Continue</button>
@@ -1117,11 +1274,7 @@ const HomeTrending = ({ posts, T }) => {
     setBusy(true);
     const sample = posts.slice(0, 60).map(p => p.content).join(" | ");
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": "YOUR_API_KEY_HERE", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these social media posts, identify 6 trending topics. Return ONLY a JSON array of short strings (2-4 words max each), no hashtag symbols. Example: ["Kendrick Lamar","Severance S2","Taylor Swift","NFL Playoffs","Gaming News","Book Club"]. Posts: ${sample}` }] })
-      });
+      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these social media posts, identify 6 trending topics. Return ONLY a JSON array of short strings (2-4 words max each), no hashtag symbols. Example: ["Kendrick Lamar","Severance S2","Taylor Swift","NFL Playoffs","Gaming News","Book Club"]. Posts: ${sample}` }] });
       const d = await r.json();
       const txt = d.content?.[0]?.text || "[]";
       const parsed = JSON.parse(txt.replace(/\`\`\`json|\`\`\`/g, "").trim());
@@ -1178,19 +1331,31 @@ export default function App() {
   const [serr, setSerr] = useState("");
   const [cName, setCName] = useState("");
   const [cImg, setCImg] = useState(null);
+  const [cropSrc, setCropSrc] = useState(null);
+  const [cropKey, setCropKey] = useState(null);
+  const [apiKey, setApiKey] = useState(() => LS.get("apiKey") || "");
   const avRef = useRef();
   const avRef2 = useRef();
   const cImgRef = useRef();
 
   useEffect(() => {
-    const V = "v17";
+    const V = "v18";
     if (LS.get("dv") !== V) {
       const h = (LS.get("su") || []).filter(u => !u.isBot);
-      const m = [...h, ...SU];
+      const m = [...h, ...SU, SCRYPTBOT_USER, MINERVA_USER, CLAUDE_USER];
       LS.set("su", m); setUsers(m);
       LS.set("sp", SP); setPosts(SP);
       LS.set("sc", SC); setClicks(SC);
       LS.set("dv", V);
+    } else {
+      // Ensure special bots are always present even after version already ran
+      const cur = LS.get("su") || [];
+      let updated = false;
+      let next = [...cur];
+      if (!next.find(u => u.id === "bot_scryptbot")) { next.push(SCRYPTBOT_USER); updated = true; }
+      if (!next.find(u => u.id === "bot_minerva")) { next.push(MINERVA_USER); updated = true; }
+      if (!next.find(u => u.id === "claude_account")) { next.push(CLAUDE_USER); updated = true; }
+      if (updated) { LS.set("su", next); setUsers(next); }
     }
   }, []);
 
@@ -1206,11 +1371,53 @@ export default function App() {
   const notify = m => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const sv = (k, v, s) => { LS.set(k, v); s(v); };
 
-  const checkClaude = useCallback(txt => {
-    if (/@claude\b/i.test(txt)) {
-      const q = txt.replace(/@claude\b/i, "").trim();
-      setClaudeInit(q || "Someone mentioned you on Scrypt! What would you like to say?");
-      setShowClaude(true);
+  const checkClaude = useCallback(async (txt, parentPostId) => {
+    if (!/@claude\b/i.test(txt)) return;
+    const q = txt.replace(/@claude\b/i, "").trim();
+    if (!getKey()) {
+      // No key — post a helpful reply
+      const noKeyReply = {
+        id: `claude_reply_${Date.now()}`,
+        userId: "claude_account",
+        username: "Claude",
+        content: "👋 Hi! I'd love to reply but I need an API key to think. Head to **Settings → Claude AI Key** and paste your Anthropic key — then @mention me again! 🤖",
+        parentId: parentPostId,
+        likes: [], reposts: [],
+        createdAt: new Date().toISOString(),
+        replyCount: 0,
+        isClaudeReply: true
+      };
+      const cur2 = LS.get("sp") || [];
+      const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
+      sv("sp", [noKeyReply, ...withReply], setPosts);
+      return;
+    }
+    try {
+      const r = await claudeFetch({
+        model: "claude-sonnet-4-6",
+        max_tokens: 220,
+        system: "You are Claude, a witty AI on Scrypt — a social platform like Twitter. Someone just @mentioned you in a post. Reply naturally like a real user would: conversational, warm, occasionally funny, never robotic. Keep it under 240 characters — this is a social post not an essay. No hashtags unless they're genuinely funny. Sound human.",
+        messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
+      });
+      const d = await r.json();
+      const reply = d.content?.[0]?.text || "Thanks for the mention! 👋";
+      const claudePost = {
+        id: `claude_reply_${Date.now()}`,
+        userId: "claude_account",
+        username: "Claude",
+        content: reply,
+        parentId: parentPostId,
+        likes: [], reposts: [],
+        createdAt: new Date().toISOString(),
+        replyCount: 0,
+        isClaudeReply: true
+      };
+      const cur2 = LS.get("sp") || [];
+      const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
+      sv("sp", [claudePost, ...withReply], setPosts);
+      notify("Claude replied to your Scrypt! 🤖");
+    } catch {
+      // fail silently
     }
   }, []);
 
@@ -1226,7 +1433,7 @@ export default function App() {
     const upd = parentId ? cur.map(x => x.id === parentId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur;
     sv("sp", [p, ...upd], setPosts);
     notify(villageOnly ? "Posted to Village! 🔒" : parentId ? "Reply posted!" : "Scrypt posted!");
-    checkClaude(content);
+    checkClaude(content, p.id);
     if (!villageOnly && !parentId) {
       // Sentiment score: more positive words = more bot likes
       const positive = ["love","amazing","best","great","goat","incredible","masterpiece","legendary","fire","perfect","beautiful","brilliant","epic","fantastic","excellent","awesome","outstanding","phenomenal","elite","🔥","💪","❤️","🙌","💯","🏆","✨","🎉","😍","🌟","happy","excited","grateful","winning","inspire","community","scrypt"];
@@ -1343,6 +1550,99 @@ export default function App() {
         "Caleb Williams had a rough rookie season but the Bears have talent around him now. Give it 2 more years and he'll be elite.",
         "The NFC is chaotic this year and I love it. Any team can win on any given week. Best conference in football right now.",
         "Detroit Lions becoming a powerhouse is the most heartwarming story in the NFL. Dan Campbell and Jared Goff deserve everything.",
+        "Josh Allen is the most entertaining QB in the league. Buffalo needs to win a Super Bowl for him. He deserves it.",
+        "The Eagles offensive line is the most dominant unit in football. Lane Johnson is a first ballot Hall of Famer. Period.",
+      ],
+      click_soccer: [
+        "Vinicius Jr. is the most exciting player on the planet right now. Real Madrid with him is must-watch football every single week. ⚽",
+        "The Premier League title race this season is genuinely anyone's to win. Arsenal, City, Liverpool all neck and neck. Can't look away.",
+        "Lionel Messi at Inter Miami is the greatest thing to happen to American soccer. He's making MLS appointment viewing globally.",
+        "Erling Haaland broke the Premier League scoring record and somehow it still feels underappreciated. The man is a machine. 🎯",
+        "The Women's World Cup showed the world what women's football can be. Support the women's game like you support the men's. No excuses.",
+        "Lamine Yamal at 17 playing like a 10 year veteran. Barcelona's future is bright. The kid is generational. 🌟",
+        "Champions League nights are still the greatest sporting spectacle in the world. Nothing else comes close to that atmosphere.",
+        "USMNT actually has a chance at the 2026 World Cup on home soil. Pulisic, Reyna, Weah — this generation is different.",
+      ],
+      click_nhl: [
+        "Connor McDavid is the greatest hockey player alive and if you're not watching Oilers games you're missing art in motion. 🏒",
+        "The Florida Panthers back to back Stanley Cup runs is one of the greatest sustained runs of dominance in recent NHL history.",
+        "Nathan MacKinnon has been the best player in the NHL for 3 years straight and still gets slept on compared to McDavid. Crime.",
+        "The Winter Classic outdoor game format is the best event in all of professional sports. Nothing hits like hockey in the snow. ❄️",
+        "Auston Matthews scoring 60+ goals in a season is something we're not appreciating enough. Historic season. Legendary talent.",
+        "The Seattle Kraken went from expansion team to legitimate contender faster than any franchise in NHL history. Respect.",
+        "Hockey analytics are finally catching up to baseball and basketball. Expected goals and zone entries changing how we evaluate players.",
+      ],
+      click_photography: [
+        "Golden hour on a 35mm film camera is still the most beautiful thing photography has ever produced. Digital can't replicate that warmth. 📷",
+        "Street photography in NYC is an entirely different sport. You have to be invisible, patient, and fast all at once. The decisive moment.",
+        "Just got the Sony A7R V and the dynamic range is genuinely insane. Landscape photography will never be the same for me. 🏔️",
+        "Film photography is having a full revival and honestly it makes perfect sense. The intentionality forces you to slow down and think.",
+        "Portrait photography tip: the eyes are everything. If the eyes aren't sharp the whole image fails. Prime lens, wide open, nail focus.",
+        "The Fujifilm color science is still unmatched for street and documentary work. Their film simulations are an art form in themselves.",
+        "Lightroom vs Capture One debate will never end but Capture One skin tones on medium format files are genuinely on another level.",
+      ],
+      click_cooking: [
+        "Made fresh pasta from scratch for the first time. I will never go back to dried pasta. The texture difference is not even close. 🍝",
+        "The key to restaurant-quality steak at home: dry brine 24 hours, cast iron screaming hot, butter baste, rest 10 minutes. That's it.",
+        "Sourdough starter day 14: she's alive and thriving. First loaf tomorrow. The bread community online is the most supportive place online. 🍞",
+        "Mise en place changed my entire relationship with cooking. Having everything prepped before you start is the actual secret to not panicking.",
+        "Korean BBQ at home is completely underrated as a dinner party move. Get a grill plate, marinate beef short ribs overnight, done.",
+        "The dumpling folding rabbit hole goes deeper than you think. Pan fried vs steamed vs soup. Every fold technique has a purpose.",
+        "Salt, fat, acid, heat. Read that book once and you'll never cook the same way again. Samin Nosrat changed my life.",
+      ],
+      click_travel: [
+        "Japan in cherry blossom season is the most beautiful place I have ever been. Kyoto in April is not a destination it's a feeling. ✈️",
+        "The Amalfi Coast is overrated because of how many people say it's overrated. It's actually breathtaking. Go and make up your own mind.",
+        "Solo travel tip: stay in hostels even if you can afford a hotel. You will meet the most interesting humans in a hostel common room.",
+        "Morocco blew my mind. Marrakech medina is sensory overload in the best possible way. Sahara desert camping is life-changing.",
+        "Southeast Asia is still the world's best value travel destination. Thailand, Vietnam, Bali — your dollar goes 5x further and the food is elite.",
+        "The most underrated travel move: go in shoulder season. Better prices, fewer crowds, still great weather. September Europe is perfect.",
+        "New Zealand for two weeks reset something in my brain. The scale of the landscapes is impossible to photograph accurately. Go in person.",
+      ],
+      click_fashion: [
+        "The Loro Piana x LVMH acquisition is quietly the most important luxury move in a decade. The brand will never be the same. 👗",
+        "Quiet luxury is not a trend it's a correction. People got tired of logomania. Understated quality is the permanent move.",
+        "Thrifting is genuinely the most sustainable and interesting way to build a wardrobe. Vintage Levi's still hit different than anything new.",
+        "Uniqlo continues to be the most underrated fashion brand in the world. Their collaboration pieces are cooked every single season.",
+        "The rise of GRWM culture has actually made people care more about the craft of getting dressed. Fashion literacy is up globally.",
+        "Sneaker culture peaked around 2019 and has been slowly correcting. The SNKRS app is still a scam. Resale is finally cooling down.",
+        "The Birkenstock glow-up is one of the great fashion rehabilitation stories of all time. From dad sandal to runway. Incredible arc.",
+      ],
+      click_cars: [
+        "The Porsche 911 GT3 RS is the greatest driver's car ever made and that opinion gets stronger every year. Naturally aspirated perfection. 🚗",
+        "Formula 1 is the most globally dominant sport right now. Drive to Survive brought in a whole new generation and they stayed.",
+        "The EV transition is inevitable but I will mourn the sound of a V8 at full throttle for the rest of my life. Some things can't be replaced.",
+        "Max Verstappen won four consecutive championships and still somehow isn't getting the respect he deserves outside of F1 circles.",
+        "The new Civic Type R is one of the best hot hatches ever made at any price point. Honda has been sleeping and woke up swinging.",
+        "Watching Le Mans 24 hours coverage overnight is one of the great underrated sports experiences. Set an alarm. Watch the dawn laps.",
+        "The Toyota Land Cruiser at 70+ years old is still the most reliable vehicle ever made. Depreciation proof. Desert survival tested. Legend.",
+      ],
+      click_finance: [
+        "Dollar cost averaging into index funds over 30 years beats 95% of active managers. It's boring. That's the point. 📈",
+        "Bitcoin ETF approval was the most significant crypto regulatory moment in history. Institutional money is in. The game changed.",
+        "The interest rate environment is shifting and if you're not thinking about duration risk in your bond portfolio you should be.",
+        "High yield savings accounts at 5% APY are still the most underutilized financial tool for regular people right now. Move your cash.",
+        "Nvidia stock is the defining investment story of the decade. AI infrastructure buildout is still in innings 2 or 3. Not financial advice.",
+        "The FIRE movement math actually works if you can hit a 70%+ savings rate for 10 years. It's hard. It's also the most freedom you can buy.",
+        "Real estate vs index funds debate misses the point. Your primary residence is not an investment, it's a lifestyle expense with equity.",
+      ],
+      click_tennis: [
+        "Carlos Alcaraz winning Wimbledon at 21 with that Djokovic final was the greatest tennis match I have ever seen live or on screen. 🎾",
+        "Jannik Sinner is the real deal. His movement and two-handed backhand are already in the conversation for all-time technique.",
+        "Coco Gauff winning the US Open was a cultural moment bigger than tennis. Watching her grow up on tour has been genuinely special.",
+        "The Djokovic GOAT case is closed. 24 slams. Olympic gold. Still competing at 37. Nothing to debate. Respect the anomaly.",
+        "The doubles game in tennis is criminally underrated as a spectator sport. The net exchanges and serve-return patterns are chess.",
+        "Clay court tennis is the most beautiful form of the game. Roland Garros baseline rallies on red clay. Nothing compares aesthetically.",
+        "Pickleball taking over suburban America is the best thing that's happened for racket sport participation in 50 years. Let people have fun.",
+      ],
+      click_art: [
+        "The Whitney Biennial this year is the most politically charged in decades. Art is doing what journalism used to do. Pay attention. 🎨",
+        "Digital art and NFTs confused everyone but the underlying technology separating scarcity from copies is still genuinely interesting.",
+        "Gerhard Richter's squeegee paintings sell for $50M and they're made with a giant squeegee. That's not a complaint. It's awe.",
+        "The Art Basel Miami week is half art and half spectacle but the gallery shows in Wynwood during that week are genuinely world-class.",
+        "Street art in cities that protect it instead of painting over it becomes the cultural identity of neighborhoods. Bushwick is proof.",
+        "Graphic design is the most undervalued creative profession. Every piece of visual culture you consume passed through a designer's hands.",
+        "The Rothko Chapel in Houston is the most spiritually affecting space I've ever sat in. Color as emotion. Silence as meaning. Go.",
       ],
       click_nba: [
         "Nikola Jokic is casually the best basketball player on earth and half the country still doesn't appreciate it. Third MVP incoming. 🏀",
@@ -1578,6 +1878,120 @@ export default function App() {
     return () => clearInterval(interval);
   }, [me]);
 
+  // ── SCRYPTBOT: Random facts every 6 hours ────────────────────────────────────
+  useEffect(() => {
+    if (!me) return;
+    const postFact = async () => {
+      if (!getKey()) return;
+      try {
+        const categories = ["science","space","animals","history","food","human body","psychology","technology","geography","nature","sports records","art","language"];
+        const cat = categories[Math.floor(Math.random() * categories.length)];
+        const r = await claudeFetch({
+          model: "claude-sonnet-4-6",
+          max_tokens: 180,
+          system: "You are ScryptBot, a fun facts account on a social platform. Post one genuinely surprising, specific, and interesting fact. Be conversational and enthusiastic — like a real person excited to share something cool. End with a relevant emoji. Keep it under 220 characters. Just the fact, no preamble like 'Here's a fact:'.",
+          messages: [{ role: "user", content: `Post a surprising fact about ${cat}.` }]
+        });
+        const d = await r.json();
+        const content = d.content?.[0]?.text;
+        if (!content) return;
+        const newPost = {
+          id: `scryptbot_${Date.now()}`,
+          userId: "bot_scryptbot",
+          username: "ScryptBot",
+          content: content.trim(),
+          likes: [], reposts: [],
+          createdAt: new Date().toISOString(),
+          replyCount: 0
+        };
+        const cur = LS.get("sp") || [];
+        // Bot community reacts with likes
+        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        const likers = allBots.sort(() => Math.random() - 0.5).slice(0, 8 + Math.floor(Math.random() * 18));
+        newPost.likes = likers.map(b => b.id);
+        if (Math.random() > 0.4) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 5)).map(b => b.id);
+        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+      } catch { /* fail silently */ }
+    };
+    postFact(); // Post once immediately on login
+    const interval = setInterval(postFact, 6 * 60 * 60 * 1000); // Then every 6h
+    return () => clearInterval(interval);
+  }, [me]);
+
+  // ── SCRYPT MINERVA: History facts every 12h + This Day in History daily ──────
+  useEffect(() => {
+    if (!me) return;
+    const postHistoryFact = async () => {
+      if (!getKey()) return;
+      try {
+        const eras = ["ancient Egypt","ancient Greece","the Roman Empire","the Renaissance","the Age of Exploration","the Industrial Revolution","World War I","World War II","the Cold War","ancient China","the Ottoman Empire","the Viking Age","medieval Europe","the Byzantine Empire"];
+        const era = eras[Math.floor(Math.random() * eras.length)];
+        const r = await claudeFetch({
+          model: "claude-sonnet-4-6",
+          max_tokens: 200,
+          system: "You are Scrypt Minerva, a history account on a social platform. Share one genuinely fascinating, specific historical fact — something most people don't know. Be compelling and slightly dramatic — history deserves it. End with a relevant emoji. Under 230 characters. Just the fact, no intro like 'Did you know'.",
+          messages: [{ role: "user", content: `Share a fascinating, little-known fact from ${era}.` }]
+        });
+        const d = await r.json();
+        const content = d.content?.[0]?.text;
+        if (!content) return;
+        const newPost = {
+          id: `minerva_hist_${Date.now()}`,
+          userId: "bot_minerva",
+          username: "Scrypt_Minerva",
+          content: content.trim(),
+          likes: [], reposts: [],
+          createdAt: new Date().toISOString(),
+          replyCount: 0
+        };
+        const cur = LS.get("sp") || [];
+        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 6 + Math.floor(Math.random() * 14)).map(b => b.id);
+        if (Math.random() > 0.5) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 4)).map(b => b.id);
+        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+      } catch { /* fail silently */ }
+    };
+
+    const postThisDayInHistory = async () => {
+      if (!getKey()) return;
+      try {
+        const now = new Date();
+        const month = now.toLocaleString("default", { month: "long" });
+        const day = now.getDate();
+        const r = await claudeFetch({
+          model: "claude-sonnet-4-6",
+          max_tokens: 200,
+          system: "You are Scrypt Minerva, a history account. Post a 'This Day in History' entry. Pick one real, specific, significant historical event that happened on this date in any year. Format: start with '📅 This Day in History —' then the year, then what happened. Be specific with names, places, numbers. Under 240 characters total.",
+          messages: [{ role: "user", content: `What happened on ${month} ${day} in history? Pick the most significant or surprising event.` }]
+        });
+        const d = await r.json();
+        const content = d.content?.[0]?.text;
+        if (!content) return;
+        const newPost = {
+          id: `minerva_tdih_${Date.now()}`,
+          userId: "bot_minerva",
+          username: "Scrypt_Minerva",
+          content: content.trim(),
+          likes: [], reposts: [],
+          createdAt: new Date().toISOString(),
+          replyCount: 0
+        };
+        const cur = LS.get("sp") || [];
+        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 20)).map(b => b.id);
+        newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 7)).map(b => b.id);
+        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+      } catch { /* fail silently */ }
+    };
+
+    // Post on login
+    postHistoryFact();
+    setTimeout(postThisDayInHistory, 8000); // stagger slightly
+    const histInterval = setInterval(postHistoryFact, 12 * 60 * 60 * 1000); // 12h
+    const tdihInterval = setInterval(postThisDayInHistory, 24 * 60 * 60 * 1000); // 24h
+    return () => { clearInterval(histInterval); clearInterval(tdihInterval); };
+  }, [me]);
+
   const doLike = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, likes: p.likes?.includes(me.id) ? p.likes.filter(x => x !== me.id) : [...(p.likes || []), me.id] }), setPosts);
   const doRt = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, reposts: p.reposts?.includes(me.id) ? p.reposts.filter(x => x !== me.id) : [...(p.reposts || []), me.id] }), setPosts);
   const doJoin = id => sv("sc", clicks.map(c => c.id !== id ? c : { ...c, members: c.members?.includes(me.id) ? c.members.filter(x => x !== me.id) : [...(c.members || []), me.id] }), setClicks);
@@ -1725,24 +2139,27 @@ export default function App() {
     </div>}
 
     {/* Click Modal */}
-    {openClick && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 8000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, height: "85vh", overflow: "auto", border: `1px solid ${T.border}` }}>
-        <div style={{ position: "sticky", top: 0, background: T.card, padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, overflow: "hidden" }}>
-            {openClick.image ? <img src={openClick.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏘️"}
+    {openClick && (() => {
+      const liveClick = clicks.find(c => c.id === openClick.id) || openClick;
+      return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 8000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+        <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, height: "85vh", overflow: "auto", border: `1px solid ${T.border}` }}>
+          <div style={{ position: "sticky", top: 0, background: T.card, padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10, zIndex: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, overflow: "hidden" }}>
+              {liveClick.image ? <img src={liveClick.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (liveClick.name.match(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u) || ["🏘️"])[0]}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{liveClick.name}</div>
+              <div style={{ fontSize: 11, color: T.sub }}>{liveClick.members?.length || 0} members · {posts.filter(p => p.clickId === liveClick.id && !p.parentId).length} posts</div>
+            </div>
+            <button onClick={() => { doJoin(liveClick.id); setOpenClick(liveClick); }} style={{ background: liveClick.members?.includes(me.id) ? T.input : BLUE, color: liveClick.members?.includes(me.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "6px 13px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{liveClick.members?.includes(me.id) ? "Joined ✓" : "Join"}</button>
+            <button onClick={() => setOpenClick(null)} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><XI /></button>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{openClick.name}</div>
-            <div style={{ fontSize: 11, color: T.sub }}>{openClick.members?.length || 0} members</div>
-          </div>
-          <button onClick={() => doJoin(openClick.id)} style={{ background: openClick.members?.includes(me.id) ? T.input : BLUE, color: openClick.members?.includes(me.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "6px 13px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{openClick.members?.includes(me.id) ? "Joined ✓" : "Join"}</button>
-          <button onClick={() => setOpenClick(null)} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><XI /></button>
+          <Compose me={me} onPost={doPost} T={T} users={users} placeholder={`Post in ${liveClick.name}...`} clickId={liveClick.id} />
+          {posts.filter(p => p.clickId === liveClick.id && !p.parentId).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
+          {posts.filter(p => p.clickId === liveClick.id && !p.parentId).length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No posts yet. Be the first! 👋</p>}
         </div>
-        <Compose me={me} onPost={doPost} T={T} users={users} placeholder={`Post in ${openClick.name}...`} clickId={openClick.id} />
-        {posts.filter(p => p.clickId === openClick.id && !p.parentId).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
-        {posts.filter(p => p.clickId === openClick.id && !p.parentId).length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No posts yet. Be the first!</p>}
-      </div>
-    </div>}
+      </div>;
+    })()}
 
     {/* HEADER */}
     <div style={{ position: "sticky", top: 0, zIndex: 100, background: dark ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.border}` }}>
@@ -1767,6 +2184,16 @@ export default function App() {
 
       {!thread && tab === "home" && <>
         <HomeTrending posts={posts} T={T} />
+        {/* Special accounts strip */}
+        <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none" }}>
+          {[CLAUDE_USER, SCRYPTBOT_USER, MINERVA_USER].map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", flexShrink: 0, minWidth: 64 }}>
+            <div style={{ position: "relative" }}>
+              <div style={{ width: 52, height: 52, borderRadius: "50%", border: `2px solid ${BLUE}`, overflow: "hidden", lineHeight: 0 }}><Av user={u} sz={52} /></div>
+              <span style={{ position: "absolute", bottom: -1, right: -1, background: BLUE, color: "white", borderRadius: "50%", width: 16, height: 16, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900 }}>✓</span>
+            </div>
+            <span style={{ fontSize: 9, color: T.sub, textAlign: "center", maxWidth: 60, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.username}</span>
+          </div>)}
+        </div>
         <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>📅 Chronological · No algorithm</span>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub }}>{feed.length} posts</div>
@@ -1777,31 +2204,96 @@ export default function App() {
       </>}
 
       {!thread && tab === "search" && <div>
-        <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people & posts..." style={{ ...inp, borderRadius: 9999 }} />
+        <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, position: "sticky", top: 56, background: T.bg, zIndex: 10 }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, posts, topics..." style={{ ...inp, borderRadius: 9999, paddingLeft: 16 }} autoFocus />
         </div>
-        {search.length >= 2 && <>
-          {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase())).slice(0, 5).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+        {search.length >= 2 ? <>
+          {/* People results */}
+          {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase()) && !u.isBot).slice(0, 5).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
             <Av user={u} sz={44} />
-            <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{u.username}</div><div style={{ fontSize: 13, color: T.sub }}>{u.bio || `@${u.username.toLowerCase()}`}</div></div>
-            <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{myV.includes(u.id) ? "In Village" : "Add"}</button>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}{u.verified && <span style={{ color: BLUE, fontSize: 13 }}>✓</span>}</div>
+              <div style={{ fontSize: 13, color: T.sub }}>{u.bio || `@${u.username.toLowerCase()}`}</div>
+            </div>
+            <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{myV.includes(u.id) ? "In Village" : "+ Village"}</button>
           </div>)}
-          {posts.filter(p => !p.parentId && censor(p.content).toLowerCase().includes(search.toLowerCase())).slice(0, 10).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
+          {/* Special accounts matching */}
+          {[SCRYPTBOT_USER, MINERVA_USER, CLAUDE_USER].filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
+            <Av user={u} sz={44} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
+              <div style={{ fontSize: 13, color: T.sub }}>{u.bio}</div>
+            </div>
+            <span style={{ fontSize: 11, color: BLUE, fontWeight: 600, background: `${BLUE}18`, borderRadius: 9999, padding: "3px 8px" }}>Official</span>
+          </div>)}
+          {/* Post results */}
+          {posts.filter(p => !p.parentId && p.content?.toLowerCase().includes(search.toLowerCase())).slice(0, 8).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
+          {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase())).length === 0 &&
+           posts.filter(p => p.content?.toLowerCase().includes(search.toLowerCase())).length === 0 &&
+            <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No results for "{search}"</p>}
+        </> : <>
+          {/* Discover — Official Accounts */}
+          <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL SCRYPT ACCOUNTS</div>
+          {[CLAUDE_USER, SCRYPTBOT_USER, MINERVA_USER].map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+            <Av user={u} sz={48} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
+              <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.4 }}>{u.bio}</div>
+            </div>
+          </div>)}
+          {/* Suggested people */}
+          <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>SUGGESTED PEOPLE</div>
+          {users.filter(u => !u.isBot && u.id !== me.id).slice(0, 5).concat(
+            users.filter(u => u.isBot && !u.isSpecial).sort(() => Math.random() - 0.5).slice(0, 5)
+          ).slice(0, 8).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+            <Av user={u} sz={42} />
+            <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{u.username}</div><div style={{ fontSize: 12, color: T.sub }}>{u.bio?.slice(0, 50) || `@${u.username.toLowerCase()}`}</div></div>
+            {!myV.includes(u.id) && u.id !== me.id && <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>+ Village</button>}
+          </div>)}
         </>}
-        {search.length < 2 && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px", fontSize: 14 }}>Type to search people and posts</p>}
       </div>}
 
       {!thread && tab === "clicks" && <div>
-        <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}` }}>
-          <button onClick={() => setShowNewClick(true)} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "5px 10px", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><PlusI /> New Click</button>
+        <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>Clicks</div>
+          <button onClick={() => setShowNewClick(true)} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><PlusI /> New Click</button>
         </div>
-        {clicks.map(c => <div key={c.id} onClick={() => setOpenClick(c)} style={{ background: T.card, borderBottom: `1px solid ${T.border}`, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-          <div style={{ width: 46, height: 46, borderRadius: 11, background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, overflow: "hidden", flexShrink: 0 }}>
-            {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏘️"}
-          </div>
-          <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{c.name}</div><div style={{ fontSize: 12, color: T.sub }}>{c.members?.length || 0} members</div></div>
-          <button onClick={e => { e.stopPropagation(); doJoin(c.id); }} style={{ background: c.members?.includes(me.id) ? T.input : BLUE, color: c.members?.includes(me.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "6px 13px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{c.members?.includes(me.id) ? "Joined" : "Join"}</button>
-        </div>)}
+        {/* My Clicks */}
+        {clicks.filter(c => c.members?.includes(me.id)).length > 0 && <>
+          <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>JOINED</div>
+          {clicks.filter(c => c.members?.includes(me.id)).map(c => {
+            const emoji = (c.name.match(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u) || ["🏘️"])[0];
+            const postCount = posts.filter(p => p.clickId === c.id && !p.parentId).length;
+            return <div key={c.id} onClick={() => setOpenClick(c)} style={{ background: T.card, borderBottom: `1px solid ${T.border}`, padding: "13px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: c.image ? "transparent" : `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, overflow: "hidden", flexShrink: 0, border: `2px solid ${BLUE}30` }}>
+                {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : emoji}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+                <div style={{ fontSize: 12, color: T.sub }}>{c.members?.length || 0} members · {postCount} posts</div>
+              </div>
+              <div style={{ fontSize: 11, color: BLUE, fontWeight: 700, background: `${BLUE}15`, borderRadius: 9999, padding: "3px 8px" }}>Joined ✓</div>
+            </div>;
+          })}
+        </>}
+        {/* Discover */}
+        {clicks.filter(c => !c.members?.includes(me.id)).length > 0 && <>
+          <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>DISCOVER</div>
+          {clicks.filter(c => !c.members?.includes(me.id)).map(c => {
+            const emoji = (c.name.match(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u) || ["🏘️"])[0];
+            const postCount = posts.filter(p => p.clickId === c.id && !p.parentId).length;
+            return <div key={c.id} onClick={() => setOpenClick(c)} style={{ background: T.card, borderBottom: `1px solid ${T.border}`, padding: "13px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: c.image ? "transparent" : `linear-gradient(135deg, ${PURPLE}, #1a1a2e)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, overflow: "hidden", flexShrink: 0 }}>
+                {c.image ? <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : emoji}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+                <div style={{ fontSize: 12, color: T.sub }}>{c.members?.length || 0} members · {postCount} posts</div>
+              </div>
+              <button onClick={e => { e.stopPropagation(); doJoin(c.id); }} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "6px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>Join</button>
+            </div>;
+          })}
+        </>}
       </div>}
 
       {!thread && tab === "notif" && <NotifTab me={me} users={users} posts={posts} T={T} />}
@@ -1978,61 +2470,47 @@ export default function App() {
           </div>
 
           {/* ── PROFILE INFO CARDS ── */}
-          {(() => {
-            const [cropSrc, setCropSrc] = useState(null);
-            const [cropKey, setCropKey] = useState(null);
-            const openCrop = (file, photoKey) => {
-              const r = new FileReader();
-              r.onload = x => { setCropSrc(x.target.result); setCropKey(photoKey); };
-              r.readAsDataURL(file);
-            };
-            return <>
-              {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { setSf(p => ({ ...p, [cropKey]: dataUrl })); setCropSrc(null); setCropKey(null); }} />}
-              <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 3 }}>🃏 Profile Cards</div>
-                <div style={{ fontSize: 12, color: T.sub, marginBottom: 14 }}>Showcase your favorites — photo optional</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {INFO_FIELDS.map(f => {
-                    const currentPhoto = sf[f.photoKey] !== undefined ? sf[f.photoKey] : resolvePhoto(me, f.photoKey);
-                    const currentText = sf[f.key] !== undefined ? sf[f.key] : (me[f.key] || "");
-                    return <div key={f.key} style={{ display: "flex", gap: 10, alignItems: "center", background: T.input, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}` }}>
-                      {/* Square thumbnail preview */}
-                      <div style={{ position: "relative", flexShrink: 0, width: 62, height: 62, background: currentPhoto ? "transparent" : f.grad, overflow: "hidden" }}>
-                        {currentPhoto
-                          ? <img src={currentPhoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{f.icon}</div>}
-                        {/* Photo actions overlay */}
-                        <label style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.35)", cursor: "pointer", opacity: 0, transition: "opacity 0.15s" }}
-                          onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
-                          <span style={{ color: "white", fontSize: 18 }}>📷</span>
-                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file, f.photoKey); e.target.value = ""; }} />
+          {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { setSf(p => ({ ...p, [cropKey]: dataUrl })); setCropSrc(null); setCropKey(null); }} />}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 3 }}>🃏 Profile Cards</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 14 }}>Showcase your favorites — photo optional</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {INFO_FIELDS.map(f => {
+                const openCrop = (file) => {
+                  const r = new FileReader();
+                  r.onload = x => { setCropSrc(x.target.result); setCropKey(f.photoKey); };
+                  r.readAsDataURL(file);
+                };
+                const currentPhoto = sf[f.photoKey] !== undefined ? sf[f.photoKey] : resolvePhoto(me, f.photoKey);
+                const currentText = sf[f.key] !== undefined ? sf[f.key] : (me[f.key] || "");
+                return <div key={f.key} style={{ display: "flex", gap: 10, alignItems: "center", background: T.input, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}` }}>
+                  <div style={{ position: "relative", flexShrink: 0, width: 62, height: 62, background: currentPhoto ? "transparent" : f.grad, overflow: "hidden" }}>
+                    {currentPhoto
+                      ? <img src={currentPhoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{f.icon}</div>}
+                    <label style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.35)", cursor: "pointer", opacity: 0, transition: "opacity 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                      <span style={{ color: "white", fontSize: 18 }}>📷</span>
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file); e.target.value = ""; }} />
+                    </label>
+                  </div>
+                  <div style={{ flex: 1, padding: "8px 10px 8px 0" }}>
+                    <div style={{ fontSize: 10, color: myAccent.color, fontWeight: 700, marginBottom: 5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>{f.icon} {f.label.toUpperCase()}</span>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <label style={{ fontSize: 10, color: T.sub, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${T.border}`, background: T.card }}>
+                          {currentPhoto ? "Change" : "Add photo"}
+                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file); e.target.value = ""; }} />
                         </label>
+                        {currentPhoto && <button onClick={() => setSf(p => ({ ...p, [f.photoKey]: null }))} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>Remove</button>}
                       </div>
-                      {/* Text + controls */}
-                      <div style={{ flex: 1, padding: "8px 10px 8px 0" }}>
-                        <div style={{ fontSize: 10, color: myAccent.color, fontWeight: 700, marginBottom: 5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span>{f.icon} {f.label.toUpperCase()}</span>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <label style={{ fontSize: 10, color: T.sub, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${T.border}`, background: T.card }}>
-                              {currentPhoto ? "Change photo" : "Add photo"}
-                              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file, f.photoKey); e.target.value = ""; }} />
-                            </label>
-                            {currentPhoto && <button onClick={() => setSf(p => ({ ...p, [f.photoKey]: null }))} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>Remove</button>}
-                          </div>
-                        </div>
-                        <input
-                          value={currentText}
-                          onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))}
-                          placeholder={`Your ${f.label.toLowerCase()}...`}
-                          style={{ ...inp13, padding: "6px 9px", fontSize: 13 }}
-                        />
-                      </div>
-                    </div>;
-                  })}
-                </div>
-              </div>
-            </>;
-          })()}
+                    </div>
+                    <input value={currentText} onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))} placeholder={`Your ${f.label.toLowerCase()}...`} style={{ ...inp13, padding: "6px 9px", fontSize: 13 }} />
+                  </div>
+                </div>;
+              })}
+            </div>
+          </div>
 
           {/* ── FEATURED SCRYPT ── */}
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
@@ -2078,14 +2556,29 @@ export default function App() {
           {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
           <button onClick={doSave} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
           <button onClick={() => { setMe(null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
-          <div style={{ marginTop: 16, padding: 12, background: dark ? "#1a1400" : "#fffbeb", borderRadius: 10, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
-            <p style={{ fontSize: 11, color: T.sub, margin: 0, lineHeight: 1.7 }}>
-              <strong style={{ color: T.text }}>⚠️ Important:</strong> Add your Anthropic API key where it says <code style={{ background: T.input, padding: "1px 5px", borderRadius: 4 }}>YOUR_API_KEY_HERE</code> to enable Claude AI.
-            </p>
+
+          {/* ── CLAUDE API KEY ── */}
+          <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✨ Claude AI Key</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10, lineHeight: 1.6 }}>
+              Enter your <strong style={{ color: T.text }}>Anthropic API key</strong> to enable Claude chat, content moderation, and trending topics. Get one free at <span style={{ color: BLUE }}>console.anthropic.com</span>
+            </div>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={e => { setApiKey(e.target.value); LS.set("apiKey", e.target.value); }}
+              placeholder="sk-ant-..."
+              style={{ ...inp13, fontFamily: "monospace", marginBottom: 8 }}
+            />
+            {apiKey ? <div style={{ fontSize: 11, color: "#00BA7C", display: "flex", alignItems: "center", gap: 5 }}>✓ API key saved — Claude is active</div>
+              : <div style={{ fontSize: 11, color: T.sub }}>No key set — Claude features will be disabled</div>}
           </div>
         </div>;
       })()}
     </div>
+
+    {/* FLOATING COMPOSE BUTTON */}
+    {tab !== "home" && tab !== "settings" && <button onClick={() => setShowCompose(true)} style={{ position: "fixed", bottom: 76, right: 20, width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", cursor: "pointer", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,155,240,0.5)", zIndex: 7999 }}>✍️</button>}
 
     {/* BOTTOM NAV */}
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 8000, background: dark ? "rgba(0,0,0,0.97)" : "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", borderTop: `1px solid ${T.border}` }}>
