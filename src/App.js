@@ -1777,33 +1777,6 @@ export default function App() {
     };
 
     // Bot comment replies to user posts
-    const BOT_COMMENTS = {
-      positive: [
-        "This is everything! 🔥 So real.",
-        "Couldn't agree more. You said what we were all thinking.",
-        "This hit different. Reposting immediately.",
-        "Actual facts. Not enough people are talking about this.",
-        "Love this energy. Keep posting 💪",
-        "You're speaking my language right now.",
-        "Needed this today. Thank you for existing on this app.",
-        "This is the content I log on for. Well said.",
-        "Scrypt never misses and neither do you 🙌",
-        "Legendary take. Fully agree.",
-      ],
-      general: [
-        "Interesting perspective! I see it differently but I respect this.",
-        "Coming in with the takes 👀",
-        "This is why I love Scrypt. Real conversations.",
-        "Follow for more like this — dropping to my village rn.",
-        "The discourse needed this. Good post.",
-        "Say it louder for the people in the back!",
-        "Hot take but I'm here for it 😂",
-        "This is going in my saved posts. Bookmark worthy.",
-        "Always relevant, always on point.",
-        "Big brain thinking on this one. Appreciate you.",
-      ],
-    };
-
     // General home feed posts from bots
     const HOME_BOT_POSTS = [
       "Scrypt is the only social app where I actually feel heard. The community here is different. Stay up ✊ #Scrypt",
@@ -1925,28 +1898,38 @@ export default function App() {
         });
       }
 
-      // 20% chance: a bot comments on a user's non-bot post
-      if (Math.random() < 0.20) {
+      // 20% chance: a bot comments on a user's post using Claude for context-aware replies
+      if (Math.random() < 0.20 && getKey()) {
         const userPosts = curPosts.filter(p => !p.parentId && p.userId === me.id);
         if (userPosts.length > 0) {
           const targetPost = userPosts[Math.floor(Math.random() * Math.min(3, userPosts.length))];
-          const score = sentimentScore(targetPost.content);
-          const pool = score >= 8 ? BOT_COMMENTS.positive : BOT_COMMENTS.general;
           const commenter = allBots[Math.floor(Math.random() * allBots.length)];
-          const comment = pool[Math.floor(Math.random() * pool.length)];
-          setTimeout(() => {
-            const c2 = LS.get("sp") || [];
-            const reply = {
-              id: `breply_${now}_${Math.floor(Math.random() * 99999)}`,
-              userId: commenter.id, username: commenter.username,
-              content: comment, parentId: targetPost.id,
-              likes: [], reposts: [],
-              createdAt: new Date().toISOString(), replyCount: 0
-            };
-            const withReply = c2.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x);
-            const final = [reply, ...withReply];
-            LS.set("sp", final); setPosts(final);
-          }, 5000 + Math.random() * 15000);
+          const commenterBio = commenter.bio || "just vibing";
+          // Fire-and-forget async reply after a short random delay
+          setTimeout(async () => {
+            try {
+              const r = await claudeFetch({
+                model: "claude-sonnet-4-6",
+                max_tokens: 80,
+                system: `You are ${commenter.username}, a real person on a social media app. Your vibe: "${commenterBio}". Reply naturally to a post as yourself — comment on the ACTUAL content of what was said. Be genuine, brief (1-2 sentences max, under 120 chars), conversational. No hashtags. No "This is why I love Scrypt." No generic hype. React to what they actually said. Sometimes agree, sometimes push back, sometimes add a related thought. Match the energy of the post.`,
+                messages: [{ role: "user", content: `Reply to this post: "${targetPost.content.slice(0, 200)}"` }]
+              });
+              const d = await r.json();
+              const comment = d.content?.[0]?.text?.trim();
+              if (!comment || comment.length < 5) return;
+              const c2 = LS.get("sp") || [];
+              const reply = {
+                id: `breply_${Date.now()}_${Math.floor(Math.random() * 99999)}`,
+                userId: commenter.id, username: commenter.username,
+                content: comment, parentId: targetPost.id,
+                likes: [], reposts: [],
+                createdAt: new Date().toISOString(), replyCount: 0
+              };
+              const withReply = c2.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x);
+              const final = [reply, ...withReply];
+              LS.set("sp", final); setPosts(final);
+            } catch { /* fail silently */ }
+          }, 5000 + Math.random() * 20000);
         }
       }
 
