@@ -599,7 +599,7 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ fontSize: 12, color: text.length > 260 ? PINK : T.sub }}>{280 - text.length}</span>
             {onCancel && <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, fontSize: 13 }}>Cancel</button>}
-            <button onClick={submit} disabled={!text.trim() && !img} style={{ background: vill ? PURPLE : BLUE, color: "white", border: "none", borderRadius: 9999, padding: compact ? "7px 16px" : "9px 18px", fontWeight: 700, fontSize: 14, cursor: (!text.trim() && !img) ? "not-allowed" : "pointer", opacity: (!text.trim() && !img) ? 0.5 : 1 }}>Scrypt</button>
+            <button onClick={submit} disabled={!text.trim() && !img} style={{ background: vill ? PURPLE : BLUE, color: "white", border: "none", borderRadius: 9999, padding: compact ? "4px 10px" : "5px 12px", fontWeight: 700, fontSize: 12, cursor: (!text.trim() && !img) ? "not-allowed" : "pointer", opacity: (!text.trim() && !img) ? 0.5 : 1 }}>Scrypt</button>
           </div>
         </div>
       </div>
@@ -1017,7 +1017,7 @@ export default function App() {
             if (!cName.trim()) return;
             sv("sc", [{ id: Date.now().toString(), name: cName.trim(), image: cImg, members: [me.id], ownerId: me.id, createdAt: new Date().toISOString() }, ...clicks], setClicks);
             setCName(""); setCImg(null); setShowNewClick(false); notify("Click created! 🎉");
-          }} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: 13, fontWeight: 700, cursor: "pointer" }}>Create Click</button>
+          }} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "7px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Create Click</button>
         </div>
       </div>
     </div>}
@@ -1045,12 +1045,12 @@ export default function App() {
     {/* HEADER */}
     <div style={{ position: "sticky", top: 0, zIndex: 100, background: dark ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.border}` }}>
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", background: BLUE, borderRadius: 9999, padding: "4px 12px 4px 4px", overflow: "hidden" }}>
-          <img src={LOGO} style={{ width: 72, height: 72, objectFit: "contain", mixBlendMode: "screen", flexShrink: 0, margin: "-16px -4px" }} alt="logo" />
-          <span style={{ fontWeight: 900, fontSize: 18, color: "white" }}>Scrypt</span>
+        <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 3, cursor: "pointer", background: BLUE, borderRadius: 9999, padding: "2px 6px 2px 2px", overflow: "hidden" }}>
+          <img src={LOGO} style={{ width: 36, height: 36, objectFit: "contain", mixBlendMode: "screen", flexShrink: 0, margin: "-8px -2px" }} alt="logo" />
+          <span style={{ fontWeight: 900, fontSize: 9, color: "white" }}>Scrypt</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => { setClaudeInit(null); setShowClaude(true); }} style={{ background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", borderRadius: 9999, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => { setClaudeInit(null); setShowClaude(true); }} style={{ background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", borderRadius: 9999, padding: "4px 8px", fontWeight: 700, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <SparkI /> Ask @Claude
           </button>
           <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub }}>{dark ? <SunI /> : <MoonI />}</button>
@@ -1090,7 +1090,7 @@ export default function App() {
 
       {!thread && tab === "clicks" && <div>
         <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}` }}>
-          <button onClick={() => setShowNewClick(true)} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "9px 18px", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><PlusI /> New Click</button>
+          <button onClick={() => setShowNewClick(true)} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "5px 10px", fontWeight: 700, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><PlusI /> New Click</button>
         </div>
         {clicks.map(c => <div key={c.id} onClick={() => setOpenClick(c)} style={{ background: T.card, borderBottom: `1px solid ${T.border}`, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
           <div style={{ width: 46, height: 46, borderRadius: 11, background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, overflow: "hidden", flexShrink: 0 }}>
@@ -1109,7 +1109,7 @@ export default function App() {
             <div style={{ fontWeight: 800, fontSize: 16, color: T.text, marginBottom: 3 }}>Instant Messages</div>
             <div style={{ fontSize: 13, color: T.sub }}>Mutuals can IM · Anyone can group chat</div>
           </div>
-          <button onClick={() => setShowNewGroup(true)} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}><PlusI /> Group</button>
+          <button onClick={() => setShowNewGroup(true)} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "4px 9px", fontWeight: 700, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><PlusI /> Group</button>
         </div>
 
         {/* New Group Modal */}
@@ -1138,7 +1138,7 @@ export default function App() {
               LS.set("gchat", updated); setGroupChats(updated);
               setShowNewGroup(false); setNewGroupName(""); setNewGroupMembers([]);
               setActiveGroup(g); notify("Group created! 🎉");
-            }} disabled={!newGroupName.trim() || newGroupMembers.length === 0} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: 13, width: "100%", fontWeight: 700, cursor: "pointer", opacity: (!newGroupName.trim() || newGroupMembers.length === 0) ? 0.5 : 1 }}>Create Group ({newGroupMembers.length} members)</button>
+            }} disabled={!newGroupName.trim() || newGroupMembers.length === 0} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: (!newGroupName.trim() || newGroupMembers.length === 0) ? 0.5 : 1 }}>Create Group ({newGroupMembers.length} members)</button>
           </div>
         </div>}
 
@@ -1252,8 +1252,8 @@ export default function App() {
           </div>
         </div>
         {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
-        <button onClick={doSave} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: 12, width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 14, marginBottom: 8 }}>Save Changes</button>
-        <button onClick={() => { setMe(null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: 11, width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 14 }}>Sign Out</button>
+        <button onClick={doSave} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
+        <button onClick={() => { setMe(null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
         <div style={{ marginTop: 16, padding: 12, background: dark ? "#1a1400" : "#fffbeb", borderRadius: 10, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
           <p style={{ fontSize: 11, color: T.sub, margin: 0, lineHeight: 1.7 }}>
             <strong style={{ color: T.text }}>⚠️ Important:</strong> Add your Anthropic API key where it says <code style={{ background: T.input, padding: "1px 5px", borderRadius: 4 }}>YOUR_API_KEY_HERE</code> to enable Claude AI.
