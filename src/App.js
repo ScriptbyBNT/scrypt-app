@@ -3326,9 +3326,6 @@ export default function App() {
     {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
     {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
 
-    {/* FLOATING COMPOSE BUTTON */}
-    {tab !== "home" && tab !== "settings" && <button onClick={() => setShowCompose(true)} style={{ position: "fixed", bottom: 76, right: 20, width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", cursor: "pointer", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,155,240,0.5)", zIndex: 7999 }}>✍️</button>}
-
     {/* BOTTOM NAV */}
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 8000, background: dark ? "rgba(0,0,0,0.97)" : "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", borderTop: `1px solid ${T.border}` }}>
       <div style={{ maxWidth: 600, margin: "0 auto", display: "flex" }}>
