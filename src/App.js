@@ -105,7 +105,6 @@ const rowToUser = r => {
     featuredPostId: r.featured_post_id || r.featuredPostId || null,
     hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
     profileSongName: r.profile_song_name || r.profileSongName || extra.profileSongName || null,
-    // Extra fields stored in info_fields JSON
     wallpaper: extra.wallpaper || null,
     profileSong: extra.profileSong || null,
     infoMovie: extra.infoMovie || null,
@@ -148,39 +147,33 @@ const postToRow = p => ({
   pinned: p.pinned || false,
 });
 
-const userToRow = u => {
-  // Only include columns that exist in the base Supabase schema
-  // Extra fields (wallpaper, profileSong, info cards) are stored in info_fields JSON
-  const extra = {
+const userToRow = u => ({
+  id: u.id,
+  username: u.username,
+  password: u.password,
+  avatar: u.avatar || null,
+  bio: u.bio || null,
+  is_bot: u.isBot || false,
+  is_special: u.isSpecial || false,
+  verified: u.verified || false,
+  village: JSON.stringify(Array.isArray(u.village) ? u.village : []),
+  joined_at: u.joinedAt || new Date().toISOString(),
+  mood: u.mood || null,
+  accent_color: u.accentColor || null,
+  featured_post_id: u.featuredPostId || null,
+  has_profile_song: u.hasProfileSong || false,
+  profile_song_name: u.profileSongName || null,
+  info_fields: JSON.stringify({
     wallpaper: u.wallpaper || null,
     profileSong: u.profileSong || null,
-    profileSongName: u.profileSongName || null,
     infoMovie: u.infoMovie || null,
     infoArtist: u.infoArtist || null,
     infoShow: u.infoShow || null,
     infoBook: u.infoBook || null,
     infoGame: u.infoGame || null,
     dark: u.dark !== undefined ? u.dark : null,
-  };
-  return {
-    id: u.id,
-    username: u.username,
-    password: u.password,
-    avatar: u.avatar || null,
-    bio: u.bio || null,
-    is_bot: u.isBot || false,
-    is_special: u.isSpecial || false,
-    verified: u.verified || false,
-    village: JSON.stringify(Array.isArray(u.village) ? u.village : []),
-    joined_at: u.joinedAt || new Date().toISOString(),
-    mood: u.mood || null,
-    accent_color: u.accentColor || null,
-    featured_post_id: u.featuredPostId || null,
-    has_profile_song: u.hasProfileSong || false,
-    profile_song_name: u.profileSongName || null,
-    info_fields: JSON.stringify(extra),
-  };
-};
+  }),
+});
 
 const clickToRow = c => ({
   id: c.id,
@@ -1596,11 +1589,8 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
     const nu = { id: Date.now().toString(), username: t, password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
     try {
       const result = await DB.insertUser(userToRow(nu));
-      if (!result) {
-        // Insert failed — try without info_fields in case column doesn't exist yet
-        await DB.insertUser({ id: nu.id, username: nu.username, password: nu.password, avatar: nu.avatar || null, bio: nu.bio || null, is_bot: false, is_special: false, verified: false, village: "[]", joined_at: nu.joinedAt, mood: null, accent_color: null, featured_post_id: null, has_profile_song: false, profile_song_name: null });
-      }
-    } catch(e) { console.error("signup insert failed", e); }
+      if (!result) await DB.insertUser({ id: nu.id, username: nu.username, password: nu.password, avatar: nu.avatar || null, bio: nu.bio || null, is_bot: false, is_special: false, verified: false, village: "[]", joined_at: nu.joinedAt, mood: null, accent_color: null, featured_post_id: null, has_profile_song: false, profile_song_name: null });
+    } catch(e) { console.error("signup insert", e); }
     onDone(nu);
   };
   const doAv = e => {
@@ -1789,7 +1779,7 @@ export default function App() {
     setSerr("");
   }, [me?.id]);
 
-  // Sync browser chrome color with dark/light mode + save to Supabase
+  // Sync browser chrome color with dark/light mode + persist to Supabase
   useEffect(() => {
     const color = dark ? "#000000" : "#ffffff";
     let meta = document.querySelector("meta[name='theme-color']");
@@ -1888,6 +1878,7 @@ export default function App() {
             const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
             const dbVersion = rows && rows[0] ? rowToUser(rows[0]) : null;
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
+            // Merge: use DB data for mutable fields (avatar, bio, wallpaper), hardcoded for fixed fields (id, username, password, isSpecial, verified)
             if (dbVersion && hardcoded) {
               setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: Array.isArray(dbVersion.village) ? dbVersion.village : (hardcoded.village || []) });
             } else if (hardcoded) {
@@ -1897,40 +1888,24 @@ export default function App() {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
             if (hardcoded) setMe({ ...hardcoded, village: Array.isArray(hardcoded.village) ? hardcoded.village : [] });
           }
-          setDbLoading(false);
           setPg("app");
           return;
         }
-        // Regular user — try DB, but NEVER log out on error (just use cached users list)
+        // Regular user from DB
         try {
           const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
           const u = rows && rows[0] ? rowToUser(rows[0]) : null;
           if (u) {
             if (u.dark !== null && u.dark !== undefined) setDark(!!u.dark);
             setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] });
-            setDbLoading(false);
-            setPg("app");
-            return;
+            setDbLoading(false); setPg("app"); return;
           }
-          // User not found in DB at all — check if they're in the local users list
-          const localUser = dbUsers.find(x => x.id === sessionUid);
-          if (localUser) {
-            setMe({ ...localUser, village: Array.isArray(localUser.village) ? localUser.village : [] });
-            setDbLoading(false);
-            setPg("app");
-            return;
-          }
+          const local = dbUsers.find(x => x.id === sessionUid);
+          if (local) { setMe({ ...local, village: Array.isArray(local.village) ? local.village : [] }); setDbLoading(false); setPg("app"); return; }
         } catch {
-          // DB error — don't log out, use cached data if possible
-          const localUser = dbUsers.find(x => x.id === sessionUid);
-          if (localUser) {
-            setMe({ ...localUser, village: Array.isArray(localUser.village) ? localUser.village : [] });
-            setDbLoading(false);
-            setPg("app");
-            return;
-          }
+          const local = dbUsers.find(x => x.id === sessionUid);
+          if (local) { setMe({ ...local, village: Array.isArray(local.village) ? local.village : [] }); setDbLoading(false); setPg("app"); return; }
         }
-        // Only clear session if user truly doesn't exist anywhere
         localStorage.removeItem("session_uid");
       }
       setDbLoading(false);
@@ -2798,11 +2773,17 @@ export default function App() {
     setUsers(nu); setMe(p => ({ ...p, avatar: url })); setShowPP(false);
     DB.updateUser(me.id, { avatar: url }).catch(() => {});
   };
+  const saveMe = (fields) => {
+    const updated = { ...me, ...fields };
+    setMe(updated);
+    setUsers(prev => prev.map(u => u.id === me.id ? updated : u));
+    DB.updateUser(me.id, userToRow(updated)).catch(e => console.error("saveMe", e));
+  };
+
   const doWallpaper = wp => {
-    const nu = users.map(u => u.id === me.id ? { ...u, wallpaper: wp } : u);
-    setUsers(nu); setMe(p => ({ ...p, wallpaper: wp })); setShowWallpaper(false);
-    DB.updateUser(me.id, { wallpaper: wp }).catch(() => {});
-    notify("Wallpaper updated! 🖼️");
+    setShowWallpaper(false);
+    saveMe({ wallpaper: wp });
+    notify("Wallpaper saved! 🖼️");
   };
   const doSave = () => {
     setSerr("");
@@ -2828,19 +2809,18 @@ export default function App() {
       upd.profileSongName = sf.profileSongName || null;
       upd.profileSong = sf.profileSong || null;
     }
+    // Info card text fields
     INFO_FIELDS.forEach(f => {
       if (sf[f.key] !== undefined) upd[f.key] = sf[f.key] || null;
+      // Info card photos — stored separately per card to avoid freezing users array
       if (sf[f.photoKey] !== undefined) {
         LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
         upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
       }
     });
-    const updatedMe = { ...me, ...upd };
-    setUsers(users.map(u => u.id === me.id ? updatedMe : u));
-    setMe(updatedMe);
-    (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
+    if (Object.keys(upd).length > 0) saveMe(upd);
     setSf({ u: "", pw: "", pw2: "", bio: undefined });
-    notify("Profile saved! ✓");
+    notify("Saved ✓");
   };
 
   // Helper: resolve a stored photo key to actual base64
@@ -3254,8 +3234,8 @@ export default function App() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>USERNAME</label><input value={sf.u} onChange={e => setSf(p => ({ ...p, u: e.target.value }))} placeholder={me.username} style={inp13} /></div>
-              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>BIO</label><input value={sf.bio !== undefined ? sf.bio : (me.bio || "")} onChange={e => setSf(p => ({ ...p, bio: e.target.value }))} placeholder="Tell us about yourself..." style={inp13} /></div>
-              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>😌 MOOD STATUS</label><input value={sf.mood !== undefined ? sf.mood : (me.mood || "")} onChange={e => setSf(p => ({ ...p, mood: e.target.value }))} placeholder='e.g. "feeling unstoppable today 🔥"' style={inp13} /></div>
+              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>BIO</label><input value={sf.bio !== undefined ? sf.bio : (me.bio || "")} onChange={e => setSf(p => ({ ...p, bio: e.target.value }))} onBlur={e => { saveMe({ bio: e.target.value || null }); setSf(p => ({ ...p, bio: undefined })); }} placeholder="Tell us about yourself..." style={inp13} /></div>
+              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>😌 MOOD STATUS</label><input value={sf.mood !== undefined ? sf.mood : (me.mood || "")} onChange={e => setSf(p => ({ ...p, mood: e.target.value }))} onBlur={e => { saveMe({ mood: e.target.value || null }); setSf(p => ({ ...p, mood: undefined })); }} placeholder='e.g. "feeling unstoppable today 🔥"' style={inp13} /></div>
             </div>
           </div>
 
@@ -3263,7 +3243,7 @@ export default function App() {
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 10 }}>🎨 Accent Color</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {ACCENT_COLORS.map(ac => <div key={ac.id} onClick={() => setSf(p => ({ ...p, accentColor: ac.id }))} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer" }}>
+              {ACCENT_COLORS.map(ac => <div key={ac.id} onClick={() => { setSf(p => ({ ...p, accentColor: ac.id })); saveMe({ accentColor: ac.id }); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer" }}>
                 <div style={{ width: 34, height: 34, borderRadius: "50%", background: ac.grad, border: `3px solid ${(sf.accentColor ?? me.accentColor) === ac.id ? "white" : "transparent"}`, outline: (sf.accentColor ?? me.accentColor) === ac.id ? `2px solid ${ac.color}` : "none", transition: "all 0.15s" }} />
                 <span style={{ fontSize: 9, color: T.sub }}>{ac.label}</span>
               </div>)}
@@ -3302,11 +3282,11 @@ export default function App() {
                           {currentPhoto ? "Change" : "Add photo"}
                           <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file); e.target.value = ""; }} />
                         </label>
-                        {currentPhoto && <button onClick={() => setSf(p => ({ ...p, [f.photoKey]: null }))} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Photo</button>}
-                        {(me[f.key] || currentText) && <button onClick={() => setSf(p => ({ ...p, [f.key]: "" }))} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Clear</button>}
+                        {currentPhoto && <button onClick={() => { setSf(p => ({ ...p, [f.photoKey]: null })); saveMe({ [f.photoKey]: null }); }} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Photo</button>}
+                        {(me[f.key] || currentText) && <button onClick={() => { setSf(p => ({ ...p, [f.key]: "" })); saveMe({ [f.key]: null }); }} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Clear</button>}
                       </div>
                     </div>
-                    <input value={currentText} onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))} placeholder={`Your ${f.label.toLowerCase()}...`} style={{ ...inp13, padding: "6px 9px", fontSize: 13 }} />
+                    <input value={currentText} onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))} onBlur={e => { saveMe({ [f.key]: e.target.value || null }); setSf(p => ({ ...p, [f.key]: undefined })); }} placeholder={`Your ${f.label.toLowerCase()}...`} style={{ ...inp13, padding: "6px 9px", fontSize: 13 }} />
                   </div>
                 </div>;
               })}
@@ -3319,7 +3299,7 @@ export default function App() {
             <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Pin one post to the top of your profile</div>
             {posts.filter(p => p.userId === me.id && !p.parentId && !p.villageOnly).slice(0, 8).map(p => {
               const isFeat = (sf.featuredPostId ?? me.featuredPostId) === p.id;
-              return <div key={p.id} onClick={() => setSf(prev => ({ ...prev, featuredPostId: isFeat ? null : p.id }))} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", borderRadius: 10, marginBottom: 5, cursor: "pointer", background: isFeat ? `${myAccent.color}18` : T.input, border: `1.5px solid ${isFeat ? myAccent.color : "transparent"}` }}>
+              return <div key={p.id} onClick={() => { const newId = isFeat ? null : p.id; setSf(prev => ({ ...prev, featuredPostId: newId })); saveMe({ featuredPostId: newId }); }} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", borderRadius: 10, marginBottom: 5, cursor: "pointer", background: isFeat ? `${myAccent.color}18` : T.input, border: `1.5px solid ${isFeat ? myAccent.color : "transparent"}` }}>
                 <div style={{ marginTop: 2, color: isFeat ? myAccent.color : T.sub, fontSize: 14 }}>{isFeat ? "📌" : "○"}</div>
                 <div style={{ flex: 1, fontSize: 12, color: T.text, lineHeight: 1.4 }}>{p.content.slice(0, 80)}{p.content.length > 80 ? "…" : ""}</div>
               </div>;
@@ -3337,28 +3317,30 @@ export default function App() {
               <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
                 const f = e.target.files[0]; if (!f) return;
                 const r = new FileReader();
-                r.onload = x => setSf(p => ({ ...p, profileSong: x.target.result, profileSongName: f.name }));
+                r.onload = x => {
+                  const song = x.target.result, name = f.name;
+                  setSf(p => ({ ...p, profileSong: song, profileSongName: name }));
+                  LS.set(`psong_${me.id}`, { song, name });
+                  saveMe({ profileSong: song, profileSongName: name, hasProfileSong: true });
+                };
                 r.readAsDataURL(f);
               }} />
             </label>
-            {(sf.profileSong || me.profileSong) && <button onClick={() => setSf(p => ({ ...p, profileSong: null, profileSongName: null }))} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+            {(sf.profileSong || me.profileSong) && <button onClick={() => { setSf(p => ({ ...p, profileSong: null, profileSongName: null })); LS.set(`psong_${me.id}`, null); saveMe({ profileSong: null, profileSongName: null, hasProfileSong: false }); }} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
             {sf.profileSong && <div style={{ fontSize: 11, color: T.sub, marginTop: 6 }}>Preview: {sf.profileSongName}</div>}
           </div>
 
           {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
-          <button onClick={doSave} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
-
-
 
           <button onClick={() => { setMe(null); localStorage.removeItem("session_uid"); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
-          {/* ── CHANGE PASSWORD (optional) ── */}
+          {/* ── CHANGE PASSWORD ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🔒 Change Password</div>
-            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Leave blank to keep your current password</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password (optional)" style={inp13} />
+              <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password" style={inp13} />
               <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
+              <button onClick={() => { if (!sf.pw) return; if (sf.pw.length < 6) { setSerr("Min 6 chars"); return; } if (sf.pw !== sf.pw2) { setSerr("Passwords don't match"); return; } saveMe({ password: sf.pw }); setSf(p => ({ ...p, pw: "", pw2: "" })); setSerr(""); notify("Password updated ✓"); }} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Update Password</button>
             </div>
           </div>
 
@@ -3385,8 +3367,7 @@ export default function App() {
     {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
     {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
 
-    {/* FLOATING COMPOSE BUTTON */}
-    {tab !== "home" && tab !== "settings" && <button onClick={() => setShowCompose(true)} style={{ position: "fixed", bottom: 76, right: 20, width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", cursor: "pointer", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,155,240,0.5)", zIndex: 7999 }}>✍️</button>}
+    
 
     {/* BOTTOM NAV */}
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 8000, background: dark ? "rgba(0,0,0,0.97)" : "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", borderTop: `1px solid ${T.border}` }}>
