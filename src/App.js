@@ -1746,7 +1746,7 @@ export default function App() {
   const [cImg, setCImg] = useState(null);
   const [cropSrc, setCropSrc] = useState(null);
   const [cropKey, setCropKey] = useState(null);
-  const [apiKey, setApiKey] = useState(() => LS.get("apiKey") || "");
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("sharedApiKey") || LS.get("apiKey") || "");
   const avRef = useRef();
   const avRef2 = useRef();
   const cImgRef = useRef();
@@ -1768,7 +1768,6 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
-    const safetyTimer = setTimeout(() => { setDbLoading(false); setPg(p => p === "loading" ? "login" : p); }, 12000);
     const initDB = async () => {
       setDbLoading(true);
       // Restore session
@@ -1873,14 +1872,14 @@ export default function App() {
         try {
           const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
           const u = rows && rows[0] ? rowToUser(rows[0]) : null;
-          if (u) { const _ls = LS.get("profile_" + sessionUid); const base = { ...u, village: u.village || [] }; setMe(_ls ? { ...base, ..._ls } : base); setPg("app"); return; }
+          if (u) { setMe({ ...u, village: u.village || [] }); setPg("app"); return; }
         } catch {}
         // Session invalid — clear it
         LS.set("session_uid", null);
         setPg("login");
       }
     };
-    initDB().catch(() => { setDbLoading(false); setPg("login"); }).finally(() => clearTimeout(safetyTimer));
+    initDB();
   }, []);
 
   const T = {
@@ -2784,10 +2783,6 @@ export default function App() {
     const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
     setUsers(updatedUsers);
     setMe(p => ({ ...p, ...upd }));
-    // Save to localStorage
-    const _lsp = LS.get("profile_" + me.id) || {};
-    Object.keys(upd).forEach(k => { _lsp[k] = upd[k]; });
-    LS.set("profile_" + me.id, _lsp);
     // Save to Supabase
     const updatedMe = { ...me, ...upd };
     (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
