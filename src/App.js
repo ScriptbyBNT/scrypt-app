@@ -313,7 +313,7 @@ const Terms = ({ onAccept, T }) => <div style={{ position: "fixed", inset: 0, ba
       <div style={{ background: BLUE, borderRadius: 14, padding: "6px 10px" }}><img src={LOGO} style={{ width: 32, height: 32, objectFit: "contain" }} alt="logo" /></div>
       <span style={{ fontWeight: 800, fontSize: 20, color: BLUE }}>Scrypt</span>
     </div>
-    <h2 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 700, color: T.text }}>Terms of Service</h2>
+    <h2 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 700, color: T.text }}>Terms of Service & Disclaimer</h2>
     <div style={{ fontSize: 13, lineHeight: 1.7, color: T.sub }}>
       <p><strong style={{ color: T.text }}>1. User Responsibility</strong> — You are solely responsible for content you post. Do not post content that violates any law.</p>
       <p><strong style={{ color: T.text }}>2. Prohibited Content</strong> — No illegal content, no harassment, no spam, no impersonation of others.</p>
@@ -321,6 +321,8 @@ const Terms = ({ onAccept, T }) => <div style={{ position: "fixed", inset: 0, ba
       <p><strong style={{ color: T.text }}>4. AI Features</strong> — Claude (Anthropic) powers AI features. AI responses are not legal, medical, or financial advice.</p>
       <p><strong style={{ color: T.text }}>5. Reporting</strong> — Use the flag button to report content that violates these terms.</p>
       <p><strong style={{ color: T.text }}>6. Disclaimer</strong> — PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. Use at your own risk.</p>
+      <p><strong style={{ color: T.text }}>7. No Email Required</strong> — Scrypt uses a username and password system. No email address is collected or required. Please write down your username and password at account creation — passwords can be changed inside the app, but account recovery without credentials is not possible.</p>
+      <p><strong style={{ color: T.text }}>8. Privacy & Data</strong> — Scrypt does not collect, sell, or share your personal data. We do not use your information for advertising or third-party purposes. Your account data (username, password, posts) is stored locally on your device. While the underlying system we use is trusted and industry-standard, no system is 100% secure — use Scrypt at your own discretion and avoid sharing sensitive personal information publicly.</p>
     </div>
     <button onClick={onAccept} style={{ width: "100%", padding: 14, background: BLUE, color: "white", border: "none", borderRadius: 9999, fontWeight: 800, fontSize: 16, cursor: "pointer", marginTop: 16 }}>I Agree — Create Account</button>
   </div>
@@ -384,6 +386,58 @@ const ClaudeChat = ({ T, onClose, init }) => {
   </div>;
 };
 
+// ── ACCENT COLORS ─────────────────────────────────────────────────────────────
+const ACCENT_COLORS = [
+  { id: "blue",   label: "Ocean",   color: "#1D9BF0", grad: "linear-gradient(135deg,#1D9BF0,#0c4a7a)" },
+  { id: "purple", label: "Galaxy",  color: "#7c3aed", grad: "linear-gradient(135deg,#7c3aed,#2d1b6e)" },
+  { id: "pink",   label: "Flame",   color: "#F91880", grad: "linear-gradient(135deg,#F91880,#7c0040)" },
+  { id: "green",  label: "Forest",  color: "#00BA7C", grad: "linear-gradient(135deg,#00BA7C,#004d33)" },
+  { id: "orange", label: "Sunset",  color: "#f59e0b", grad: "linear-gradient(135deg,#f59e0b,#92400e)" },
+  { id: "red",    label: "Fire",    color: "#ef4444", grad: "linear-gradient(135deg,#ef4444,#7f1d1d)" },
+  { id: "teal",   label: "Cyber",   color: "#06b6d4", grad: "linear-gradient(135deg,#06b6d4,#164e63)" },
+  { id: "rose",   label: "Rose",    color: "#f43f5e", grad: "linear-gradient(135deg,#f43f5e,#881337)" },
+];
+const getAccent = (user) => ACCENT_COLORS.find(a => a.id === user?.accentColor) || ACCENT_COLORS[0];
+
+// ── PROFILE SONG PLAYER ────────────────────────────────────────────────────────
+const ProfileSongPlayer = ({ user, accent }) => {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef(null);
+  if (!user.profileSong) return null;
+  const toggle = () => {
+    if (!audioRef.current) return;
+    if (playing) { audioRef.current.pause(); setPlaying(false); }
+    else { audioRef.current.play(); setPlaying(true); }
+  };
+  return <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: `${accent.color}18`, borderRadius: 10, border: `1px solid ${accent.color}40`, marginBottom: 10 }}>
+    <audio ref={audioRef} src={user.profileSong} onEnded={() => setPlaying(false)} />
+    <button onClick={toggle} style={{ background: accent.color, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "white", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{playing ? "⏸" : "▶"}</button>
+    <div style={{ flex: 1, overflow: "hidden" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: accent.color }}>🎵 Profile Song</div>
+      <div style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.profileSongName || "Custom clip"}</div>
+    </div>
+  </div>;
+};
+
+// ── PROFILE INFO CARDS ─────────────────────────────────────────────────────────
+const INFO_FIELDS = [
+  { key: "infoMovie",  icon: "🎬", label: "Fav Movie" },
+  { key: "infoArtist", icon: "🎵", label: "Top Artist" },
+  { key: "infoShow",   icon: "📺", label: "Watching" },
+  { key: "infoBook",   icon: "📖", label: "Reading" },
+  { key: "infoGame",   icon: "🎮", label: "Playing" },
+];
+const ProfileInfoCards = ({ user, accent }) => {
+  const filled = INFO_FIELDS.filter(f => user[f.key]);
+  if (!filled.length) return null;
+  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+    {filled.map(f => <div key={f.key} style={{ background: `${accent.color}12`, border: `1px solid ${accent.color}30`, borderRadius: 10, padding: "7px 10px" }}>
+      <div style={{ fontSize: 10, color: accent.color, fontWeight: 700, marginBottom: 2 }}>{f.icon} {f.label}</div>
+      <div style={{ fontSize: 13, color: "#ccc", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user[f.key]}</div>
+    </div>)}
+  </div>;
+};
+
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
 const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
   const myV = me.village || [];
@@ -393,33 +447,50 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
   const mutual = inV && theirV.includes(me.id);
   const pub = posts.filter(p => p.userId === user.id && !p.parentId && !p.villageOnly);
   const wp = user.wallpaper;
-  const bannerBg = wp?.type === "image" ? `url(${wp.value}) center/cover` : (wp?.value || `linear-gradient(135deg,${BLUE},${PURPLE})`);
+  const accent = getAccent(user);
+  const bannerBg = wp?.type === "image" ? `url(${wp.value}) center/cover` : (wp?.value || accent.grad);
+  // Featured post
+  const featured = user.featuredPostId ? posts.find(p => p.id === user.featuredPostId) : null;
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 8800, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-    <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, maxHeight: "80vh", overflow: "auto", border: `1px solid ${T.border}` }} onClick={e => e.stopPropagation()}>
-      {/* Banner */}
-      <div style={{ height: 80, background: bannerBg, position: "relative", overflow: "visible" }}>
-        <div style={{ position: "absolute", bottom: -22, left: 16, border: `3px solid ${T.card}`, borderRadius: "50%", background: T.card }}>
+    <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, maxHeight: "88vh", overflow: "auto", border: `1px solid ${accent.color}60` }} onClick={e => e.stopPropagation()}>
+      {/* Banner with accent border */}
+      <div style={{ height: 90, background: bannerBg, position: "relative", overflow: "visible", borderRadius: "16px 16px 0 0" }}>
+        <div style={{ position: "absolute", bottom: -26, left: 16, border: `3px solid ${accent.color}`, borderRadius: "50%", background: T.card }}>
           <Av user={user} sz={52} />
         </div>
+        {/* Profile song autoplay hint */}
+        {user.profileSong && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.55)", borderRadius: 9999, padding: "3px 8px", fontSize: 10, color: "white" }}>🎵 has a profile song</div>}
       </div>
-      <div style={{ padding: "30px 16px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div style={{ padding: "34px 16px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>{user.username}</div>
           <div style={{ fontSize: 12, color: T.sub }}>@{user.username.toLowerCase()}</div>
+          {/* Mood status */}
+          {user.mood && <div style={{ fontSize: 13, color: accent.color, marginTop: 3, fontStyle: "italic" }}>{user.mood}</div>}
         </div>
         <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
           {!isMe && mutual && <button style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>💬 IM</button>}
-          {!isMe && <button onClick={() => onVillage(user.id)} style={{ background: inV ? "transparent" : BLUE, color: inV ? T.text : "white", border: `1px solid ${inV ? T.border : BLUE}`, borderRadius: 9999, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{inV ? "In Village ✓" : "+ Village"}</button>}
+          {!isMe && <button onClick={() => onVillage(user.id)} style={{ background: inV ? "transparent" : accent.color, color: inV ? T.text : "white", border: `1px solid ${inV ? T.border : accent.color}`, borderRadius: 9999, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{inV ? "In Village ✓" : "+ Village"}</button>}
           <button onClick={onClose} style={{ background: T.input, border: "none", cursor: "pointer", color: T.text, borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center" }}><XI /></button>
         </div>
       </div>
       <div style={{ padding: "12px 16px 16px" }}>
+        {/* Profile song player */}
+        <ProfileSongPlayer user={user} accent={accent} />
         {user.bio && <div style={{ fontSize: 14, color: T.text, marginBottom: 10 }}>{user.bio}</div>}
         <div style={{ display: "flex", gap: 18, marginBottom: 12 }}>
-          <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: T.text }}>{pub.length}</strong> Scrypts</span>
-          <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: T.text }}>{(user.village || []).length}</strong> Village</span>
-          <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: T.text }}>{pub.reduce((s, p) => s + (p.likes?.length || 0), 0)}</strong> Likes</span>
+          <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.length}</strong> Scrypts</span>
+          <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{(user.village || []).length}</strong> Village</span>
+          <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.reduce((s, p) => s + (p.likes?.length || 0), 0)}</strong> Likes</span>
         </div>
+        {/* Info cards */}
+        <ProfileInfoCards user={user} accent={accent} />
+        {/* Featured post */}
+        {featured && <div style={{ marginBottom: 12, padding: "10px 12px", border: `1.5px solid ${accent.color}`, borderRadius: 12, background: `${accent.color}08` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: accent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
+          <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(featured.content)}</p>
+          <div style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>{featured.likes?.length || 0} likes · {ago(featured.createdAt)}</div>
+        </div>}
         {pub.slice(0, 5).map(p => <div key={p.id} style={{ padding: "8px 0", borderTop: `1px solid ${T.border}` }}>
           <p style={{ margin: 0, fontSize: 14, color: T.text, lineHeight: 1.5 }}>{censor(p.content)}</p>
           <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>{ago(p.createdAt)} · {p.likes?.length || 0} likes</div>
@@ -818,6 +889,11 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
             <input ref={fRef} type="file" accept="image/*" style={{ display: "none" }} onChange={doAv} />
           </div>
         </div>
+        <div style={{ background: dark ? "#0d1f0d" : "#f0fdf4", border: `1px solid ${dark ? "#1a3a1a" : "#bbf7d0"}`, borderRadius: 10, padding: "10px 13px", marginBottom: 4 }}>
+          <p style={{ margin: 0, fontSize: 12, color: dark ? "#86efac" : "#15803d", lineHeight: 1.6 }}>
+            <strong>📋 No email needed!</strong> Scrypt uses a username & password system only — no email address required. <strong>Please write down your username and password now.</strong> You can change your password inside the app, but we cannot recover your account without your credentials.
+          </p>
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
           <input value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} />
           <input value={bio} onChange={e => setBio(e.target.value)} placeholder="Bio (optional)" style={s} />
@@ -875,6 +951,45 @@ const VoiceCall = ({ me, participants, users, T, onEnd }) => {
       <button onClick={() => { stream?.getTracks().forEach(t => t.stop()); onEnd(); }} style={{ width: 56, height: 56, borderRadius: "50%", background: "#e53e3e", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>📵</button>
     </div>
     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>Up to 4 participants · WebRTC</div>
+  </div>;
+};
+
+// ── HOME TRENDING STRIP ───────────────────────────────────────────────────────
+const HomeTrending = ({ posts, T }) => {
+  const [trending, setTrending] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    setBusy(true);
+    const sample = posts.slice(0, 60).map(p => p.content).join(" | ");
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": "YOUR_API_KEY_HERE", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these social media posts, identify 6 trending topics. Return ONLY a JSON array of short strings (2-4 words max each), no hashtag symbols. Example: ["Kendrick Lamar","Severance S2","Taylor Swift","NFL Playoffs","Gaming News","Book Club"]. Posts: ${sample}` }] })
+      });
+      const d = await r.json();
+      const txt = d.content?.[0]?.text || "[]";
+      const parsed = JSON.parse(txt.replace(/\`\`\`json|\`\`\`/g, "").trim());
+      const withScrypt = ["Scrypt", ...parsed.filter(t => t.toLowerCase() !== "scrypt")].slice(0, 6);
+      setTrending(withScrypt);
+    } catch {
+      setTrending(["Scrypt", "Kendrick Lamar", "Severance Season 2", "Taylor Swift", "NBA 2024", "Gaming & Tech"]);
+    }
+    setBusy(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  return <div style={{ background: "linear-gradient(135deg, rgba(29,155,240,0.08), rgba(124,58,237,0.08))", borderBottom: `1px solid ${T.border}`, padding: "10px 16px" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+      <span style={{ fontWeight: 700, fontSize: 13, color: T.text }}>🔥 Trending on Scrypt</span>
+      <span onClick={load} style={{ fontSize: 11, color: BLUE, cursor: "pointer", fontWeight: 600 }}>✨ Refresh</span>
+    </div>
+    {busy && <div style={{ fontSize: 12, color: T.sub }}>Loading trending topics...</div>}
+    {trending && !busy && <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      {trending.map((t, i) => <span key={i} style={{ background: T.input, borderRadius: 9999, padding: "4px 11px", fontSize: 12, color: BLUE, fontWeight: 600, cursor: "pointer" }}>#{t}</span>)}
+    </div>}
   </div>;
 };
 
@@ -1187,10 +1302,16 @@ export default function App() {
           ? clickMembers[Math.floor(Math.random() * clickMembers.length)]
           : allBots[Math.floor(Math.random() * allBots.length)];
         const pool = CLICK_POSTS[targetClickId] || HOME_BOT_POSTS;
-        const content = pool[Math.floor(Math.random() * pool.length)];
+        // Pick content that hasn't been posted recently (no duplicates in last 40 posts)
+        const recentContents = new Set(curPosts.slice(0, 40).map(p => p.content));
+        const freshPool = pool.filter(c => !recentContents.has(c));
+        const postContent = (freshPool.length > 0 ? freshPool : pool)[Math.floor(Math.random() * (freshPool.length > 0 ? freshPool : pool).length)];
+        // Also skip if this exact bot already posted recently
+        const posterRecentPost = curPosts.slice(0, 20).find(p => p.userId === poster.id && !p.parentId);
+        if (posterRecentPost) { /* skip this turn */ } else {
         const newPost = {
           id: `bauto_${now}_${Math.floor(Math.random() * 99999)}`,
-          userId: poster.id, username: poster.username, content,
+          userId: poster.id, username: poster.username, content: postContent,
           likes: [], reposts: [],
           clickId: targetClickId,
           createdAt: new Date().toISOString(), replyCount: 0
@@ -1207,12 +1328,19 @@ export default function App() {
             LS.set("sp", u2); setPosts(u2);
           }, (i + 1) * (3000 + Math.random() * 8000));
         });
+        } // end poster dedup check
       }
 
       // 25% chance: a bot posts to home feed
       if (Math.random() < 0.25) {
         const poster = allBots[Math.floor(Math.random() * allBots.length)];
-        const content = HOME_BOT_POSTS[Math.floor(Math.random() * HOME_BOT_POSTS.length)];
+        // Skip if this bot posted recently on home feed
+        const posterRecentHome = curPosts.slice(0, 20).find(p => p.userId === poster.id && !p.parentId && !p.clickId);
+        if (posterRecentHome) { /* skip */ } else {
+        const homePool = HOME_BOT_POSTS;
+        const recentHomeContents = new Set(curPosts.slice(0, 30).map(p => p.content));
+        const freshHome = homePool.filter(c => !recentHomeContents.has(c));
+        const content = (freshHome.length > 0 ? freshHome : homePool)[Math.floor(Math.random() * (freshHome.length > 0 ? freshHome : homePool).length)];
         const newPost = {
           id: `bhome_${now}_${Math.floor(Math.random() * 99999)}`,
           userId: poster.id, username: poster.username, content,
@@ -1232,6 +1360,7 @@ export default function App() {
             LS.set("sp", u2); setPosts(u2);
           }, (i + 1) * (4000 + Math.random() * 12000));
         });
+        } // end home poster dedup check
       }
 
       // Always: stagger-add likes to recent posts based on sentiment
@@ -1340,7 +1469,13 @@ export default function App() {
       if (sf.pw !== sf.pw2) { setSerr("Passwords don't match."); return; }
       upd.password = sf.pw;
     }
-    if (sf.bio) upd.bio = sf.bio;
+    if (sf.bio !== undefined && sf.bio !== "") upd.bio = sf.bio;
+    if (sf.mood !== undefined) upd.mood = sf.mood;
+    if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
+    if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
+    if (sf.profileSong !== undefined) upd.profileSong = sf.profileSong;
+    if (sf.profileSongName !== undefined) upd.profileSongName = sf.profileSongName;
+    INFO_FIELDS.forEach(f => { if (sf[f.key] !== undefined) upd[f.key] = sf[f.key]; });
     sv("su", users.map(u => u.id === me.id ? { ...u, ...upd } : u), setUsers);
     setMe(p => ({ ...p, ...upd }));
     setSf({ u: "", pw: "", pw2: "", bio: "" });
@@ -1448,6 +1583,7 @@ export default function App() {
       {thread && <Thread p={thread} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={doPost} onBack={() => setThread(null)} onUser={setOpenUser} T={T} />}
 
       {!thread && tab === "home" && <>
+        <HomeTrending posts={posts} T={T} />
         <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>📅 Chronological · No algorithm</span>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub }}>{feed.length} posts</div>
@@ -1560,11 +1696,10 @@ export default function App() {
 
       {!thread && tab === "profile" && <div>
         {/* Banner / wallpaper */}
-        <div style={{ height: 110, background: me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || `linear-gradient(135deg,${BLUE},${PURPLE})`), position: "relative", overflow: "visible", flexShrink: 0 }}>
-          {/* Edit wallpaper button */}
+        {(() => { const myAccent = getAccent(me); return <>
+        <div style={{ height: 110, background: me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || myAccent.grad), position: "relative", overflow: "visible", flexShrink: 0, borderBottom: `2px solid ${myAccent.color}` }}>
           <button onClick={() => setShowWallpaper(true)} style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "white", border: "none", borderRadius: 9999, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🖼️ Edit banner</button>
-          {/* Avatar sits on the bottom edge of banner */}
-          <div style={{ position: "absolute", bottom: -32, left: 16, border: `3px solid ${T.card}`, borderRadius: "50%", zIndex: 2, background: T.card }}>
+          <div style={{ position: "absolute", bottom: -32, left: 16, border: `3px solid ${myAccent.color}`, borderRadius: "50%", zIndex: 2, background: T.card }}>
             <Av user={me} sz={62} />
           </div>
         </div>
@@ -1576,13 +1711,25 @@ export default function App() {
           </div>
           <div style={{ fontWeight: 800, fontSize: 19, color: T.text }}>{me.username}</div>
           <div style={{ fontSize: 13, color: T.sub }}>@{me.username.toLowerCase()}</div>
+          {me.mood && <div style={{ fontSize: 14, color: myAccent.color, marginTop: 3, fontStyle: "italic" }}>{me.mood}</div>}
           {me.bio && <div style={{ fontSize: 14, color: T.text, marginTop: 5 }}>{me.bio}</div>}
           <div style={{ display: "flex", gap: 20, marginTop: 10 }}>
-            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: T.text }}>{mine.length}</strong> Scrypts</span>
-            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: T.text }}>{myV.length}</strong> Village</span>
-            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: T.text }}>{mutuals.length}</strong> Mutuals</span>
+            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mine.length}</strong> Scrypts</span>
+            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{myV.length}</strong> Village</span>
+            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mutuals.length}</strong> Mutuals</span>
           </div>
         </div>
+        {/* Profile song player on own profile */}
+        {me.profileSong && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer user={me} accent={myAccent} /></div>}
+        {/* Info cards on own profile */}
+        {INFO_FIELDS.some(f => me[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} /></div>}
+        {/* Featured post on own profile */}
+        {(() => { const feat = me.featuredPostId ? posts.find(p => p.id === me.featuredPostId) : null; return feat ? <div style={{ margin: "10px 16px", padding: "10px 12px", border: `1.5px solid ${myAccent.color}`, borderRadius: 12, background: `${myAccent.color}08` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: myAccent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
+          <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(feat.content)}</p>
+          <div style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>{feat.likes?.length || 0} likes · {ago(feat.createdAt)}</div>
+        </div> : null; })()}
+        </>; })()}
         <div style={{ padding: 12, borderBottom: `1px solid ${T.border}`, background: T.card }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: T.text, marginBottom: 8 }}>🏘️ My Village</div>
           {villagers.length === 0 && <p style={{ fontSize: 12, color: T.sub, margin: 0 }}>No villagers yet. Search for people to add!</p>}
@@ -1606,44 +1753,108 @@ export default function App() {
         <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}` }}>MY SCRYPTS</div>
         {mine.filter(p => !p.villageOnly).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
         {mine.filter(p => !p.villageOnly).length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 16px", fontSize: 14 }}>No posts yet. Start Scrypting!</p>}
+        </>; })()}
       </div>}
 
-      {!thread && tab === "settings" && <div style={{ padding: 16, paddingBottom: 90 }}>
-        <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 12 }}>Profile</div>
-          {/* Banner preview */}
-          <div style={{ height: 72, borderRadius: 10, background: me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || `linear-gradient(135deg,${BLUE},${PURPLE})`), position: "relative", marginBottom: 10, overflow: "hidden" }}>
-            <button onClick={() => setShowWallpaper(true)} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: 8, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🖼️ Change banner</button>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <Av user={me} sz={46} />
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <button onClick={() => setShowPP(true)} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: "pointer" }}>Choose pic</button>
-              <button onClick={() => avRef2.current.click()} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: "pointer" }}>Upload photo</button>
-              <input ref={avRef2} type="file" accept="image/*" style={{ display: "none" }} onChange={doAvatar} />
+      {!thread && tab === "settings" && (() => {
+        const myAccent = getAccent(me);
+        const inp13 = { width: "100%", background: T.input, border: "none", borderRadius: 10, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" };
+        return <div style={{ padding: 16, paddingBottom: 90 }}>
+
+          {/* ── PROFILE BASICS ── */}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 12 }}>Profile</div>
+            <div style={{ height: 72, borderRadius: 10, background: me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || myAccent.grad), position: "relative", marginBottom: 10, overflow: "hidden" }}>
+              <button onClick={() => setShowWallpaper(true)} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: 8, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🖼️ Change banner</button>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <Av user={me} sz={46} />
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button onClick={() => setShowPP(true)} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: "pointer" }}>Choose pic</button>
+                <button onClick={() => avRef2.current.click()} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 10px", fontSize: 12, cursor: "pointer" }}>Upload photo</button>
+                <input ref={avRef2} type="file" accept="image/*" style={{ display: "none" }} onChange={doAvatar} />
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>USERNAME</label><input value={sf.u} onChange={e => setSf(p => ({ ...p, u: e.target.value }))} placeholder={me.username} style={inp13} /></div>
+              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>BIO</label><input value={sf.bio} onChange={e => setSf(p => ({ ...p, bio: e.target.value }))} placeholder={me.bio || "Tell us about yourself..."} style={inp13} /></div>
+              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>😌 MOOD STATUS</label><input value={sf.mood ?? (me.mood || "")} onChange={e => setSf(p => ({ ...p, mood: e.target.value }))} placeholder='e.g. "feeling unstoppable today 🔥"' style={inp13} /></div>
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>USERNAME</label><input value={sf.u} onChange={e => setSf(p => ({ ...p, u: e.target.value }))} placeholder={me.username} style={{ width: "100%", background: T.input, border: "none", borderRadius: 10, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} /></div>
-            <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>BIO</label><input value={sf.bio} onChange={e => setSf(p => ({ ...p, bio: e.target.value }))} placeholder={me.bio || "Tell us about yourself..."} style={{ width: "100%", background: T.input, border: "none", borderRadius: 10, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} /></div>
+
+          {/* ── ACCENT COLOR ── */}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 10 }}>🎨 Accent Color</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {ACCENT_COLORS.map(ac => <div key={ac.id} onClick={() => setSf(p => ({ ...p, accentColor: ac.id }))} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer" }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: ac.grad, border: `3px solid ${(sf.accentColor ?? me.accentColor) === ac.id ? "white" : "transparent"}`, outline: (sf.accentColor ?? me.accentColor) === ac.id ? `2px solid ${ac.color}` : "none", transition: "all 0.15s" }} />
+                <span style={{ fontSize: 9, color: T.sub }}>{ac.label}</span>
+              </div>)}
+            </div>
           </div>
-        </div>
-        <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 10 }}>Password</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password" style={{ width: "100%", background: T.input, border: "none", borderRadius: 10, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-            <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={{ width: "100%", background: T.input, border: "none", borderRadius: 10, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+
+          {/* ── PROFILE INFO CARDS ── */}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 10 }}>🃏 Profile Info Cards</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {INFO_FIELDS.map(f => <div key={f.key}>
+                <label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>{f.icon} {f.label.toUpperCase()}</label>
+                <input value={sf[f.key] ?? (me[f.key] || "")} onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))} placeholder={`Your ${f.label.toLowerCase()}...`} style={inp13} />
+              </div>)}
+            </div>
           </div>
-        </div>
-        {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
-        <button onClick={doSave} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
-        <button onClick={() => { setMe(null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
-        <div style={{ marginTop: 16, padding: 12, background: dark ? "#1a1400" : "#fffbeb", borderRadius: 10, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
-          <p style={{ fontSize: 11, color: T.sub, margin: 0, lineHeight: 1.7 }}>
-            <strong style={{ color: T.text }}>⚠️ Important:</strong> Add your Anthropic API key where it says <code style={{ background: T.input, padding: "1px 5px", borderRadius: 4 }}>YOUR_API_KEY_HERE</code> to enable Claude AI.
-          </p>
-        </div>
-      </div>}
+
+          {/* ── FEATURED SCRYPT ── */}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 6 }}>📌 Featured Scrypt</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Pin one post to the top of your profile</div>
+            {posts.filter(p => p.userId === me.id && !p.parentId && !p.villageOnly).slice(0, 8).map(p => {
+              const isFeat = (sf.featuredPostId ?? me.featuredPostId) === p.id;
+              return <div key={p.id} onClick={() => setSf(prev => ({ ...prev, featuredPostId: isFeat ? null : p.id }))} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", borderRadius: 10, marginBottom: 5, cursor: "pointer", background: isFeat ? `${myAccent.color}18` : T.input, border: `1.5px solid ${isFeat ? myAccent.color : "transparent"}` }}>
+                <div style={{ marginTop: 2, color: isFeat ? myAccent.color : T.sub, fontSize: 14 }}>{isFeat ? "📌" : "○"}</div>
+                <div style={{ flex: 1, fontSize: 12, color: T.text, lineHeight: 1.4 }}>{p.content.slice(0, 80)}{p.content.length > 80 ? "…" : ""}</div>
+              </div>;
+            })}
+            {posts.filter(p => p.userId === me.id && !p.parentId && !p.villageOnly).length === 0 && <p style={{ fontSize: 12, color: T.sub, margin: 0 }}>No posts yet to feature.</p>}
+          </div>
+
+          {/* ── PROFILE SONG ── */}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🎵 Profile Song</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Upload a short audio clip (up to ~10 sec) that plays on your profile</div>
+            {me.profileSong && <div style={{ marginBottom: 8 }}><ProfileSongPlayer user={me} accent={myAccent} /></div>}
+            <label style={{ display: "inline-block", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              🎵 {me.profileSong ? "Change Song" : "Upload Song"}
+              <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
+                const f = e.target.files[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = x => setSf(p => ({ ...p, profileSong: x.target.result, profileSongName: f.name }));
+                r.readAsDataURL(f);
+              }} />
+            </label>
+            {(sf.profileSong || me.profileSong) && <button onClick={() => setSf(p => ({ ...p, profileSong: null, profileSongName: null }))} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+            {sf.profileSong && <div style={{ fontSize: 11, color: T.sub, marginTop: 6 }}>Preview: {sf.profileSongName}</div>}
+          </div>
+
+          {/* ── PASSWORD ── */}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 10 }}>Password</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password" style={inp13} />
+              <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
+            </div>
+          </div>
+
+          {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
+          <button onClick={doSave} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
+          <button onClick={() => { setMe(null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
+          <div style={{ marginTop: 16, padding: 12, background: dark ? "#1a1400" : "#fffbeb", borderRadius: 10, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
+            <p style={{ fontSize: 11, color: T.sub, margin: 0, lineHeight: 1.7 }}>
+              <strong style={{ color: T.text }}>⚠️ Important:</strong> Add your Anthropic API key where it says <code style={{ background: T.input, padding: "1px 5px", borderRadius: 4 }}>YOUR_API_KEY_HERE</code> to enable Claude AI.
+            </p>
+          </div>
+        </div>;
+      })()}
     </div>
 
     {/* BOTTOM NAV */}
