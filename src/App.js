@@ -619,8 +619,8 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
   return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
     <div style={{ maxWidth: 400, width: "100%" }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: BLUE, padding: "14px 28px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", marginBottom: 14 }}>
-          <img src={LOGO} style={{ width: 132, height: 132, objectFit: "contain" }} alt="Scrypt logo" />
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BLUE, padding: "14px 28px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", marginBottom: 14 }}>
+          <img src={LOGO} style={{ width: 52, height: 52, objectFit: "contain", mixBlendMode: "screen" }} alt="Scrypt logo" />
           <span style={{ fontWeight: 700, fontSize: 26, color: "white", fontFamily: "\"TwitterChirp\", \"Chirp\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif", letterSpacing: "-0.5px" }}>Scrypt</span>
         </div>
         <p style={{ margin: 0, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
