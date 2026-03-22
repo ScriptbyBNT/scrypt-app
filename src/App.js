@@ -214,7 +214,7 @@ const SCRYPTBOT_USER = {
   username: "Scrypt",
   password: "Scrypt2025!",
   avatar: LOGO,
-  bio: "Your daily dose of wild, weird, and wonderful facts. Powered by Claude AI. Posting every 6 hours. 🧠✨",
+  bio: "Fascinating facts about science, nature, history and everything in between. 🧠✨",
   isBot: true,
   isSpecial: true,
   verified: true,
@@ -227,7 +227,7 @@ const MINERVA_USER = {
   username: "Script_Minerva",
   password: "Minerva2025!",
   avatar: mkSpecialAvatar("#7c3aed", "M", "🦉"),
-  bio: "History facts every 12 hours · This Day in History every day · Powered by Claude AI. Know your past. 📜",
+  bio: "History facts and This Day in History. Know your past. 📜",
   isBot: true,
   isSpecial: true,
   verified: true,
@@ -253,7 +253,7 @@ const NEWS_USER = {
   username: "Script_News",
   password: "ScryptNews2025!",
   avatar: mkSpecialAvatar("#e11d48", "N", "📰"),
-  bio: "Breaking news & top stories — fact-checked by major outlets. Powered by Claude AI + web search. Updates every 3 hours. 📡",
+  bio: "Breaking news and top stories from major outlets worldwide. 📡",
   isBot: true,
   isSpecial: true,
   verified: true,
@@ -267,7 +267,7 @@ const ABANDONWARE_USER = {
   username: "Abandonware",
   password: "Abandonware2025!",
   avatar: mkSpecialAvatar("#0f766e", "A", "🎮"),
-  bio: "Video games, movies & TV shows — reviews, rankings, hot takes. Drops every 4 hours. Powered by Claude AI. 🎬🕹️",
+  bio: "Video games, movies and TV — reviews, rankings, hot takes. 🎬🕹️",
   isBot: true,
   isSpecial: true,
   verified: true,
@@ -604,15 +604,95 @@ const ReportModal = ({ post, onClose, T }) => {
 };
 
 // ── WALLPAPER PICKER ─────────────────────────────────────────────────────────
+const BannerCropModal = ({ src, onSave, onClose, T }) => {
+  const canvasRef = useRef();
+  const [drag, setDrag] = useState(false);
+  const [start, setStart] = useState({ x: 0, y: 0 });
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
+  const imgRef = useRef(new window.Image());
+  const W = 340; const H = 113; // 3:1 ratio
+
+  useEffect(() => {
+    const img = imgRef.current;
+    img.onload = () => {
+      // Auto-fit: scale to fill width
+      const fitScale = W / img.naturalWidth;
+      setScale(fitScale);
+      setOffset({ x: 0, y: -(img.naturalHeight * fitScale - H) / 2 });
+      draw({ x: 0, y: -(img.naturalHeight * fitScale - H) / 2 }, fitScale);
+    };
+    img.src = src;
+  }, [src]);
+
+  const draw = (off, sc) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const img = imgRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + "px"; canvas.style.height = H + "px";
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(img, off.x, off.y, img.naturalWidth * sc, img.naturalHeight * sc);
+  };
+
+  const onMouseDown = e => { setDrag(true); setStart({ x: e.clientX - offset.x, y: e.clientY - offset.y }); };
+  const onMouseMove = e => {
+    if (!drag) return;
+    const newOff = { x: e.clientX - start.x, y: e.clientY - start.y };
+    setOffset(newOff); draw(newOff, scale);
+  };
+  const onMouseUp = () => setDrag(false);
+  const onTouchStart = e => { const t = e.touches[0]; setDrag(true); setStart({ x: t.clientX - offset.x, y: t.clientY - offset.y }); };
+  const onTouchMove = e => {
+    if (!drag) return;
+    const t = e.touches[0];
+    const newOff = { x: t.clientX - start.x, y: t.clientY - start.y };
+    setOffset(newOff); draw(newOff, scale);
+  };
+  const changeScale = v => { const s = Math.max(0.1, Math.min(4, v)); setScale(s); draw(offset, s); };
+  const save = () => {
+    const out = document.createElement("canvas");
+    const EW = 1200; const EH = 400;
+    out.width = EW; out.height = EH;
+    const ctx = out.getContext("2d");
+    const ratio = EW / W;
+    ctx.drawImage(imgRef.current, offset.x * ratio, offset.y * ratio, imgRef.current.naturalWidth * scale * ratio, imgRef.current.naturalHeight * scale * ratio);
+    onSave(out.toDataURL("image/jpeg", 0.88));
+  };
+
+  return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, padding: 16 }}>
+    <div style={{ fontWeight: 700, fontSize: 16, color: "white" }}>Crop Banner</div>
+    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>Drag to reposition · Slide to zoom</div>
+    <div style={{ borderRadius: 10, overflow: "hidden", cursor: drag ? "grabbing" : "grab", userSelect: "none", border: "2px solid rgba(255,255,255,0.2)" }}
+      onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}>
+      <canvas ref={canvasRef} style={{ display: "block" }} />
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, width: W }}>
+      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>–</span>
+      <input type="range" min={0.1} max={4} step={0.01} value={scale} onChange={e => changeScale(parseFloat(e.target.value))} style={{ flex: 1, accentColor: BLUE }} />
+      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>+</span>
+    </div>
+    <div style={{ display: "flex", gap: 10 }}>
+      <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 9999, padding: "10px 22px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+      <button onClick={save} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "10px 26px", fontWeight: 700, cursor: "pointer" }}>Use Banner</button>
+    </div>
+  </div>;
+};
+
 const WallpaperPicker = ({ onPick, onClose, T }) => {
-  const [uploading, setUploading] = useState(false);
+  const [cropSrcBanner, setCropSrcBanner] = useState(null);
   const fRef = useRef();
   const pickFile = e => {
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
-    r.onload = x => { onPick({ type: "image", value: x.target.result }); };
+    r.onload = x => { setCropSrcBanner(x.target.result); };
     r.readAsDataURL(f);
   };
+  if (cropSrcBanner) return <BannerCropModal src={cropSrcBanner} onSave={data => { onPick({ type: "image", value: data }); }} onClose={() => setCropSrcBanner(null)} T={T} />;
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
     <div style={{ background: T.card, borderRadius: 16, padding: 24, width: "100%", maxWidth: 440, border: `1px solid ${T.border}`, maxHeight: "80vh", overflow: "auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
@@ -1520,7 +1600,7 @@ const HomeTrending = ({ posts, users, T }) => {
     .filter(p => !p.parentId && p.content && p.content.length > 10)
     .map(p => ({ ...p, score: (p.likes?.length || 0) + (p.reposts?.length || 0) * 2 }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 8);
+    .slice(0, 5);
 
   if (topPosts.length === 0) return null;
 
@@ -1551,7 +1631,7 @@ const HomeTrending = ({ posts, users, T }) => {
 
 // ══════════════════════════════════════════════════════════════════════════════
 export default function App() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => LS.get("dark") === "1");
   const [pg, setPg] = useState(() => LS.get("session_uid") ? "loading" : "login");
   const [tab, setTab] = useState("home");
   const [me, setMe] = useState(null);
@@ -1595,6 +1675,7 @@ export default function App() {
     if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.appendChild(meta); }
     meta.content = color;
     document.body.style.backgroundColor = color;
+    LS.set("dark", dark ? "1" : "0");
   }, [dark]);
 
   useEffect(() => {
@@ -2492,9 +2573,8 @@ export default function App() {
     if (!f) return;
     const r = new FileReader();
     r.onload = x => {
-      const nu = users.map(u => u.id === me.id ? { ...u, avatar: x.target.result } : u);
-      setUsers(nu); setMe(p => ({ ...p, avatar: x.target.result }));
-      DB.updateUser(me.id, { avatar: x.target.result }).catch(() => {});
+      setCropSrc(x.target.result);
+      setCropKey("__avatar__");
     };
     r.readAsDataURL(f);
   };
@@ -2957,7 +3037,7 @@ export default function App() {
           </div>
 
           {/* ── PROFILE INFO CARDS ── */}
-          {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { setSf(p => ({ ...p, [cropKey]: dataUrl })); setCropSrc(null); setCropKey(null); }} />}
+          {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 3 }}>🃏 Profile Cards</div>
             <div style={{ fontSize: 12, color: T.sub, marginBottom: 14 }}>Showcase your favorites — photo optional</div>
