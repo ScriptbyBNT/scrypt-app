@@ -1411,8 +1411,17 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
   const [err, setErr] = useState("");
   const go = async () => {
     setErr("");
-    const special = SPECIAL_ACCOUNTS.find(x => x.username === u.trim() && x.password === pw);
-    if (special) { onLogin(special); return; }
+    // Special accounts can log in — but only via direct username/password, not shown publicly
+    // Special account — check DB first for custom avatar/bio, fall back to hardcoded
+    const specialMatch = SPECIAL_ACCOUNTS.find(x => x.username === u.trim() && x.password === pw);
+    if (specialMatch) {
+      try {
+        const rows = await DB.getUserByUsername(specialMatch.username);
+        const dbVersion = rows && rows[0] ? rowToUser(rows[0]) : null;
+        onLogin(dbVersion || specialMatch);
+      } catch { onLogin(specialMatch); }
+      return;
+    }
     try {
       const rows = await DB.getUserByUsername(u.trim());
       const f = rows && rows[0] ? rowToUser(rows[0]) : null;
@@ -2370,13 +2379,13 @@ export default function App() {
     const postHistoryFact = async () => {
       if (!getKey()) return;
       try {
-        const eras = ["ancient Egypt","ancient Greece","the Roman Empire","the Renaissance","the Age of Exploration","the Industrial Revolution","World War I","World War II","the Cold War","ancient China","the Ottoman Empire","the Viking Age","medieval Europe","the Byzantine Empire"];
+        const eras = ["ancient Egypt","ancient Greece","the Roman Empire","the Renaissance","the Age of Exploration","the Industrial Revolution","World War I","World War II","the Cold War","ancient China","the Ottoman Empire","the Viking Age","medieval Europe","the Byzantine Empire","ancient Persia","the Mongol Empire","the British Empire","the French Revolution","ancient Rome","the Ottoman Empire"];
         const era = eras[Math.floor(Math.random() * eras.length)];
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 200,
-          system: "You are Script_Minerva, a history account on a social platform. Share one genuinely fascinating, specific historical fact — something most people don't know. Be compelling and slightly dramatic — history deserves it. End with a relevant emoji. Under 230 characters. Just the fact, no intro like 'Did you know'.",
-          messages: [{ role: "user", content: `Share a fascinating, little-known fact from ${era}.` }]
+          system: "You are Script_Minerva, a history account. Share one specific, surprising historical fact STRICTLY about the given time period or civilization. Must be about real historical events, people, or discoveries — nothing modern, no pop culture, no cars, no technology post-1950. Be compelling. End with a relevant historical emoji. Under 230 characters. No intro phrases.",
+          messages: [{ role: "user", content: `Share a fascinating, little-known historical fact strictly from ${era}.` }]
         });
         const d = await r.json();
         const content = d.content?.[0]?.text;
@@ -3153,33 +3162,7 @@ export default function App() {
           {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
           <button onClick={doSave} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
 
-          {/* ── SWITCH ACCOUNT ── */}
-          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>⚡ Switch Account</div>
-            <div style={{ fontSize: 12, color: T.sub, marginBottom: 12 }}>Jump directly into an official Scrypt account</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[SCRYPTBOT_USER, MINERVA_USER, NEWS_USER].map(account => {
-                const accentCol = account.id === "bot_scryptbot" ? BLUE : account.id === "bot_news" ? "#e11d48" : PURPLE;
-                const isActive = me.id === account.id;
-                return <div key={account.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: isActive ? `${accentCol}18` : T.input, border: `1.5px solid ${isActive ? accentCol : "transparent"}` }}>
-                  <div style={{ width: 38, height: 38, borderRadius: "50%", overflow: "hidden", flexShrink: 0, lineHeight: 0 }}>
-                    <img src={account.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: T.text, display: "flex", alignItems: "center", gap: 4 }}>{account.username}<span style={{ color: BLUE, fontSize: 11 }}>✓</span></div>
-                    <div style={{ fontSize: 10, color: T.sub, fontFamily: "monospace" }}>pw: {account.password}</div>
-                  </div>
-                  {isActive
-                    ? <span style={{ fontSize: 11, color: accentCol, fontWeight: 700 }}>Active</span>
-                    : <button onClick={() => {
-                        const all = users;
-                        if (!all.find(x => x.id === account.id)) { setUsers(prev => [...prev, account]); (async () => { try { await DB.upsertUser(userToRow(account)); } catch {} })(); }
-                        setMe(account); setSf({ u: "", pw: "", pw2: "", bio: "" }); setTab("home"); notify(`Switched to ${account.username} ✓`);
-                      }} style={{ background: accentCol, color: "white", border: "none", borderRadius: 9999, padding: "6px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>Switch →</button>}
-                </div>;
-              })}
-            </div>
-          </div>
+
 
           <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
