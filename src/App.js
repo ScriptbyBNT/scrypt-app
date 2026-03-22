@@ -2,61 +2,11 @@ import { useState, useRef, useCallback, useEffect } from "react";
 
 const BLUE = "#1D9BF0", PURPLE = "#7c3aed", PINK = "#F91880";
 
-const PYRAMID_ICON = "data:image/png;base64,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";
-
 // ── LOCAL STORAGE (kept only for large/binary data + session) ─────────────────
 const LS = {
   get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
-
-// ── INDEXEDDB — for large binary data (photos, audio) ────────────────────────
-const IDB = (() => {
-  const DB_NAME = "scrypt_media", STORE = "blobs", VERSION = 1;
-  let _db = null;
-  const open = () => new Promise((res, rej) => {
-    if (_db) return res(_db);
-    const req = indexedDB.open(DB_NAME, VERSION);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
-    req.onsuccess = e => { _db = e.target.result; res(_db); };
-    req.onerror = () => rej(req.error);
-  });
-  return {
-    set: async (key, val) => {
-      try {
-        const db = await open();
-        return new Promise((res, rej) => {
-          const tx = db.transaction(STORE, "readwrite");
-          tx.objectStore(STORE).put(val, key);
-          tx.oncomplete = () => res(true);
-          tx.onerror = () => rej(tx.error);
-        });
-      } catch(e) { console.error("IDB set error", e); return false; }
-    },
-    get: async (key) => {
-      try {
-        const db = await open();
-        return new Promise((res, rej) => {
-          const tx = db.transaction(STORE, "readonly");
-          const req = tx.objectStore(STORE).get(key);
-          req.onsuccess = () => res(req.result ?? null);
-          req.onerror = () => rej(req.error);
-        });
-      } catch(e) { console.error("IDB get error", e); return null; }
-    },
-    del: async (key) => {
-      try {
-        const db = await open();
-        return new Promise((res, rej) => {
-          const tx = db.transaction(STORE, "readwrite");
-          tx.objectStore(STORE).delete(key);
-          tx.oncomplete = () => res(true);
-          tx.onerror = () => rej(tx.error);
-        });
-      } catch(e) { return false; }
-    },
-  };
-})();
 
 // ── SUPABASE CLIENT ────────────────────────────────────────────────────────────
 const SUPA_URL = "https://wzrxrgybdwoawhaleuah.supabase.co";
@@ -89,8 +39,8 @@ const DB = {
   // USERS
   getUsers: () => sbFetch("users?select=*&order=created_at.asc&limit=1000"),
   getUserByUsername: (username) => sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=*`),
-  upsertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user), prefer: "resolution=merge-duplicates,return=minimal", headers: { "Prefer": "resolution=merge-duplicates,return=minimal" } }),
-  updateUser: (id, data) => sbFetch(`users?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data), prefer: "return=minimal", headers: { "Prefer": "return=minimal" } }),
+  upsertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
+  updateUser: (id, data) => sbFetch(`users?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
   insertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user) }),
 
   // POSTS
@@ -110,51 +60,6 @@ const DB = {
   // DMs — stored as rows with conversation_key + messages JSON
   getDMs: (key) => sbFetch(`dms?conversation_key=eq.${encodeURIComponent(key)}&select=*`),
   upsertDMs: (key, messages) => sbFetch("dms", { method: "POST", body: JSON.stringify({ conversation_key: key, messages: JSON.stringify(messages) }), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
-};
-
-// ── SUPABASE STORAGE ─────────────────────────────────────────────────────────
-// Buckets needed in Supabase dashboard: "media" (photos) and "audio" (songs)
-// Both buckets must be set to PUBLIC
-const STORAGE = {
-  // Upload a base64 data URL to Supabase Storage, returns public URL or null
-  upload: async (bucket, path, dataUrl) => {
-    try {
-      // Convert base64 data URL to binary blob
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const uploadUrl = `${SUPA_URL}/storage/v1/object/${bucket}/${path}`;
-      const r = await fetch(uploadUrl, {
-        method: "POST",
-        headers: {
-          "apikey": SUPA_KEY,
-          "Authorization": `Bearer ${SUPA_KEY}`,
-          "Content-Type": blob.type,
-          "x-upsert": "true",
-        },
-        body: blob,
-      });
-      if (!r.ok) {
-        const err = await r.text();
-        console.error("Storage upload error:", err);
-        return null;
-      }
-      return `${SUPA_URL}/storage/v1/object/public/${bucket}/${path}`;
-    } catch(e) {
-      console.error("Storage upload exception:", e);
-      return null;
-    }
-  },
-  // Delete a file from storage
-  remove: async (bucket, path) => {
-    try {
-      await fetch(`${SUPA_URL}/storage/v1/object/${bucket}/${path}`, {
-        method: "DELETE",
-        headers: { "apikey": SUPA_KEY, "Authorization": `Bearer ${SUPA_KEY}` },
-      });
-    } catch(e) {}
-  },
-  // Get public URL (no fetch needed)
-  url: (bucket, path) => `${SUPA_URL}/storage/v1/object/public/${bucket}/${path}`,
 };
 
 // Convert DB row → app object (posts/clicks come back with snake_case from DB → map to camelCase arrays)
@@ -182,43 +87,23 @@ const rowToPost = r => {
 
 const rowToUser = r => {
   if (!r) return null;
-  // village column stores { v: [...memberIds], p: { ...profileExtras } }
-  // OR legacy format: [...memberIds]
-  const rawVillage = tryParse(r.village, []);
-  const village = Array.isArray(rawVillage) ? rawVillage : (rawVillage.v || []);
-  const p = (!Array.isArray(rawVillage) && rawVillage.p) ? rawVillage.p : {};
-  // info_fields fallback for older rows
-  const info = r.info_fields ? tryParse(r.info_fields, {}) : {};
   return {
     id: r.id,
     username: r.username,
     password: r.password,
     avatar: r.avatar,
-    bio: r.bio || null,
+    bio: r.bio,
     isBot: r.is_bot ?? r.isBot ?? false,
     isSpecial: r.is_special ?? r.isSpecial ?? false,
     verified: r.verified ?? false,
-    village,
+    village: tryParse(r.village, []),
     joinedAt: r.joined_at || r.joinedAt || r.created_at,
-    wallpaper: r.wallpaper ? tryParse(r.wallpaper, null) : null,
-    // Profile extras — from village.p (new) or dedicated columns (old) or info_fields (older)
-    mood: p.mood || r.mood || null,
-    accentColor: p.accentColor || r.accent_color || null,
-    featuredPostId: p.featuredPostId || r.featured_post_id || null,
-    hasProfileSong: p.hasProfileSong ?? r.has_profile_song ?? false,
-    profileSongName: p.profileSongName || r.profile_song_name || null,
-    profileSongLabel: p.profileSongLabel || info.profileSongLabel || null,
-    profileSong: p.profileSong || info.profileSong || null,
-    infoMovie: p.infoMovie || info.infoMovie || null,
-    infoArtist: p.infoArtist || info.infoArtist || null,
-    infoShow: p.infoShow || info.infoShow || null,
-    infoBook: p.infoBook || info.infoBook || null,
-    infoGame: p.infoGame || info.infoGame || null,
-    infoMoviePhoto: p.infoMoviePhoto || info.infoMoviePhoto || null,
-    infoArtistPhoto: p.infoArtistPhoto || info.infoArtistPhoto || null,
-    infoShowPhoto: p.infoShowPhoto || info.infoShowPhoto || null,
-    infoBookPhoto: p.infoBookPhoto || info.infoBookPhoto || null,
-    infoGamePhoto: p.infoGamePhoto || info.infoGamePhoto || null,
+    mood: r.mood || null,
+    accentColor: r.accent_color || r.accentColor || null,
+    featuredPostId: r.featured_post_id || r.featuredPostId || null,
+    hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
+    profileSongName: r.profile_song_name || r.profileSongName || null,
+    ...(r.info_fields ? tryParse(r.info_fields, {}) : {}),
   };
 };
 
@@ -253,38 +138,23 @@ const postToRow = p => ({
   pinned: p.pinned || false,
 });
 
-const INFO_TEXT_KEYS = ["infoMovie","infoArtist","infoShow","infoBook","infoGame"];
-const INFO_PHOTO_KEYS = ["infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
-const INFO_FIELD_KEYS = [...INFO_TEXT_KEYS, ...INFO_PHOTO_KEYS];
-const userToRow = u => {
-  // Pack ALL profile extras into the village column as { v: [...], p: {...} }
-  // This guarantees persistence because village definitely exists in DB
-  const profileExtras = {};
-  if (u.mood) profileExtras.mood = u.mood;
-  if (u.accentColor) profileExtras.accentColor = u.accentColor;
-  if (u.featuredPostId) profileExtras.featuredPostId = u.featuredPostId;
-  if (u.hasProfileSong) profileExtras.hasProfileSong = u.hasProfileSong;
-  if (u.profileSongName) profileExtras.profileSongName = u.profileSongName;
-  if (u.profileSongLabel) profileExtras.profileSongLabel = u.profileSongLabel;
-  if (u.profileSong && u.profileSong.startsWith("http")) profileExtras.profileSong = u.profileSong;
-  INFO_TEXT_KEYS.forEach(k => { if (u[k]) profileExtras[k] = u[k]; });
-  INFO_PHOTO_KEYS.forEach(k => { if (u[k] && u[k].startsWith("http")) profileExtras[k] = u[k]; });
-  // Pack village array + profile extras into one JSON object
-  const villageData = { v: u.village || [], p: profileExtras };
-  return {
-    id: u.id,
-    username: u.username,
-    password: u.password,
-    avatar: u.avatar || null,
-    bio: u.bio || null,
-    is_bot: u.isBot || false,
-    is_special: u.isSpecial || false,
-    verified: u.verified || false,
-    village: JSON.stringify(villageData),
-    joined_at: u.joinedAt || new Date().toISOString(),
-    wallpaper: u.wallpaper ? JSON.stringify(u.wallpaper) : null,
-  };
-};
+const userToRow = u => ({
+  id: u.id,
+  username: u.username,
+  password: u.password,
+  avatar: u.avatar || null,
+  bio: u.bio || null,
+  is_bot: u.isBot || false,
+  is_special: u.isSpecial || false,
+  verified: u.verified || false,
+  village: JSON.stringify(u.village || []),
+  joined_at: u.joinedAt || new Date().toISOString(),
+  mood: u.mood || null,
+  accent_color: u.accentColor || null,
+  featured_post_id: u.featuredPostId || null,
+  has_profile_song: u.hasProfileSong || false,
+  profile_song_name: u.profileSongName || null,
+});
 
 const clickToRow = c => ({
   id: c.id,
@@ -804,7 +674,7 @@ const BannerCropModal = ({ src, onSave, onClose, T }) => {
     const ratio = EW / W;
     const { offsetX, offsetY, scale } = stateRef.current;
     ctx.drawImage(imgRef.current, offsetX * ratio, offsetY * ratio, imgRef.current.naturalWidth * scale * ratio, imgRef.current.naturalHeight * scale * ratio);
-    onSave(out.toDataURL("image/jpeg", 0.72));
+    onSave(out.toDataURL("image/jpeg", 0.88));
   };
 
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, padding: 16 }}>
@@ -969,7 +839,7 @@ const ACCENT_COLORS = [
 const getAccent = (user) => ACCENT_COLORS.find(a => a.id === user?.accentColor) || ACCENT_COLORS[0];
 
 // ── PROFILE SONG PLAYER ────────────────────────────────────────────────────────
-const ProfileSongPlayer = ({ songSrc, songLabel, accent }) => {
+const ProfileSongPlayer = ({ songSrc, songName, accent }) => {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
   if (!songSrc) return null;
@@ -982,7 +852,8 @@ const ProfileSongPlayer = ({ songSrc, songLabel, accent }) => {
     <audio ref={audioRef} src={songSrc} onEnded={() => setPlaying(false)} />
     <button onClick={toggle} style={{ background: accent.color, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "white", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{playing ? "⏸" : "▶"}</button>
     <div style={{ flex: 1, overflow: "hidden" }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: accent.color }}>🎵 {songLabel || "Profile Song"}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: accent.color }}>🎵 Profile Song</div>
+      <div style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{songName || "Custom clip"}</div>
     </div>
   </div>;
 };
@@ -1087,7 +958,7 @@ const ImageCropModal = ({ src, onSave, onClose, T }) => {
   };
 
   const save = () => {
-    const EXPORT = 200;
+    const EXPORT = 400;
     const out = document.createElement("canvas");
     out.width = EXPORT; out.height = EXPORT;
     const ctx = out.getContext("2d");
@@ -1095,7 +966,7 @@ const ImageCropModal = ({ src, onSave, onClose, T }) => {
     const ratio = EXPORT / SIZE;
     const img = imgRef.current;
     ctx.drawImage(img, offsetX * ratio, offsetY * ratio, img.naturalWidth * scale * ratio, img.naturalHeight * scale * ratio);
-    onSave(out.toDataURL("image/jpeg", 0.72));
+    onSave(out.toDataURL("image/jpeg", 0.88));
   };
 
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, padding: 16 }}>
@@ -1124,7 +995,7 @@ const ImageCropModal = ({ src, onSave, onClose, T }) => {
 };
 
 const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
-  const filled = INFO_FIELDS.filter(f => user[f.key] || (resolvePhoto && resolvePhoto(user, f.photoKey)));
+  const filled = INFO_FIELDS.filter(f => user[f.key]);
   if (!filled.length) return null;
   return <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7, marginBottom: 12 }}>
     {filled.map(f => {
@@ -1153,17 +1024,6 @@ const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
 
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
 const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
-  const resolveModalPhoto = (u, k) => {
-    const val = u[k];
-    if (!val) return null;
-    if (typeof val === "string" && (val.startsWith("http") || val.startsWith("data:"))) return val;
-    return null;
-  };
-  const resolveModalSong = (u) => {
-    if (!u.hasProfileSong && !u.profileSong) return null;
-    if (!u.profileSong) return null;
-    return { song: u.profileSong, label: u.profileSongLabel || null };
-  };
   const myV = me.village || [];
   const inV = myV.includes(user.id);
   const isMe = user.id === me.id;
@@ -1200,7 +1060,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
       </div>
       <div style={{ padding: "12px 16px 16px" }}>
         {/* Profile song player */}
-        {(() => { const s = resolveModalSong(user); return s ? <ProfileSongPlayer songSrc={s.song} songLabel={s.label} accent={accent} /> : null; })()}
+        {(() => { const s = LS.get(`psong_${user.id}`) || (user.profileSong ? {song:user.profileSong,name:user.profileSongName} : null); return s ? <ProfileSongPlayer songSrc={s.song} songName={s.name} accent={accent} /> : null; })()}
         {/* Special bot profile banners */}
         {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
@@ -1229,7 +1089,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
           <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.reduce((s, p) => s + (p.likes?.length || 0), 0)}</strong> Likes</span>
         </div>
         {/* Info cards */}
-        <ProfileInfoCards user={user} accent={accent} resolvePhoto={resolveModalPhoto} />
+        <ProfileInfoCards user={user} accent={accent} resolvePhoto={(u,k) => { const v=u[k]; if(!v) return null; if(v.startsWith("__local__")) return LS.get(`icard_${u.id}_${v.replace("__local__","")}`); return v; }} />
         {/* Featured post */}
         {featured && <div style={{ marginBottom: 12, padding: "10px 12px", border: `1.5px solid ${accent.color}`, borderRadius: 12, background: `${accent.color}08` }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: accent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
@@ -1658,13 +1518,13 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
       </div>
 
       <div style={{ background: T.card, borderRadius: 20, padding: "28px 24px", boxShadow: dark ? "0 4px 32px rgba(0,0,0,0.4)" : "0 2px 16px rgba(0,0,0,0.08)" }}>
-        <form style={{ display: "flex", flexDirection: "column", gap: 12 }} onSubmit={e => { e.preventDefault(); go(); }}>
-          <input name="username" autoComplete="username" value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} autoCapitalize="none" autoCorrect="off" spellCheck="false" />
-          <input name="password" autoComplete="current-password" type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} onKeyDown={e => e.key === "Enter" && go()} autoCapitalize="none" />
+          <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} onKeyDown={e => e.key === "Enter" && go()} />
           {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8 }}>{err}</div>}
-          <button type="submit" style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "16px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginTop: 4 }}>Sign In</button>
-          <button type="button" onClick={onSignup} style={{ background: T.card, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Create account</button>
-        </form>
+          <button onClick={go} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "16px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginTop: 4 }}>Sign In</button>
+          <button onClick={onSignup} style={{ background: T.card, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Create account</button>
+        </div>
       </div>
 
 
@@ -1902,18 +1762,6 @@ export default function App() {
     LS.set("dark", dark ? "1" : "0");
   }, [dark]);
 
-  // Set pyramids favicon
-  useEffect(() => {
-    let link = document.querySelector("link[rel~='icon']");
-    if (!link) { link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
-    link.type = "image/png";
-    link.href = PYRAMID_ICON;
-    // Also set apple touch icon
-    let apple = document.querySelector("link[rel='apple-touch-icon']");
-    if (!apple) { apple = document.createElement("link"); apple.rel = "apple-touch-icon"; document.head.appendChild(apple); }
-    apple.href = PYRAMID_ICON;
-  }, []);
-
   useEffect(() => {
     const initDB = async () => {
       setDbLoading(true);
@@ -2002,36 +1850,19 @@ export default function App() {
             const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
             const dbVersion = rows && rows[0] ? rowToUser(rows[0]) : null;
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
+            // Merge: use DB data for mutable fields (avatar, bio, wallpaper), hardcoded for fixed fields (id, username, password, isSpecial, verified)
             if (dbVersion && hardcoded) {
-              // Load ALL fields from DB, but keep fixed identity from hardcoded
-              const base = {
-                ...dbVersion,
-                id: hardcoded.id,
-                username: hardcoded.username,
-                password: hardcoded.password,
-                isBot: hardcoded.isBot,
-                isSpecial: hardcoded.isSpecial,
-                verified: hardcoded.verified,
-                // fallback to hardcoded avatar/bio if DB has none
-                avatar: dbVersion.avatar || hardcoded.avatar,
-                bio: dbVersion.bio || hardcoded.bio,
-                village: dbVersion.village || hardcoded.village || [],
-              };
-              // Overlay localStorage profile data — this is the source of truth
-              const savedProfile = LS.get(`profile_${sessionUid}`);
-              setMe(savedProfile ? { ...base, ...savedProfile } : base);
+              const _ls = LS.get("profile_" + sessionUid);
+              const base = { ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: dbVersion.village || hardcoded.village || [] };
+              setMe(_ls ? { ...base, ..._ls } : base);
             } else if (hardcoded) {
-              const savedProfile = LS.get(`profile_${sessionUid}`);
+              const _ls = LS.get("profile_" + sessionUid);
               const base = { ...hardcoded, village: hardcoded.village || [] };
-              setMe(savedProfile ? { ...base, ...savedProfile } : base);
+              setMe(_ls ? { ...base, ..._ls } : base);
             }
           } catch {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-            if (hardcoded) {
-              const savedProfile = LS.get(`profile_${sessionUid}`);
-              const base = { ...hardcoded, village: hardcoded.village || [] };
-              setMe(savedProfile ? { ...base, ...savedProfile } : base);
-            }
+            if (hardcoded) { const _ls = LS.get("profile_" + sessionUid); const base = { ...hardcoded, village: hardcoded.village || [] }; setMe(_ls ? { ...base, ..._ls } : base); }
           }
           setPg("app");
           return;
@@ -2040,12 +1871,7 @@ export default function App() {
         try {
           const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
           const u = rows && rows[0] ? rowToUser(rows[0]) : null;
-          if (u) {
-            const savedProfile = LS.get(`profile_${sessionUid}`);
-            const base = { ...u, village: u.village || [] };
-            setMe(savedProfile ? { ...base, ...savedProfile } : base);
-            setPg("app"); return;
-          }
+          if (u) { const _ls = LS.get("profile_" + sessionUid); const base = { ...u, village: u.village || [] }; setMe(_ls ? { ...base, ..._ls } : base); setPg("app"); return; }
         } catch {}
         // Session invalid — clear it
         LS.set("session_uid", null);
@@ -2720,40 +2546,43 @@ export default function App() {
     };
 
     // ── Scheduling ──────────────────────────────────────────────────────────────
-    // Use a single interval that checks every 5 minutes what needs to run.
-    // This survives page reloads/reopens and never orphans a setInterval.
-    const HOUR_KEY  = `minerva_last_hour_${me.id}`;
-    const TDIH_KEY  = `minerva_last_tdih_${me.id}`;
-
-    const maybePostHourly = () => {
-      const h = new Date().getHours();
-      if (h === 12) return; // noon slot reserved for TDIH
-      const lastHour = LS.get(HOUR_KEY);
-      const nowHour  = new Date().toISOString().slice(0, 13); // "2025-01-15T14"
-      if (lastHour === nowHour) return; // already posted this hour
-      LS.set(HOUR_KEY, nowHour);
-      postHistoryFact();
+    // This Day in History fires once a day at 12:00pm local time.
+    // History facts fire every hour EXCEPT the 12pm slot (Minerva posts TDIH then).
+    const scheduleNoon = () => {
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(12, 0, 0, 0);
+      if (next <= now) next.setDate(next.getDate() + 1); // already past noon → tomorrow
+      const msUntilNoon = next - now;
+      return setTimeout(() => {
+        postThisDayInHistory();
+        setInterval(postThisDayInHistory, 24 * 60 * 60 * 1000); // daily thereafter
+      }, msUntilNoon);
     };
 
-    const maybePostTDIH = () => {
-      const h = new Date().getHours();
-      if (h !== 12) return;
-      const lastDay = LS.get(TDIH_KEY);
-      const today   = new Date().toISOString().slice(0, 10); // "2025-01-15"
-      if (lastDay === today) return; // already posted today
-      LS.set(TDIH_KEY, today);
-      postThisDayInHistory();
+    const scheduleHourly = () => {
+      // Fire once on load (if current hour ≠ 12), then every hour skip 12pm
+      const tick = () => {
+        const h = new Date().getHours();
+        if (h !== 12) postHistoryFact(); // skip the noon slot
+      };
+      // Align to the next top-of-hour
+      const now = new Date();
+      const msUntilHour = (60 - now.getMinutes()) * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
+      tick(); // immediate first post
+      return setTimeout(() => {
+        tick();
+        setInterval(tick, 60 * 60 * 1000);
+      }, msUntilHour);
     };
 
-    // Run immediately on mount, then every 5 minutes
-    maybePostHourly();
-    maybePostTDIH();
-    const ticker = setInterval(() => {
-      maybePostHourly();
-      maybePostTDIH();
-    }, 5 * 60 * 1000);
+    const noonTimer  = scheduleNoon();
+    const hourTimer  = scheduleHourly();
+    // Also fire TDIH immediately on login if it's already noon (±5 min)
+    const h = new Date().getHours(), m = new Date().getMinutes();
+    if (h === 12 && m < 5) setTimeout(postThisDayInHistory, 3000);
 
-    return () => clearInterval(ticker);
+    return () => { clearTimeout(noonTimer); clearTimeout(hourTimer); };
   }, [me]);
 
   // ── SCRYPT NEWS: Breaking news every 3 hours via web search ──────────────────
@@ -2893,9 +2722,7 @@ export default function App() {
     const nu = users.map(u => u.id === me.id ? { ...u, village: nv } : u);
     setUsers(nu);
     setMe(p => ({ ...p, village: nv }));
-    // Pack village array with current profile extras into village column
-    const _savedP = LS.get(`profile_${me.id}`) || {};
-    DB.updateUser(me.id, { village: JSON.stringify({ v: nv, p: _savedP }) }).catch(() => {});
+    DB.updateUser(me.id, { village: JSON.stringify(nv) }).catch(() => {});
     notify(has ? "Removed from Village" : "Added to Village! 🏘️");
   };
   const doAvatar = e => {
@@ -2919,198 +2746,68 @@ export default function App() {
     DB.updateUser(me.id, { wallpaper: wp }).catch(() => {});
     notify("Wallpaper updated! 🖼️");
   };
-  // Media cache for IDB fallback (when Supabase Storage buckets aren't set up yet)
-  const [idbCache, setIdbCache] = useState({});
-  const refreshIdbCache = useCallback(async (uid) => {
-    if (!uid) return;
-    const cache = {};
-    for (const f of INFO_FIELDS) {
-      const v = await IDB.get(`icard_${uid}_${f.photoKey}`);
-      if (v) cache[`icard_${uid}_${f.photoKey}`] = v;
-    }
-    const song = await IDB.get(`psong_${uid}`);
-    if (song) cache[`psong_${uid}`] = song;
-    setIdbCache(cache);
-  }, []);
-  useEffect(() => { refreshIdbCache(me?.id); }, [me?.id]);
-
-
-  // Merge localStorage profile data onto user — localStorage is the source of truth for profile fields
-  const mergeLocalProfile = useCallback((user) => {
-    if (!user?.id) return user;
-    const saved = LS.get(`profile_${user.id}`);
-    if (!saved) return user;
-    return { ...user, ...saved };
-  }, []);
-
-  const doSave = useCallback((sfSnapshot, meSnapshot) => {
+  const doSave = () => {
     setSerr("");
-
-    // Build the full updated user object from current me + sf changes
-    const upd = { ...meSnapshot };
-
-    // Simple text fields
-    if (sfSnapshot.u && sfSnapshot.u.trim().toLowerCase() !== meSnapshot.username.toLowerCase()) {
-      const t = sfSnapshot.u.trim().toLowerCase();
+    const upd = {};
+    if (sf.u && sf.u.trim().toLowerCase() !== me.username.toLowerCase()) {
+      const t = sf.u.trim().toLowerCase();
       if (t.length < 3) { setSerr("Min 3 characters."); return; }
-      if (users.find(u => u.username.toLowerCase() === t && u.id !== meSnapshot.id)) { setSerr("Username taken."); return; }
+      if (users.find(u => u.username.toLowerCase() === t && u.id !== me.id)) { setSerr("Username taken."); return; }
       upd.username = t;
     }
-    if (sfSnapshot.pw) {
-      if (sfSnapshot.pw.length < 6) { setSerr("Password min 6 chars."); return; }
-      if (sfSnapshot.pw !== sfSnapshot.pw2) { setSerr("Passwords don't match."); return; }
-      upd.password = sfSnapshot.pw;
+    if (sf.pw) {
+      if (sf.pw.length < 6) { setSerr("Password min 6."); return; }
+      if (sf.pw !== sf.pw2) { setSerr("Passwords don't match."); return; }
+      upd.password = sf.pw;
     }
-    if (sfSnapshot.bio !== undefined) upd.bio = sfSnapshot.bio;
-    if (sfSnapshot.mood !== undefined) upd.mood = sfSnapshot.mood;
-    if (sfSnapshot.accentColor !== undefined) upd.accentColor = sfSnapshot.accentColor;
-    if (sfSnapshot.featuredPostId !== undefined) upd.featuredPostId = sfSnapshot.featuredPostId;
-    if (sfSnapshot.profileSongLabel !== undefined) upd.profileSongLabel = sfSnapshot.profileSongLabel;
+    if (sf.bio !== undefined && sf.bio !== "") upd.bio = sf.bio;
+    if (sf.mood !== undefined) upd.mood = sf.mood;
+    if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
+    if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
+    // Profile song — stored separately to avoid bloating users array
+    if (sf.profileSong !== undefined) {
+      LS.set(`psong_${me.id}`, { song: sf.profileSong, name: sf.profileSongName });
+      upd.hasProfileSong = !!sf.profileSong;
+      upd.profileSongName = sf.profileSongName || null;
+    }
+    // Info card text fields
     INFO_FIELDS.forEach(f => {
-      if (sfSnapshot[f.key] !== undefined) upd[f.key] = sfSnapshot[f.key];
-      if (sfSnapshot[f.photoKey] !== undefined) upd[f.photoKey] = sfSnapshot[f.photoKey];
+      if (sf[f.key] !== undefined) upd[f.key] = sf[f.key];
+      // Info card photos — stored separately per card to avoid freezing users array
+      if (sf[f.photoKey] !== undefined) {
+        LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
+        upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
+      }
     });
+    const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
+    setUsers(updatedUsers);
+    setMe(p => ({ ...p, ...upd }));
+    // Save markers + text fields to localStorage so they survive reload
+    const lsKey = "profile_" + me.id;
+    const lsSaved = LS.get(lsKey) || {};
+    Object.keys(upd).forEach(k => { lsSaved[k] = upd[k]; });
+    LS.set(lsKey, lsSaved);
+    // Save to Supabase
+    const updatedMe = { ...me, ...upd };
+    (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
+    setSf({ u: "", pw: "", pw2: "", bio: "" });
+    notify("Profile saved! ✓");
+  };
 
-    // Check if there's anything to save
-    const hasSong  = sfSnapshot.profileSong !== undefined;
-    const hasPhoto = INFO_FIELDS.some(f => sfSnapshot[f.photoKey] !== undefined);
-    const hasText  = sfSnapshot.bio !== undefined || sfSnapshot.mood !== undefined ||
-      sfSnapshot.accentColor !== undefined || sfSnapshot.featuredPostId !== undefined ||
-      sfSnapshot.profileSongLabel !== undefined || !!sfSnapshot.u ||
-      INFO_FIELDS.some(f => sfSnapshot[f.key] !== undefined);
-    if (!hasText && !hasSong && !hasPhoto) return;
-
-    // Update state immediately so UI feels instant
-    setMe({ ...upd });
-    setUsers(prev => prev.map(u => u.id === meSnapshot.id ? { ...upd } : u));
-    notify("Saving...");
-
-    (async () => {
-      // Handle song
-      if (hasSong) {
-        if (sfSnapshot.profileSong && !sfSnapshot.profileSong.startsWith("http")) {
-          await IDB.set(`psong_${meSnapshot.id}`, sfSnapshot.profileSong);
-          upd.profileSong = sfSnapshot.profileSong;
-          upd.hasProfileSong = true;
-          upd.profileSongName = sfSnapshot.profileSongName || null;
-          const url = await STORAGE.upload("audio", `${meSnapshot.id}/profile_song`, sfSnapshot.profileSong);
-          if (url) upd.profileSong = url;
-        } else if (!sfSnapshot.profileSong) {
-          IDB.del(`psong_${meSnapshot.id}`);
-          STORAGE.remove("audio", `${meSnapshot.id}/profile_song`);
-          upd.profileSong = null;
-          upd.hasProfileSong = false;
-          upd.profileSongName = null;
-        }
-      }
-
-      // Handle photos — store in IDB for local display + try Storage for cross-device URL
-      for (const f of INFO_FIELDS) {
-        if (sfSnapshot[f.photoKey] !== undefined) {
-          if (sfSnapshot[f.photoKey] && !sfSnapshot[f.photoKey].startsWith("http")) {
-            // Save to IDB (always works, local)
-            await IDB.set(`icard_${meSnapshot.id}_${f.photoKey}`, sfSnapshot[f.photoKey]);
-            upd[f.photoKey] = sfSnapshot[f.photoKey];
-            // Try Storage upload for cross-device URL
-            const url = await STORAGE.upload("media", `${meSnapshot.id}/${f.photoKey}`, sfSnapshot[f.photoKey]);
-            upd[f.photoKey] = url || sfSnapshot[f.photoKey]; // keep base64 if no URL
-          } else if (sfSnapshot[f.photoKey] && sfSnapshot[f.photoKey].startsWith("http")) {
-            upd[f.photoKey] = sfSnapshot[f.photoKey];
-          } else {
-            IDB.del(`icard_${meSnapshot.id}_${f.photoKey}`);
-            STORAGE.remove("media", `${meSnapshot.id}/${f.photoKey}`);
-            upd[f.photoKey] = null;
-          }
-        }
-      }
-
-      // Save ALL profile fields to localStorage — including base64 photos
-      // Photos are 200px/0.72q = ~8-12KB each, perfectly fine for localStorage
-      const profileData = {
-        bio: upd.bio,
-        mood: upd.mood,
-        accentColor: upd.accentColor,
-        featuredPostId: upd.featuredPostId,
-        hasProfileSong: upd.hasProfileSong,
-        profileSongName: upd.profileSongName,
-        profileSongLabel: upd.profileSongLabel,
-        infoMovie: upd.infoMovie,
-        infoArtist: upd.infoArtist,
-        infoShow: upd.infoShow,
-        infoBook: upd.infoBook,
-        infoGame: upd.infoGame,
-      };
-      // Store photos (base64 or URL) directly in localStorage
-      INFO_PHOTO_KEYS.forEach(pk => { if (upd[pk]) profileData[pk] = upd[pk]; });
-      if (upd.profileSong) profileData.profileSong = upd.profileSong;
-      LS.set(`profile_${meSnapshot.id}`, profileData);
-
-      // Also try to save to DB (best effort — some columns may not exist)
-      const row = userToRow(upd);
-      if (row.info_fields) {
-        try {
-          const f = JSON.parse(row.info_fields);
-          INFO_PHOTO_KEYS.forEach(pk => { if (f[pk] && !f[pk].startsWith("http")) delete f[pk]; });
-          if (f.profileSong && !f.profileSong.startsWith("http")) delete f.profileSong;
-          row.info_fields = JSON.stringify(f);
-        } catch(e) {}
-      }
-      // Build full profile extras object including photos
-      const fullProfileExtras = {};
-      if (upd.mood) fullProfileExtras.mood = upd.mood;
-      if (upd.accentColor) fullProfileExtras.accentColor = upd.accentColor;
-      if (upd.featuredPostId) fullProfileExtras.featuredPostId = upd.featuredPostId;
-      if (upd.hasProfileSong) fullProfileExtras.hasProfileSong = upd.hasProfileSong;
-      if (upd.profileSongName) fullProfileExtras.profileSongName = upd.profileSongName;
-      if (upd.profileSongLabel) fullProfileExtras.profileSongLabel = upd.profileSongLabel;
-      if (upd.profileSong && upd.profileSong.startsWith("http")) fullProfileExtras.profileSong = upd.profileSong;
-      INFO_TEXT_KEYS.forEach(k => { if (upd[k]) fullProfileExtras[k] = upd[k]; });
-      INFO_PHOTO_KEYS.forEach(k => { if (upd[k] && upd[k].startsWith("http")) fullProfileExtras[k] = upd[k]; });
-      // Update localStorage with latest (includes base64 photos)
-      const fullLocalProfile = { ...fullProfileExtras };
-      INFO_PHOTO_KEYS.forEach(k => { if (upd[k]) fullLocalProfile[k] = upd[k]; });
-      LS.set(`profile_${meSnapshot.id}`, fullLocalProfile);
-      // Save to DB (only URLs, no base64 — keeps village column small)
-      const villageRow = { v: upd.village || [], p: fullProfileExtras };
-      DB.updateUser(meSnapshot.id, {
-        bio: upd.bio || null,
-        avatar: upd.avatar || null,
-        wallpaper: upd.wallpaper ? JSON.stringify(upd.wallpaper) : null,
-        village: JSON.stringify(villageRow),
-      }).catch(() => {});
-
-      // Update state with final upd (may have storage URLs now)
-      setMe({ ...upd });
-      setUsers(prev => prev.map(u => u.id === meSnapshot.id ? { ...upd } : u));
-      refreshIdbCache(meSnapshot.id);
-      notify("Saved ✓");
-    })();
-  }, [users, refreshIdbCache]);
-
-  // Auto-save settings after 800ms of inactivity
-  useEffect(() => {
-    if (!me) return;
-    const hasChanges = sf.u || sf.bio || sf.mood !== undefined || sf.accentColor !== undefined ||
-      sf.featuredPostId !== undefined || sf.profileSong !== undefined || sf.profileSongLabel !== undefined ||
-      INFO_FIELDS.some(f => sf[f.key] !== undefined || sf[f.photoKey] !== undefined);
-    if (!hasChanges) return;
-    const timer = setTimeout(() => doSave(sf, me), 800);
-    return () => clearTimeout(timer);
-  }, [sf]);
-
-  const resolvePhoto = useCallback((user, photoKey) => {
+  // Helper: resolve a stored photo key to actual base64
+  const resolvePhoto = (user, photoKey) => {
     const val = user[photoKey];
-    if (val && typeof val === "string" && (val.startsWith("http") || val.startsWith("data:"))) return val;
-    // IDB fallback for when Storage buckets aren't configured
-    return idbCache[`icard_${user.id}_${photoKey}`] || null;
-  }, [idbCache]);
+    if (!val) return null;
+    if (val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
+    return val; // legacy direct base64
+  };
 
-  const resolveProfileSong = useCallback((user) => {
+  // Helper: resolve profile song
+  const resolveProfileSong = (user) => {
     if (!user.hasProfileSong && !user.profileSong) return null;
-    const song = user.profileSong || idbCache[`psong_${user.id}`] || null;
-    if (!song) return null;
-    return { song, name: user.profileSongName, label: user.profileSongLabel || null };
-  }, [idbCache]);
+    const stored = LS.get(`psong_${user.id}`);
+    return stored ? { song: stored.song, name: stored.name } : (user.profileSong ? { song: user.profileSong, name: user.profileSongName } : null);
+  };
 
   if (pg === "loading" || (pg === "app" && dbLoading)) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
     <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BLUE, padding: "14px 28px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", overflow: "hidden" }}>
@@ -3119,7 +2816,7 @@ export default function App() {
     </div>
     <div style={{ color: T.sub, fontSize: 14 }}>Loading…</div>
   </div>;
-  if (pg === "login") return <Login onLogin={u => { const _sp = LS.get(`profile_${u.id}`); setMe(_sp ? { ...u, village: u.village || [], ..._sp } : { ...u, village: u.village || [] }); LS.set("session_uid", u.id); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: u.village || [] }); LS.set("session_uid", u.id); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
   if (pg === "signup") return <Signup onDone={u => { setMe(u); LS.set("session_uid", u.id); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
   const myV = me?.village || [];
@@ -3253,45 +2950,31 @@ export default function App() {
         <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, position: "sticky", top: 56, background: T.bg, zIndex: 10 }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, posts, topics..." style={{ ...inp, borderRadius: 9999, paddingLeft: 16 }} autoFocus />
         </div>
-        {search.trim().length >= 1 ? (() => {
-          const q = search.trim().toLowerCase();
-          const matchUser = u => {
-            if (!u || !u.username) return false;
-            return u.username.toLowerCase().includes(q) || (u.bio || "").toLowerCase().includes(q);
-          };
-          const SPECIAL_IDS = ["bot_scryptbot","bot_minerva","bot_news","claude_account"];
-          const specialMatches = SPECIAL_IDS.map(id => users.find(u => u.id === id)).filter(Boolean).filter(matchUser);
-          const specialIdSet = new Set(SPECIAL_IDS);
-          const peopleMatches = users.filter(u => !u.isBot && !specialIdSet.has(u.id) && matchUser(u));
-          const postMatches = posts.filter(p => !p.parentId && p.content?.toLowerCase().includes(q));
-          const noResults = specialMatches.length === 0 && peopleMatches.length === 0 && postMatches.length === 0;
-          return <>
-            {/* Special / official accounts */}
-            {specialMatches.length > 0 && <div style={{ padding: "6px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL ACCOUNTS</div>}
-            {specialMatches.map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
-              <Av user={u} sz={44} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
-                <div style={{ fontSize: 13, color: T.sub }}>{u.bio}</div>
-              </div>
-              <span style={{ fontSize: 11, color: BLUE, fontWeight: 600, background: `${BLUE}18`, borderRadius: 9999, padding: "3px 8px" }}>Official</span>
-            </div>)}
-            {/* People results — no cap */}
-            {peopleMatches.length > 0 && <div style={{ padding: "6px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>PEOPLE</div>}
-            {peopleMatches.map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
-              <Av user={u} sz={44} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}{u.verified && <span style={{ color: BLUE, fontSize: 13 }}>✓</span>}</div>
-                <div style={{ fontSize: 13, color: T.sub }}>{u.bio || `@${u.username.toLowerCase()}`}</div>
-              </div>
-              {u.id !== me.id && <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>{myV.includes(u.id) ? "In Village" : "+ Village"}</button>}
-            </div>)}
-            {/* Post results */}
-            {postMatches.length > 0 && <div style={{ padding: "6px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>POSTS</div>}
-            {postMatches.slice(0, 10).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
-            {noResults && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No results for "{search}"</p>}
-          </>;
-        })() : <>
+        {search.length >= 2 ? <>
+          {/* People results */}
+          {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase()) && !u.isBot).slice(0, 5).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+            <Av user={u} sz={44} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}{u.verified && <span style={{ color: BLUE, fontSize: 13 }}>✓</span>}</div>
+              <div style={{ fontSize: 13, color: T.sub }}>{u.bio || `@${u.username.toLowerCase()}`}</div>
+            </div>
+            <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{myV.includes(u.id) ? "In Village" : "+ Village"}</button>
+          </div>)}
+          {/* Special accounts matching */}
+          {["bot_scryptbot","bot_minerva","bot_news","claude_account"].map(id => users.find(u => u.id === id)).filter(Boolean).filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
+            <Av user={u} sz={44} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
+              <div style={{ fontSize: 13, color: T.sub }}>{u.bio}</div>
+            </div>
+            <span style={{ fontSize: 11, color: BLUE, fontWeight: 600, background: `${BLUE}18`, borderRadius: 9999, padding: "3px 8px" }}>Official</span>
+          </div>)}
+          {/* Post results */}
+          {posts.filter(p => !p.parentId && p.content?.toLowerCase().includes(search.toLowerCase())).slice(0, 8).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
+          {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase())).length === 0 &&
+           posts.filter(p => p.content?.toLowerCase().includes(search.toLowerCase())).length === 0 &&
+            <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No results for "{search}"</p>}
+        </> : <>
           {/* Discover — Official Accounts */}
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL SCRYPT ACCOUNTS</div>
           {["claude_account","bot_scryptbot","bot_minerva","bot_news"].map(id => users.find(u => u.id === id)).filter(Boolean).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
@@ -3318,7 +3001,6 @@ export default function App() {
           </div>)}
         </>}
       </div>}
-
 
       {!thread && tab === "clicks" && <div>
         <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -3468,8 +3150,8 @@ export default function App() {
                 <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mutuals.length}</strong> Mutuals</span>
               </div>
             </div>
-            {(() => { const s = resolveProfileSong(me); return s ? <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer songSrc={s.song} songLabel={s.label} accent={myAccent} /></div> : null; })()}
-            {INFO_FIELDS.some(f => me[f.key] || resolvePhoto(me, f.photoKey)) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} resolvePhoto={resolvePhoto} /></div>}
+            {(() => { const s = resolveProfileSong(me); return s ? <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer songSrc={s.song} songName={s.name} accent={myAccent} /></div> : null; })()}
+            {INFO_FIELDS.some(f => me[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} resolvePhoto={resolvePhoto} /></div>}
             {feat && <div style={{ margin: "10px 16px", padding: "10px 12px", border: `1.5px solid ${myAccent.color}`, borderRadius: 12, background: `${myAccent.color}08` }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: myAccent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
               <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(feat.content)}</p>
@@ -3599,65 +3281,62 @@ export default function App() {
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🎵 Profile Song</div>
             <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Upload a short audio clip (up to ~10 sec) that plays on your profile</div>
-            {(me.hasProfileSong || me.profileSong || sf.profileSong) && (() => { const preview = sf.profileSong; const lbl = sf.profileSongLabel !== undefined ? sf.profileSongLabel : me.profileSongLabel; const s = preview ? {song:preview,label:lbl} : resolveProfileSong(me); return s ? <div style={{ marginBottom: 8 }}><ProfileSongPlayer songSrc={s.song} songLabel={lbl || s.label} accent={myAccent} /></div> : null; })()}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <label style={{ display: "inline-block", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-                🎵 {(me.profileSong || sf.profileSong) ? "Change Song" : "Upload Song"}
-                <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
-                  const f = e.target.files[0]; if (!f) return;
-                  const r = new FileReader();
-                  r.onload = x => setSf(p => ({ ...p, profileSong: x.target.result, profileSongName: f.name }));
-                  r.readAsDataURL(f);
-                }} />
-              </label>
-              {(sf.profileSong || me.profileSong) && <button onClick={() => setSf(p => ({ ...p, profileSong: null, profileSongName: null, profileSongLabel: "" }))} style={{ background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
-            </div>
-            {(sf.profileSong || me.profileSong) && <div style={{ marginTop: 4 }}>
-              <label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 4 }}>LABEL (shown on your profile instead of filename)</label>
-              <input
-                value={sf.profileSongLabel !== undefined ? sf.profileSongLabel : (me.profileSongLabel || "")}
-                onChange={e => setSf(p => ({ ...p, profileSongLabel: e.target.value }))}
-                placeholder='e.g. "Mood 🎶" or "My Song"'
-                style={{ width: "100%", boxSizing: "border-box", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 10px", fontSize: 12, outline: "none" }}
-              />
-            </div>}
+            {(me.hasProfileSong || me.profileSong || sf.profileSong) && (() => { const preview = sf.profileSong; const s = preview ? {song:preview,name:sf.profileSongName} : resolveProfileSong(me); return s ? <div style={{ marginBottom: 8 }}><ProfileSongPlayer songSrc={s.song} songName={s.name} accent={myAccent} /></div> : null; })()}
+            <label style={{ display: "inline-block", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              🎵 {me.profileSong ? "Change Song" : "Upload Song"}
+              <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
+                const f = e.target.files[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = x => setSf(p => ({ ...p, profileSong: x.target.result, profileSongName: f.name }));
+                r.readAsDataURL(f);
+              }} />
+            </label>
+            {(sf.profileSong || me.profileSong) && <button onClick={() => setSf(p => ({ ...p, profileSong: null, profileSongName: null }))} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+            {sf.profileSong && <div style={{ fontSize: 11, color: T.sub, marginTop: 6 }}>Preview: {sf.profileSongName}</div>}
           </div>
 
           {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
+          <button onClick={doSave} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
 
 
 
           <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
-        </div>
-      </div>; })()}
+
+          {/* ── CHANGE PASSWORD (optional) ── */}
+          <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🔒 Change Password</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Leave blank to keep your current password</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password (optional)" style={inp13} />
+              <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
+            </div>
+          </div>
+
+          {/* ── CLAUDE API KEY ── */}
+          <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✨ Claude AI Key</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10, lineHeight: 1.6 }}>
+              Enter your <strong style={{ color: T.text }}>Anthropic API key</strong> to enable Claude chat, content moderation, and trending topics. Get one free at <span style={{ color: BLUE }}>console.anthropic.com</span>
+            </div>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={e => { setApiKey(e.target.value); LS.set("apiKey", e.target.value); }}
+              placeholder="sk-ant-..."
+              style={{ ...inp13, fontFamily: "monospace", marginBottom: 8 }}
+            />
+            {apiKey ? <div style={{ fontSize: 11, color: "#00BA7C", display: "flex", alignItems: "center", gap: 5 }}>✓ API key saved — Claude is active</div>
+              : <div style={{ fontSize: 11, color: T.sub }}>No key set — Claude features will be disabled</div>}
+          </div>
+        </div>;
+      })()}
+    </div>
 
     {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
-    {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => {
-  if (cropKey === "__avatar__") {
-    const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u);
-    setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl }));
-    DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {});
-  } else {
-    // Save info card photo directly — same pattern as avatar
-    const updatedMe = { ...me, [cropKey]: dataUrl };
-    setMe(updatedMe);
-    setUsers(prev => prev.map(u => u.id === me.id ? updatedMe : u));
-    setSf(p => ({ ...p, [cropKey]: dataUrl }));
-    // Save to localStorage immediately
-    const saved = LS.get(`profile_${me.id}`) || {};
-    saved[cropKey] = dataUrl;
-    LS.set(`profile_${me.id}`, saved);
-    // Save to IDB
-    IDB.set(`icard_${me.id}_${cropKey}`, dataUrl).catch(() => {});
-    // Save village+profile to DB
-    const prof = LS.get(`profile_${me.id}`) || {};
-    const dbProf = {};
-    Object.keys(prof).forEach(k => { if (prof[k] && !prof[k].startsWith("data:")) dbProf[k] = prof[k]; });
-    DB.updateUser(me.id, { village: JSON.stringify({ v: me.village || [], p: dbProf }) }).catch(() => {});
-    notify("Photo saved ✓");
-  }
-  setCropSrc(null); setCropKey(null);
-}} />}
+    {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
+
+    {/* FLOATING COMPOSE BUTTON */}
+    {tab !== "home" && tab !== "settings" && <button onClick={() => setShowCompose(true)} style={{ position: "fixed", bottom: 76, right: 20, width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", cursor: "pointer", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,155,240,0.5)", zIndex: 7999 }}>✍️</button>}
 
     {/* BOTTOM NAV */}
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 8000, background: dark ? "rgba(0,0,0,0.97)" : "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", borderTop: `1px solid ${T.border}` }}>
