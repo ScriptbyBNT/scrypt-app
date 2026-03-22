@@ -1594,38 +1594,42 @@ const VoiceCall = ({ me, participants, users, T, onEnd }) => {
 };
 
 // ── HOME TRENDING STRIP ───────────────────────────────────────────────────────
-const HomeTrending = ({ posts, users, T }) => {
-  // Compute top posts by engagement score (likes*1 + reposts*2) — exclude replies
+const HomeTrending = ({ posts, users, T, onThread, onUser }) => {
   const topPosts = [...posts]
     .filter(p => !p.parentId && p.content && p.content.length > 10)
     .map(p => ({ ...p, score: (p.likes?.length || 0) + (p.reposts?.length || 0) * 2 }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 3);
 
   if (topPosts.length === 0) return null;
 
-  return <div style={{ background: "linear-gradient(135deg, rgba(29,155,240,0.08), rgba(124,58,237,0.08))", borderBottom: `1px solid ${T.border}`, padding: "10px 16px" }}>
-    <div style={{ marginBottom: 8 }}>
-      <span style={{ fontWeight: 700, fontSize: 13, color: T.text }}>🔥 Trending on Scrypt</span>
+  const SPECIAL_COLORS = { bot_scryptbot: BLUE, bot_minerva: "#7c3aed", bot_news: "#e11d48", bot_abandonware: "#0f766e", claude_account: "#CC785C" };
+
+  return <div style={{ borderBottom: `1px solid ${T.border}` }}>
+    <div style={{ padding: "11px 16px 6px", display: "flex", alignItems: "center", gap: 6 }}>
+      <span style={{ fontWeight: 800, fontSize: 13, color: T.text }}>🔥 Trending</span>
     </div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {topPosts.map((p, i) => {
-        const author = users?.find(u => u.id === p.userId);
-        const preview = p.content.length > 80 ? p.content.slice(0, 80) + "…" : p.content;
-        const isSpecial = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware"].includes(p.userId);
-        const accentColor = p.userId === "bot_scryptbot" ? BLUE : p.userId === "bot_minerva" ? "#7c3aed" : p.userId === "bot_news" ? "#e11d48" : p.userId === "bot_abandonware" ? "#0f766e" : T.sub;
-        return <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "5px 0", borderBottom: i < topPosts.length - 1 ? `1px solid ${T.border}30` : "none" }}>
-          <span style={{ fontWeight: 800, fontSize: 11, color: T.sub, minWidth: 16, paddingTop: 2 }}>{i + 1}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: accentColor, fontWeight: 700, marginBottom: 1 }}>
-              {author?.username || p.username}{isSpecial && <span style={{ color: BLUE, marginLeft: 3 }}>✓</span>}
-            </div>
-            <div style={{ fontSize: 12, color: T.text, lineHeight: 1.4 }}>{preview}</div>
-            <div style={{ fontSize: 10, color: T.sub, marginTop: 2 }}>❤️ {p.likes?.length || 0} · 🔁 {p.reposts?.length || 0}</div>
+    {topPosts.map((p, i) => {
+      const author = users?.find(u => u.id === p.userId);
+      const accent = SPECIAL_COLORS[p.userId] || T.sub;
+      const isVerified = !!SPECIAL_COLORS[p.userId];
+      return <div key={p.id} onClick={() => onThread && onThread(p)}
+        style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 16px", borderTop: i > 0 ? `1px solid ${T.border}` : "none", cursor: "pointer", background: "transparent", transition: "background 0.15s" }}
+        onMouseEnter={e => e.currentTarget.style.background = T.input}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+        <div style={{ fontWeight: 800, fontSize: 13, color: T.sub, minWidth: 18, paddingTop: 2, textAlign: "right" }}>{i + 1}</div>
+        <Av user={author} sz={34} onClick={e => { e.stopPropagation(); author && onUser && onUser(author); }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 2 }}>
+            <span onClick={e => { e.stopPropagation(); author && onUser && onUser(author); }}
+              style={{ fontWeight: 700, fontSize: 13, color: accent, cursor: "pointer" }}>{author?.username || p.username}</span>
+            {isVerified && <span style={{ color: BLUE, fontSize: 11 }}>✓</span>}
+            <span style={{ fontSize: 11, color: T.sub }}>· ❤️ {p.likes?.length || 0}</span>
           </div>
-        </div>;
-      })}
-    </div>
+          <div style={{ fontSize: 13, color: T.text, lineHeight: 1.45, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.content}</div>
+        </div>
+      </div>;
+    })}
   </div>;
 };
 
@@ -1711,9 +1715,11 @@ export default function App() {
       if (LS.get("dv") !== V) {
         // First-time seed: upsert all bots + special accounts + seed posts + seed clicks
         const allBots = [...SU, ...specialBots];
-        // Upsert users in chunks
+        // Insert bots only if they don't already exist in DB
         for (const u of allBots) {
-          try { await DB.upsertUser(userToRow(u)); } catch(e) { console.error("upsert user", u.id, e); }
+          if (!dbUsers.find(x => x.id === u.id)) {
+            try { await DB.upsertUser(userToRow(u)); } catch(e) { console.error("upsert user", u.id, e); }
+          }
         }
         // Seed posts if none exist
         if (dbPosts.length === 0) {
@@ -1735,12 +1741,16 @@ export default function App() {
         setUsers(merged);
         LS.set("dv", V);
       } else {
-        // Always refresh special bots
+        // Use DB versions of special bots if they exist (preserves custom avatar/bio set via the app)
+        // Only insert the hardcoded version if the bot doesn't exist in DB yet
         const nonSpecial = dbUsers.filter(u => !specialIds.includes(u.id));
-        for (const b of specialBots) {
+        const resolvedSpecial = await Promise.all(specialBots.map(async (b) => {
+          const existing = dbUsers.find(u => u.id === b.id);
+          if (existing) return existing; // keep whatever is in DB (custom avatar/bio preserved)
           try { await DB.upsertUser(userToRow(b)); } catch(e) {}
-        }
-        setUsers([...nonSpecial, ...specialBots]);
+          return b;
+        }));
+        setUsers([...nonSpecial, ...resolvedSpecial]);
       }
 
       setPosts(dbPosts);
@@ -2658,7 +2668,22 @@ export default function App() {
   if (pg === "signup") return <Signup onDone={u => { setMe(u); LS.set("session_uid", u.id); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
   const myV = me?.village || [];
-  const feed = posts.filter(p => !p.parentId && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId)))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const feed = (() => {
+    const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (u.village || []).includes(me.id)).map(u => u.id));
+    const villageIds = new Set(myV);
+    const filtered = posts.filter(p => !p.parentId && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId))));
+    const priorityScore = p => {
+      if (p.userId === me.id) return 3;
+      if (mutualIds.has(p.userId)) return 2;
+      if (villageIds.has(p.userId)) return 1;
+      return 0;
+    };
+    return filtered.sort((a, b) => {
+      const diff = priorityScore(b) - priorityScore(a);
+      if (diff !== 0) return diff;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  })();
   const mine = posts.filter(p => p.userId === me.id && !p.parentId);
   const villagers = users.filter(u => myV.includes(u.id));
   const mutuals = users.filter(u => myV.includes(u.id) && (u.village || []).includes(me.id));
@@ -2760,7 +2785,6 @@ export default function App() {
       {thread && <Thread p={thread} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={doPost} onBack={() => setThread(null)} onUser={setOpenUser} T={T} />}
 
       {!thread && tab === "home" && <>
-        <HomeTrending posts={posts} users={users} T={T} />
         <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>📅 Chronological · No algorithm</span>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub }}>{feed.length} posts</div>
@@ -2810,12 +2834,18 @@ export default function App() {
           </div>)}
           {/* Suggested people */}
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>SUGGESTED PEOPLE</div>
-          {users.filter(u => !u.isBot && u.id !== me.id).slice(0, 5).concat(
-            users.filter(u => u.isBot && !u.isSpecial).sort(() => Math.random() - 0.5).slice(0, 5)
-          ).slice(0, 8).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+          {(() => {
+            const PINNED_IDS = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware"];
+            const pinned = PINNED_IDS.map(id => users.find(u => u.id === id)).filter(Boolean);
+            const others = users.filter(u => !u.isBot && u.id !== me.id && !myV.includes(u.id)).slice(0, 4);
+            return [...pinned, ...others].slice(0, 8);
+          })().map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
             <Av user={u} sz={42} />
-            <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{u.username}</div><div style={{ fontSize: 12, color: T.sub }}>{u.bio?.slice(0, 50) || `@${u.username.toLowerCase()}`}</div></div>
-            {!myV.includes(u.id) && u.id !== me.id && <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>+ Village</button>}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: T.text, display: "flex", alignItems: "center", gap: 4 }}>{u.username}{u.verified && <span style={{ color: BLUE, fontSize: 12 }}>✓</span>}</div>
+              <div style={{ fontSize: 12, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.bio?.slice(0, 55) || `@${u.username.toLowerCase()}`}</div>
+            </div>
+            {!myV.includes(u.id) && u.id !== me.id && <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>+ Village</button>}
           </div>)}
         </>}
       </div>}
@@ -2863,7 +2893,10 @@ export default function App() {
         </>}
       </div>}
 
-      {!thread && tab === "notif" && <NotifTab me={me} users={users} posts={posts} T={T} />}
+      {!thread && tab === "notif" && <>
+        <HomeTrending posts={posts} users={users} T={T} onThread={p => { setThread(p); setTab("home"); }} onUser={setOpenUser} />
+        <NotifTab me={me} users={users} posts={posts} T={T} />
+      </>}
 
       {!thread && tab === "dms" && !dmUser && !activeGroup && <div>
         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
