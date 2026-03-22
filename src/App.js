@@ -182,40 +182,43 @@ const rowToPost = r => {
 
 const rowToUser = r => {
   if (!r) return null;
-  // info_fields holds flexible data: info cards, song URL, photo URLs, song label
+  // village column stores { v: [...memberIds], p: { ...profileExtras } }
+  // OR legacy format: [...memberIds]
+  const rawVillage = tryParse(r.village, []);
+  const village = Array.isArray(rawVillage) ? rawVillage : (rawVillage.v || []);
+  const p = (!Array.isArray(rawVillage) && rawVillage.p) ? rawVillage.p : {};
+  // info_fields fallback for older rows
   const info = r.info_fields ? tryParse(r.info_fields, {}) : {};
   return {
-    // Core identity — always from dedicated columns
     id: r.id,
     username: r.username,
     password: r.password,
     avatar: r.avatar,
+    bio: r.bio || null,
     isBot: r.is_bot ?? r.isBot ?? false,
     isSpecial: r.is_special ?? r.isSpecial ?? false,
     verified: r.verified ?? false,
-    village: tryParse(r.village, []),
+    village,
     joinedAt: r.joined_at || r.joinedAt || r.created_at,
     wallpaper: r.wallpaper ? tryParse(r.wallpaper, null) : null,
-    // Profile fields — dedicated columns first, info_fields fallback
-    bio: r.bio || null,
-    mood: r.mood || null,
-    accentColor: r.accent_color || null,
-    featuredPostId: r.featured_post_id || null,
-    hasProfileSong: r.has_profile_song ?? false,
-    profileSongName: r.profile_song_name || null,
-    // Extended fields — only in info_fields
-    profileSong: info.profileSong || null,
-    profileSongLabel: info.profileSongLabel || null,
-    infoMovie: info.infoMovie || null,
-    infoArtist: info.infoArtist || null,
-    infoShow: info.infoShow || null,
-    infoBook: info.infoBook || null,
-    infoGame: info.infoGame || null,
-    infoMoviePhoto: info.infoMoviePhoto || null,
-    infoArtistPhoto: info.infoArtistPhoto || null,
-    infoShowPhoto: info.infoShowPhoto || null,
-    infoBookPhoto: info.infoBookPhoto || null,
-    infoGamePhoto: info.infoGamePhoto || null,
+    // Profile extras — from village.p (new) or dedicated columns (old) or info_fields (older)
+    mood: p.mood || r.mood || null,
+    accentColor: p.accentColor || r.accent_color || null,
+    featuredPostId: p.featuredPostId || r.featured_post_id || null,
+    hasProfileSong: p.hasProfileSong ?? r.has_profile_song ?? false,
+    profileSongName: p.profileSongName || r.profile_song_name || null,
+    profileSongLabel: p.profileSongLabel || info.profileSongLabel || null,
+    profileSong: p.profileSong || info.profileSong || null,
+    infoMovie: p.infoMovie || info.infoMovie || null,
+    infoArtist: p.infoArtist || info.infoArtist || null,
+    infoShow: p.infoShow || info.infoShow || null,
+    infoBook: p.infoBook || info.infoBook || null,
+    infoGame: p.infoGame || info.infoGame || null,
+    infoMoviePhoto: p.infoMoviePhoto || info.infoMoviePhoto || null,
+    infoArtistPhoto: p.infoArtistPhoto || info.infoArtistPhoto || null,
+    infoShowPhoto: p.infoShowPhoto || info.infoShowPhoto || null,
+    infoBookPhoto: p.infoBookPhoto || info.infoBookPhoto || null,
+    infoGamePhoto: p.infoGamePhoto || info.infoGamePhoto || null,
   };
 };
 
@@ -254,13 +257,20 @@ const INFO_TEXT_KEYS = ["infoMovie","infoArtist","infoShow","infoBook","infoGame
 const INFO_PHOTO_KEYS = ["infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
 const INFO_FIELD_KEYS = [...INFO_TEXT_KEYS, ...INFO_PHOTO_KEYS];
 const userToRow = u => {
-  // Pack info card text + photo URL fields into info_fields JSON column
-  // Photos are now Supabase Storage URLs (short strings, fine for DB)
-  const infoFields = {};
-  INFO_TEXT_KEYS.forEach(k => { if (u[k]) infoFields[k] = u[k]; });
-  INFO_PHOTO_KEYS.forEach(k => { if (u[k]) infoFields[k] = u[k]; });
-  if (u.profileSong) infoFields.profileSong = u.profileSong;
-  if (u.profileSongLabel) infoFields.profileSongLabel = u.profileSongLabel;
+  // Pack ALL profile extras into the village column as { v: [...], p: {...} }
+  // This guarantees persistence because village definitely exists in DB
+  const profileExtras = {};
+  if (u.mood) profileExtras.mood = u.mood;
+  if (u.accentColor) profileExtras.accentColor = u.accentColor;
+  if (u.featuredPostId) profileExtras.featuredPostId = u.featuredPostId;
+  if (u.hasProfileSong) profileExtras.hasProfileSong = u.hasProfileSong;
+  if (u.profileSongName) profileExtras.profileSongName = u.profileSongName;
+  if (u.profileSongLabel) profileExtras.profileSongLabel = u.profileSongLabel;
+  if (u.profileSong && u.profileSong.startsWith("http")) profileExtras.profileSong = u.profileSong;
+  INFO_TEXT_KEYS.forEach(k => { if (u[k]) profileExtras[k] = u[k]; });
+  INFO_PHOTO_KEYS.forEach(k => { if (u[k] && u[k].startsWith("http")) profileExtras[k] = u[k]; });
+  // Pack village array + profile extras into one JSON object
+  const villageData = { v: u.village || [], p: profileExtras };
   return {
     id: u.id,
     username: u.username,
@@ -270,15 +280,9 @@ const userToRow = u => {
     is_bot: u.isBot || false,
     is_special: u.isSpecial || false,
     verified: u.verified || false,
-    village: JSON.stringify(u.village || []),
+    village: JSON.stringify(villageData),
     joined_at: u.joinedAt || new Date().toISOString(),
-    mood: u.mood || null,
-    accent_color: u.accentColor || null,
-    featured_post_id: u.featuredPostId || null,
-    has_profile_song: u.hasProfileSong || false,
-    profile_song_name: u.profileSongName || null,
     wallpaper: u.wallpaper ? JSON.stringify(u.wallpaper) : null,
-    info_fields: Object.keys(infoFields).length > 0 ? JSON.stringify(infoFields) : null,
   };
 };
 
@@ -2000,7 +2004,7 @@ export default function App() {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
             if (dbVersion && hardcoded) {
               // Load ALL fields from DB, but keep fixed identity from hardcoded
-              setMe({
+              const base = {
                 ...dbVersion,
                 id: hardcoded.id,
                 username: hardcoded.username,
@@ -2012,13 +2016,22 @@ export default function App() {
                 avatar: dbVersion.avatar || hardcoded.avatar,
                 bio: dbVersion.bio || hardcoded.bio,
                 village: dbVersion.village || hardcoded.village || [],
-              });
+              };
+              // Overlay localStorage profile data — this is the source of truth
+              const savedProfile = LS.get(`profile_${sessionUid}`);
+              setMe(savedProfile ? { ...base, ...savedProfile } : base);
             } else if (hardcoded) {
-              setMe({ ...hardcoded, village: hardcoded.village || [] });
+              const savedProfile = LS.get(`profile_${sessionUid}`);
+              const base = { ...hardcoded, village: hardcoded.village || [] };
+              setMe(savedProfile ? { ...base, ...savedProfile } : base);
             }
           } catch {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-            if (hardcoded) setMe({ ...hardcoded, village: hardcoded.village || [] });
+            if (hardcoded) {
+              const savedProfile = LS.get(`profile_${sessionUid}`);
+              const base = { ...hardcoded, village: hardcoded.village || [] };
+              setMe(savedProfile ? { ...base, ...savedProfile } : base);
+            }
           }
           setPg("app");
           return;
@@ -2027,7 +2040,12 @@ export default function App() {
         try {
           const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
           const u = rows && rows[0] ? rowToUser(rows[0]) : null;
-          if (u) { setMe({ ...u, village: u.village || [] }); setPg("app"); return; }
+          if (u) {
+            const savedProfile = LS.get(`profile_${sessionUid}`);
+            const base = { ...u, village: u.village || [] };
+            setMe(savedProfile ? { ...base, ...savedProfile } : base);
+            setPg("app"); return;
+          }
         } catch {}
         // Session invalid — clear it
         LS.set("session_uid", null);
@@ -2875,7 +2893,9 @@ export default function App() {
     const nu = users.map(u => u.id === me.id ? { ...u, village: nv } : u);
     setUsers(nu);
     setMe(p => ({ ...p, village: nv }));
-    DB.updateUser(me.id, { village: JSON.stringify(nv) }).catch(() => {});
+    // Pack village array with current profile extras into village column
+    const _savedP = LS.get(`profile_${me.id}`) || {};
+    DB.updateUser(me.id, { village: JSON.stringify({ v: nv, p: _savedP }) }).catch(() => {});
     notify(has ? "Removed from Village" : "Added to Village! 🏘️");
   };
   const doAvatar = e => {
@@ -2913,6 +2933,15 @@ export default function App() {
     setIdbCache(cache);
   }, []);
   useEffect(() => { refreshIdbCache(me?.id); }, [me?.id]);
+
+
+  // Merge localStorage profile data onto user — localStorage is the source of truth for profile fields
+  const mergeLocalProfile = useCallback((user) => {
+    if (!user?.id) return user;
+    const saved = LS.get(`profile_${user.id}`);
+    if (!saved) return user;
+    return { ...user, ...saved };
+  }, []);
 
   const doSave = useCallback((sfSnapshot, meSnapshot) => {
     setSerr("");
@@ -2990,9 +3019,30 @@ export default function App() {
         }
       }
 
-      // Build full row and upsert — works regardless of which optional columns exist
+      // Save profile fields to localStorage (guaranteed to persist across reloads)
+      const profileData = {
+        bio: upd.bio,
+        mood: upd.mood,
+        accentColor: upd.accentColor,
+        featuredPostId: upd.featuredPostId,
+        hasProfileSong: upd.hasProfileSong,
+        profileSongName: upd.profileSongName,
+        profileSongLabel: upd.profileSongLabel,
+        infoMovie: upd.infoMovie,
+        infoArtist: upd.infoArtist,
+        infoShow: upd.infoShow,
+        infoBook: upd.infoBook,
+        infoGame: upd.infoGame,
+      };
+      // Only store URLs in localStorage for photos/song (base64 goes to IDB)
+      INFO_PHOTO_KEYS.forEach(pk => {
+        if (upd[pk] && upd[pk].startsWith("http")) profileData[pk] = upd[pk];
+      });
+      if (upd.profileSong && upd.profileSong.startsWith("http")) profileData.profileSong = upd.profileSong;
+      LS.set(`profile_${meSnapshot.id}`, profileData);
+
+      // Also try to save to DB (best effort — some columns may not exist)
       const row = userToRow(upd);
-      // Strip base64 blobs from info_fields — DB only gets URLs
       if (row.info_fields) {
         try {
           const f = JSON.parse(row.info_fields);
@@ -3001,17 +3051,15 @@ export default function App() {
           row.info_fields = JSON.stringify(f);
         } catch(e) {}
       }
-      const result = await DB.upsertUser(row);
-      console.log("[doSave] row sent to DB:", JSON.stringify(row, null, 2));
-      console.log("[doSave] upsert result:", result === null ? "FAILED" : "OK");
-      // Verify what DB actually stored
-      const verify = await fetch(`https://wzrxrgybdwoawhaleuah.supabase.co/rest/v1/users?id=eq.${encodeURIComponent(meSnapshot.id)}&select=*`, {
-        headers: {
-          "apikey": SUPA_KEY,
-          "Authorization": `Bearer ${SUPA_KEY}`,
-        }
-      }).then(r => r.json()).catch(() => null);
-      console.log("[doSave] DB row after save:", JSON.stringify(verify?.[0], null, 2));
+      // Update village column with new profile data + village members
+      const savedP = LS.get(`profile_${meSnapshot.id}`) || {};
+      const villageRow = { v: upd.village || [], p: savedP };
+      DB.updateUser(meSnapshot.id, {
+        bio: upd.bio || null,
+        avatar: upd.avatar || null,
+        wallpaper: upd.wallpaper ? JSON.stringify(upd.wallpaper) : null,
+        village: JSON.stringify(villageRow),
+      }).catch(() => {});
 
       // Update state with final upd (may have storage URLs now)
       setMe({ ...upd });
@@ -3053,7 +3101,7 @@ export default function App() {
     </div>
     <div style={{ color: T.sub, fontSize: 14 }}>Loading…</div>
   </div>;
-  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: u.village || [] }); LS.set("session_uid", u.id); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "login") return <Login onLogin={u => { const _sp = LS.get(`profile_${u.id}`); setMe(_sp ? { ...u, village: u.village || [], ..._sp } : { ...u, village: u.village || [] }); LS.set("session_uid", u.id); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
   if (pg === "signup") return <Signup onDone={u => { setMe(u); LS.set("session_uid", u.id); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
   const myV = me?.village || [];
