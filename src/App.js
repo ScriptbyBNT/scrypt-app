@@ -3628,73 +3628,7 @@ export default function App() {
 
 
           <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
-
-          {/* DEBUG PANEL */}
-          <div style={{ marginTop: 12, background: "#1a1a2e", borderRadius: 10, padding: 12, border: "1px solid #444" }}>
-            <div style={{ color: "#00ff88", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>DEBUG - Photo Save State</div>
-            <button onClick={() => {
-              const lsData = LS.get("profile_" + me.id);
-              const photoKeys = ["infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
-              const lines = photoKeys.map(k => {
-                const inMe = me[k];
-                const inLS = lsData ? lsData[k] : null;
-                const meStr = inMe ? (inMe.startsWith("data:") ? "BASE64 " + Math.round(inMe.length/1024) + "KB" : "URL") : "null";
-                const lsStr = inLS ? (inLS.startsWith("data:") ? "BASE64 " + Math.round(inLS.length/1024) + "KB" : "URL") : "null";
-                return k + ": me=" + meStr + " ls=" + lsStr;
-              });
-              const lsSize = Math.round(JSON.stringify(lsData || {}).length / 1024);
-              alert("LS size: " + lsSize + "KB
-" + lines.join("
-"));
-            }} style={{ background: "#00ff88", color: "#000", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", marginBottom: 6, width: "100%" }}>
-              Check Photo State
-            </button>
-            <button onClick={() => {
-              try {
-                const testKey = "ls_test_" + Date.now();
-                localStorage.setItem(testKey, "x".repeat(100000));
-                localStorage.removeItem(testKey);
-                alert("localStorage OK - can write 100KB");
-              } catch(e) {
-                alert("localStorage FAILED: " + e.message);
-              }
-            }} style={{ background: "#ffa500", color: "#000", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", width: "100%" }}>
-              Test localStorage Write
-            </button>
-          </div>
-
-          {/* ── CHANGE PASSWORD (optional) ── */}
-          <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🔒 Change Password</div>
-            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Leave blank to keep your current password</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password (optional)" style={inp13} />
-              <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
-              {sf.pw && <button onClick={() => doSave(sf, me)} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px 14px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Update Password</button>}
-            </div>
-          </div>
-
-          {/* ── CLAUDE API KEY ── */}
-          <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✨ Claude AI Key</div>
-            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10, lineHeight: 1.6 }}>
-              Enter your <strong style={{ color: T.text }}>Anthropic API key</strong> to enable Claude chat, content moderation, and trending topics. Get one free at <span style={{ color: BLUE }}>console.anthropic.com</span>
-            </div>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={e => { setApiKey(e.target.value); LS.set("apiKey", e.target.value); }}
-              placeholder="sk-ant-..."
-              style={{ ...inp13, fontFamily: "monospace", marginBottom: 8 }}
-            />
-            {apiKey ? <div style={{ fontSize: 11, color: "#00BA7C", display: "flex", alignItems: "center", gap: 5 }}>✓ API key saved — Claude is active</div>
-              : <div style={{ fontSize: 11, color: T.sub }}>No key set — Claude features will be disabled</div>}
-          </div>
-        </div>;
-      })()}
-    </div>
-
-    {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
+{/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
     {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => {
   if (cropKey === "__avatar__") {
     const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u);
