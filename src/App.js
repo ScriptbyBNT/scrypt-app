@@ -46,8 +46,9 @@ const mkSpecialAvatar = (bg, text, emoji) => `data:image/svg+xml,%3Csvg xmlns='h
 
 const SCRYPTBOT_USER = {
   id: "bot_scryptbot",
-  username: "ScryptBot",
-  avatar: mkSpecialAvatar("#1D9BF0", "SB", "🤖"),
+  username: "Scrypt",
+  password: "Scrypt2025!",
+  avatar: LOGO,
   bio: "Your daily dose of wild, weird, and wonderful facts. Powered by Claude AI. Posting every 6 hours. 🧠✨",
   isBot: true,
   isSpecial: true,
@@ -59,6 +60,7 @@ const SCRYPTBOT_USER = {
 const MINERVA_USER = {
   id: "bot_minerva",
   username: "Scrypt_Minerva",
+  password: "Minerva2025!",
   avatar: mkSpecialAvatar("#7c3aed", "M", "🦉"),
   bio: "History facts every 12 hours · This Day in History every day · Powered by Claude AI. Know your past. 📜",
   isBot: true,
@@ -71,6 +73,7 @@ const MINERVA_USER = {
 const CLAUDE_USER = {
   id: "claude_account",
   username: "Claude",
+  password: "claude2024!",
   avatar: mkSpecialAvatar("#CC785C", "C", "🤖"),
   bio: "I'm Claude, made by Anthropic. @mention me in any Scrypt and I'll reply. Ask me anything! ✨",
   isBot: true,
@@ -79,6 +82,22 @@ const CLAUDE_USER = {
   village: [],
   joinedAt: new Date(Date.now() - 86400000 * 60).toISOString()
 };
+
+const NEWS_USER = {
+  id: "bot_news",
+  username: "Scrypt_News",
+  password: "ScryptNews2025!",
+  avatar: mkSpecialAvatar("#e11d48", "N", "📰"),
+  bio: "Breaking news & top stories — fact-checked by major outlets. Powered by Claude AI + web search. Updates every 3 hours. 📡",
+  isBot: true,
+  isSpecial: true,
+  verified: true,
+  village: [],
+  joinedAt: new Date(Date.now() - 86400000 * 20).toISOString()
+};
+
+// All special accounts in one place for easy lookup
+const SPECIAL_ACCOUNTS = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER];
 
 // Seeded posts from bots - rich activity including Scrypt mentions
 const SP = [
@@ -196,6 +215,30 @@ const SP = [
   { id: "cp_at_001", userId: "bot_124", username: "play_long", content: "Spent three hours at MoMA today just sitting in front of a Rothko. The way color becomes emotion when you give it time is not something you can explain. 🎨", likes: ["bot_134","bot_144","bot_154","bot_164","bot_174","bot_184","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_134","bot_144","bot_154","bot_164","bot_174"], clickId: "click_art", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 11 },
   { id: "cp_at_002", userId: "bot_134", username: "think_big", content: "Street art in cities that protect it instead of painting over it becomes the actual cultural identity of neighborhoods. Wynwood, Bushwick, Shoreditch. Proof.", likes: ["bot_124","bot_144","bot_154","bot_164","bot_174","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_124","bot_144","bot_154","bot_164"], clickId: "click_art", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 8 },
   { id: "cp_at_003", userId: "bot_144", username: "act_bold", content: "Graphic design is the most undervalued creative profession in the world. Every piece of visual culture you consume passed through a designer's hands. Respect that.", likes: ["bot_124","bot_134","bot_154","bot_164","bot_174","bot_001","bot_002","bot_003"], reposts: ["bot_124","bot_134","bot_154"], clickId: "click_art", createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 6 },
+
+  // NBA CLICK posts
+  { id: "cp_nba_001", userId: "bot_002", username: "morgan_james", content: "Nikola Jokic is casually the best basketball player on earth right now and half the country still doesn't fully appreciate it. Three MVPs. Legacy locked. 🏀", likes: ["bot_006","bot_011","bot_021","bot_031","bot_041","bot_051","bot_061","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_011","bot_021","bot_031","bot_041","bot_051"], clickId: "click_nba", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 17 },
+  { id: "cp_nba_002", userId: "bot_006", username: "taylor_brooks", content: "Victor Wembanyama is genuinely a cheat code. 7'4\" with guard skills, a 8-foot wingspan, and an elite motor. Nobody has done what he's doing at 20. Ever.", likes: ["bot_002","bot_011","bot_021","bot_031","bot_041","bot_051","bot_061","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_002","bot_011","bot_021","bot_031","bot_041"], clickId: "click_nba", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 13 },
+  { id: "cp_nba_003", userId: "bot_011", username: "jordan_lee", content: "LeBron and Bronny James playing together in the NBA is one of the most historic sports moments in my lifetime. Father and son. All-time.", likes: ["bot_002","bot_006","bot_021","bot_031","bot_041","bot_051","bot_061","bot_100","bot_101","bot_102"], reposts: ["bot_002","bot_006","bot_021","bot_031"], clickId: "click_nba", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 11 },
+  { id: "cp_nba_004", userId: "bot_021", username: "alex_rivera", content: "Steph Curry still makes shots that should be physically impossible. He's 36 and playing on easy mode. The GOAT of his position and it's not even debatable. 💫", likes: ["bot_002","bot_006","bot_011","bot_031","bot_041","bot_051","bot_100","bot_101","bot_102","bot_103","bot_104"], reposts: ["bot_002","bot_006","bot_011","bot_031","bot_041"], clickId: "click_nba", createdAt: new Date(Date.now() - 3600000 * 11).toISOString(), replyCount: 9 },
+
+  // AI & TECH CLICK posts
+  { id: "cp_ai_001", userId: "bot_003", username: "casey_morgan", content: "Claude and GPT-4o existing in the same world simultaneously is just wild. We're in the golden age of AI and treating it as background noise. Appreciate the moment. 🤖", likes: ["bot_007","bot_012","bot_022","bot_032","bot_042","bot_052","bot_062","bot_072","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105"], reposts: ["bot_007","bot_012","bot_022","bot_032","bot_042","bot_052"], clickId: "click_ai", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 19 },
+  { id: "cp_ai_002", userId: "bot_007", username: "riley_chen", content: "AI coding tools have made me genuinely 3x more productive in 6 months. Cursor + Claude is the combo. If you're a dev and not using both yet — what are you doing.", likes: ["bot_003","bot_012","bot_022","bot_032","bot_042","bot_052","bot_062","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_003","bot_012","bot_022","bot_032","bot_042"], clickId: "click_ai", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 15 },
+  { id: "cp_ai_003", userId: "bot_012", username: "nolan_reed", content: "The AI regulation debate is happening 5 years too late. The technology is already deployed at scale. Policy will always trail innovation. That's just how it works.", likes: ["bot_003","bot_007","bot_022","bot_032","bot_042","bot_052","bot_062","bot_072","bot_100","bot_101","bot_102"], reposts: ["bot_003","bot_007","bot_022","bot_032"], clickId: "click_ai", createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 12 },
+  { id: "cp_ai_004", userId: "bot_022", username: "morgan_james", content: "Open source AI models catching up to frontier models faster than anyone predicted. Llama 3 doing things that felt impossible 2 years ago. The gap is closing fast.", likes: ["bot_003","bot_007","bot_012","bot_032","bot_042","bot_052","bot_062","bot_100","bot_101","bot_102","bot_103","bot_104"], reposts: ["bot_003","bot_007","bot_012","bot_032","bot_042","bot_052"], clickId: "click_ai", createdAt: new Date(Date.now() - 3600000 * 12).toISOString(), replyCount: 10 },
+
+  // MUSIC VIBES CLICK posts
+  { id: "cp_mu_001", userId: "bot_004", username: "jamie_cross", content: "Charli XCX's BRAT album is a full cultural reset. Brat summer was a real season. She literally invented a color. That's what generational pop artistry looks like. 🟢", likes: ["bot_008","bot_013","bot_023","bot_033","bot_043","bot_053","bot_063","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_008","bot_013","bot_023","bot_033","bot_043","bot_053"], clickId: "click_music", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 18 },
+  { id: "cp_mu_002", userId: "bot_008", username: "taylor_brooks", content: "Sabrina Carpenter went from Disney kid to undisputed global pop star in 18 months. Short n Sweet is a perfect album. Can't skip a single track. Era of eras. ⭐", likes: ["bot_004","bot_013","bot_023","bot_033","bot_043","bot_053","bot_063","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_004","bot_013","bot_023","bot_033","bot_043"], clickId: "click_music", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 13 },
+  { id: "cp_mu_003", userId: "bot_013", username: "casey_morgan", content: "Beyoncé's Cowboy Carter changed country music whether country music wanted to be changed or not. Act II from the GOAT. Texas Hold 'Em goes insane live. 🤠", likes: ["bot_004","bot_008","bot_023","bot_033","bot_043","bot_053","bot_063","bot_100","bot_101","bot_102"], reposts: ["bot_004","bot_008","bot_023","bot_033"], clickId: "click_music", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 11 },
+  { id: "cp_mu_004", userId: "bot_023", username: "riley_chen", content: "Vinyl sales outselling CDs for the first time since the 80s. Taylor Swift responsible for a huge share of that. People want to own music again. Something beautiful about that. 🎵", likes: ["bot_004","bot_008","bot_013","bot_033","bot_043","bot_053","bot_063","bot_100","bot_101","bot_102","bot_103","bot_104"], reposts: ["bot_004","bot_008","bot_013","bot_033","bot_043","bot_053"], clickId: "click_music", createdAt: new Date(Date.now() - 3600000 * 11).toISOString(), replyCount: 9 },
+
+  // NYC CLICK posts
+  { id: "cp_nyc_001", userId: "bot_001", username: "alex_rivera", content: "The High Line at sunset on a clear October day is still one of the most beautiful things on earth. Living in NYC rent-free in my heart every single day. 🗽", likes: ["bot_005","bot_010","bot_020","bot_030","bot_040","bot_050","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106","bot_107"], reposts: ["bot_005","bot_010","bot_020","bot_030","bot_040","bot_050"], clickId: "click_nyc", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 20 },
+  { id: "cp_nyc_002", userId: "bot_005", username: "drew_sun", content: "Bodega cat > any establishment mascot in any city in the world. NYC bodegas are a cultural institution and I will not hear otherwise. Non-negotiable. 🐱", likes: ["bot_001","bot_010","bot_020","bot_030","bot_040","bot_050","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105"], reposts: ["bot_001","bot_010","bot_020","bot_030","bot_040"], clickId: "click_nyc", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 16 },
+  { id: "cp_nyc_003", userId: "bot_010", username: "morgan_james", content: "NYC in winter is criminally underrated. Tourists leave. Locals inherit the streets. The city reveals its real self. Real New Yorkers know this. ❄️🍕", likes: ["bot_001","bot_005","bot_020","bot_030","bot_040","bot_050","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_001","bot_005","bot_020","bot_030"], clickId: "click_nyc", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 14 },
+  { id: "cp_nyc_004", userId: "bot_020", username: "nolan_reed", content: "The NYC food scene right now is the best it has ever been. You can eat 10 different countries of food within 4 blocks in any neighborhood. Undefeated city.", likes: ["bot_001","bot_005","bot_010","bot_030","bot_040","bot_050","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_001","bot_005","bot_010","bot_030","bot_040","bot_050"], clickId: "click_nyc", createdAt: new Date(Date.now() - 3600000 * 11).toISOString(), replyCount: 12 },
 ];
 
 // Seeded clicks (communities)
@@ -1100,14 +1143,38 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
   const [u, setU] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
+  const [showSpecial, setShowSpecial] = useState(false);
+
   const go = () => {
     setErr("");
+    // Check special accounts first (always available, passwords hardcoded)
+    const special = SPECIAL_ACCOUNTS.find(x => x.username === u.trim() && x.password === pw);
+    if (special) { onLogin(special); return; }
+    // Then check regular localStorage accounts
     const all = LS.get("su") || [];
-    const f = all.find(x => x.username === u && x.password === pw);
+    const f = all.find(x => x.username === u.trim() && x.password === pw);
     if (!f) { setErr("Invalid username or password."); return; }
     onLogin(f);
   };
+
+  const quickLogin = (account) => {
+    // Ensure the account is in localStorage so everything works
+    const all = LS.get("su") || [];
+    if (!all.find(x => x.id === account.id)) {
+      LS.set("su", [...all, account]);
+    }
+    onLogin(account);
+  };
+
   const s = { width: "100%", background: T.input, border: "none", borderRadius: 14, padding: "16px 18px", color: T.text, fontSize: 16, outline: "none", boxSizing: "border-box" };
+
+  const accentFor = (account) => {
+    if (account.id === "bot_scryptbot") return "#1D9BF0";
+    if (account.id === "bot_minerva") return "#7c3aed";
+    if (account.id === "bot_news") return "#e11d48";
+    return "#CC785C";
+  };
+
   return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
     <div style={{ maxWidth: 400, width: "100%" }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
@@ -1117,16 +1184,61 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
         </div>
         <p style={{ margin: 0, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
       </div>
+
       <div style={{ background: T.card, borderRadius: 20, padding: "28px 24px", boxShadow: dark ? "0 4px 32px rgba(0,0,0,0.4)" : "0 2px 16px rgba(0,0,0,0.08)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} onKeyDown={e => e.key === "Enter" && go()} />
+          <input value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} onKeyDown={e => e.key === "Enter" && go()} autoCapitalize="none" />
           <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} onKeyDown={e => e.key === "Enter" && go()} />
           {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8 }}>{err}</div>}
           <button onClick={go} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "16px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginTop: 4 }}>Sign In</button>
           <button onClick={onSignup} style={{ background: T.card, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Create account</button>
         </div>
       </div>
-      <div style={{ textAlign: "center", marginTop: 20 }}>
+
+      {/* Official Accounts Quick Login */}
+      <div style={{ marginTop: 20, background: T.card, borderRadius: 16, padding: "16px 20px", border: `1px solid ${T.border}` }}>
+        <button onClick={() => setShowSpecial(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", padding: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 15 }}>⚡</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: T.text }}>Official Scrypt Accounts</span>
+          </div>
+          <span style={{ color: T.sub, fontSize: 13, transform: showSpecial ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+        </button>
+
+        {showSpecial && <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+          <p style={{ margin: "0 0 4px", fontSize: 12, color: T.sub, lineHeight: 1.5 }}>
+            Log in as a managed account to post, manage content, and configure settings.
+          </p>
+          {[SCRYPTBOT_USER, MINERVA_USER, NEWS_USER].map(account => (
+            <div key={account.id} style={{ background: T.input, borderRadius: 14, padding: "12px 14px", border: `1.5px solid ${accentFor(account)}30` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 42, height: 42, borderRadius: "50%", overflow: "hidden", flexShrink: 0, lineHeight: 0 }}>
+                  <img src={account.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>
+                    {account.username}
+                    <span style={{ color: BLUE, fontSize: 12 }}>✓</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: T.sub, marginTop: 1 }}>{account.bio.slice(0, 55)}…</div>
+                </div>
+              </div>
+              <div style={{ background: dark ? "#0d0d0d" : "#f5f5f5", borderRadius: 8, padding: "8px 10px", marginBottom: 8, fontFamily: "monospace", fontSize: 12 }}>
+                <div style={{ color: T.sub, marginBottom: 3 }}>Username: <span style={{ color: accentFor(account), fontWeight: 700 }}>{account.username}</span></div>
+                <div style={{ color: T.sub }}>Password: <span style={{ color: accentFor(account), fontWeight: 700 }}>{account.password}</span></div>
+              </div>
+              <button
+                onClick={() => quickLogin(account)}
+                style={{ width: "100%", background: accentFor(account), color: "white", border: "none", borderRadius: 9999, padding: "10px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+              >
+                Sign in as {account.username} →
+              </button>
+            </div>
+          ))}
+        </div>}
+      </div>
+
+      <div style={{ textAlign: "center", marginTop: 16 }}>
         <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14 }}>{dark ? <SunI /> : <MoonI />} {dark ? "Light mode" : "Dark mode"}</button>
       </div>
     </div>
@@ -1139,7 +1251,7 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
   const [pw2, setPw2] = useState("");
   const [bio, setBio] = useState("");
   const [av, setAv] = useState(null);
-  const [dob, setDob] = useState("");
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [err, setErr] = useState("");
   const [terms, setTerms] = useState(false);
   const [showPP, setShowPP] = useState(false);
@@ -1153,18 +1265,12 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
     if (all.find(x => x.username === t)) { setErr("Username already taken."); return; }
     if (pw.length < 6) { setErr("Password must be at least 6 characters."); return; }
     if (pw !== pw2) { setErr("Passwords don't match."); return; }
-    if (!dob) { setErr("Please enter your date of birth."); return; }
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-    if (age < 16) { setErr("You must be at least 16 years old to join Scrypt."); return; }
+    if (!ageConfirmed) { setErr("You must confirm you are old enough to join Scrypt."); return; }
     setTerms(true);
   };
   const confirm = () => {
     const all = LS.get("su") || [];
-    const nu = { id: Date.now().toString(), username: u.trim(), password: pw, bio, avatar: av, dob, village: [], joinedAt: new Date().toISOString() };
+    const nu = { id: Date.now().toString(), username: u.trim(), password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
     LS.set("su", [...all, nu]);
     onDone(nu);
   };
@@ -1206,9 +1312,13 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
           <input value={bio} onChange={e => setBio(e.target.value)} placeholder="Bio (optional)" style={s} />
           <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} />
           <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm password" style={s} />
-          <div>
-            <label style={{ fontSize: 12, color: T.sub, display: "block", marginBottom: 6 }}>📅 Date of Birth <span style={{ color: T.sub, fontWeight: 400 }}>(must be 16+)</span></label>
-            <DOBPicker value={dob} onChange={setDob} T={T} />
+          <div onClick={() => setAgeConfirmed(v => !v)} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${ageConfirmed ? BLUE : T.border}`, background: ageConfirmed ? `${BLUE}10` : T.input, cursor: "pointer", userSelect: "none" }}>
+            <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${ageConfirmed ? BLUE : T.sub}`, background: ageConfirmed ? BLUE : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+              {ageConfirmed && <span style={{ color: "white", fontSize: 13, fontWeight: 900 }}>✓</span>}
+            </div>
+            <span style={{ fontSize: 13, color: T.text, lineHeight: 1.5 }}>
+              I confirm I was born before <strong>{new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</strong> and am at least 16 years old.
+            </span>
           </div>
           {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8 }}>{err}</div>}
           <button onClick={go} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: 14, fontWeight: 800, fontSize: 15, cursor: "pointer" }}>Continue</button>
@@ -1303,6 +1413,15 @@ const HomeTrending = ({ posts, T }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function App() {
   const [dark, setDark] = useState(false);
+
+  // Sync browser chrome color with dark/light mode
+  useEffect(() => {
+    const color = dark ? "#000000" : "#ffffff";
+    let meta = document.querySelector("meta[name='theme-color']");
+    if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.appendChild(meta); }
+    meta.content = color;
+    document.body.style.backgroundColor = color;
+  }, [dark]);
   const [pg, setPg] = useState("login");
   const [tab, setTab] = useState("home");
   const [me, setMe] = useState(null);
@@ -1339,10 +1458,10 @@ export default function App() {
   const cImgRef = useRef();
 
   useEffect(() => {
-    const V = "v18";
+    const V = "v20";
     if (LS.get("dv") !== V) {
       const h = (LS.get("su") || []).filter(u => !u.isBot);
-      const m = [...h, ...SU, SCRYPTBOT_USER, MINERVA_USER, CLAUDE_USER];
+      const m = [...h, ...SU, SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER];
       LS.set("su", m); setUsers(m);
       LS.set("sp", SP); setPosts(SP);
       LS.set("sc", SC); setClicks(SC);
@@ -1354,6 +1473,7 @@ export default function App() {
       let next = [...cur];
       if (!next.find(u => u.id === "bot_scryptbot")) { next.push(SCRYPTBOT_USER); updated = true; }
       if (!next.find(u => u.id === "bot_minerva")) { next.push(MINERVA_USER); updated = true; }
+      if (!next.find(u => u.id === "bot_news")) { next.push(NEWS_USER); updated = true; }
       if (!next.find(u => u.id === "claude_account")) { next.push(CLAUDE_USER); updated = true; }
       if (updated) { LS.set("su", next); setUsers(next); }
     }
@@ -1889,7 +2009,7 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 180,
-          system: "You are ScryptBot, a fun facts account on a social platform. Post one genuinely surprising, specific, and interesting fact. Be conversational and enthusiastic — like a real person excited to share something cool. End with a relevant emoji. Keep it under 220 characters. Just the fact, no preamble like 'Here's a fact:'.",
+          system: "You are Scrypt, the official account for a social platform. Post one genuinely surprising, specific, and interesting fact. Be conversational and enthusiastic — like a real person excited to share something cool. End with a relevant emoji. Keep it under 220 characters. Just the fact, no preamble like 'Here's a fact:'.",
           messages: [{ role: "user", content: `Post a surprising fact about ${cat}.` }]
         });
         const d = await r.json();
@@ -1898,7 +2018,7 @@ export default function App() {
         const newPost = {
           id: `scryptbot_${Date.now()}`,
           userId: "bot_scryptbot",
-          username: "ScryptBot",
+          username: "Scrypt",
           content: content.trim(),
           likes: [], reposts: [],
           createdAt: new Date().toISOString(),
@@ -1990,6 +2110,65 @@ export default function App() {
     const histInterval = setInterval(postHistoryFact, 12 * 60 * 60 * 1000); // 12h
     const tdihInterval = setInterval(postThisDayInHistory, 24 * 60 * 60 * 1000); // 24h
     return () => { clearInterval(histInterval); clearInterval(tdihInterval); };
+  }, [me]);
+
+  // ── SCRYPT NEWS: Breaking news every 3 hours via web search ──────────────────
+  useEffect(() => {
+    if (!me) return;
+    const categories = [
+      "breaking world news today",
+      "top US news today",
+      "technology news today",
+      "science news today",
+      "politics news today",
+      "business economy news today",
+      "health news today",
+      "sports news today",
+    ];
+    const postNews = async () => {
+      if (!getKey()) return;
+      try {
+        const cat = categories[Math.floor(Math.random() * categories.length)];
+        const r = await claudeFetch({
+          model: "claude-sonnet-4-6",
+          max_tokens: 280,
+          system: `You are Scrypt_News, a breaking news account on a social platform. Your job is to post ONE real, specific, current news story. Rules:
+- Use web search to find a real story from today or the past 24 hours from a major outlet (BBC, Reuters, AP, NYT, CNN, Guardian, Bloomberg, etc.)
+- Start with a 📰 emoji and the outlet name in brackets like [Reuters] or [BBC]
+- State the headline and ONE key fact concisely
+- Include the key detail: who, what, where when relevant  
+- End with a relevant emoji
+- NEVER fabricate stories — only report what you found via search
+- Keep it under 260 characters total
+- Format: 📰 [Outlet] Headline — key fact. emoji`,
+          messages: [{ role: "user", content: `Search for the latest ${cat} right now and report one real, verified, breaking story. Use web search.` }],
+          tools: [{ type: "web_search_20250305", name: "web_search" }]
+        });
+        const d = await r.json();
+        // Extract text from potentially mixed content (tool_use + text blocks)
+        const content = d.content?.filter(b => b.type === "text").map(b => b.text).join("").trim();
+        if (!content || content.length < 20) return;
+        const newPost = {
+          id: `news_${Date.now()}`,
+          userId: "bot_news",
+          username: "Scrypt_News",
+          content: content,
+          likes: [], reposts: [],
+          createdAt: new Date().toISOString(),
+          replyCount: 0
+        };
+        const cur = LS.get("sp") || [];
+        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 12 + Math.floor(Math.random() * 20)).map(b => b.id);
+        if (Math.random() > 0.3) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 8)).map(b => b.id);
+        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+      } catch { /* fail silently */ }
+    };
+
+    // Post once on login, then every 3 hours
+    setTimeout(postNews, 15000); // 15s delay so it doesn't clash with other bots
+    const newsInterval = setInterval(postNews, 3 * 60 * 60 * 1000); // 3h
+    return () => clearInterval(newsInterval);
   }, [me]);
 
   const doLike = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, likes: p.likes?.includes(me.id) ? p.likes.filter(x => x !== me.id) : [...(p.likes || []), me.id] }), setPosts);
@@ -2184,16 +2363,6 @@ export default function App() {
 
       {!thread && tab === "home" && <>
         <HomeTrending posts={posts} T={T} />
-        {/* Special accounts strip */}
-        <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", gap: 12, overflowX: "auto", scrollbarWidth: "none" }}>
-          {[CLAUDE_USER, SCRYPTBOT_USER, MINERVA_USER].map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", flexShrink: 0, minWidth: 64 }}>
-            <div style={{ position: "relative" }}>
-              <div style={{ width: 52, height: 52, borderRadius: "50%", border: `2px solid ${BLUE}`, overflow: "hidden", lineHeight: 0 }}><Av user={u} sz={52} /></div>
-              <span style={{ position: "absolute", bottom: -1, right: -1, background: BLUE, color: "white", borderRadius: "50%", width: 16, height: 16, fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900 }}>✓</span>
-            </div>
-            <span style={{ fontSize: 9, color: T.sub, textAlign: "center", maxWidth: 60, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.username}</span>
-          </div>)}
-        </div>
         <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>📅 Chronological · No algorithm</span>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub }}>{feed.length} posts</div>
@@ -2218,7 +2387,7 @@ export default function App() {
             <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{myV.includes(u.id) ? "In Village" : "+ Village"}</button>
           </div>)}
           {/* Special accounts matching */}
-          {[SCRYPTBOT_USER, MINERVA_USER, CLAUDE_USER].filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
+          {[SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER].filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
             <Av user={u} sz={44} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
@@ -2234,7 +2403,7 @@ export default function App() {
         </> : <>
           {/* Discover — Official Accounts */}
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL SCRYPT ACCOUNTS</div>
-          {[CLAUDE_USER, SCRYPTBOT_USER, MINERVA_USER].map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+          {[CLAUDE_USER, SCRYPTBOT_USER, MINERVA_USER, NEWS_USER].map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
             <Av user={u} sz={48} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
@@ -2555,6 +2724,35 @@ export default function App() {
 
           {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
           <button onClick={doSave} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
+
+          {/* ── SWITCH ACCOUNT ── */}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>⚡ Switch Account</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 12 }}>Jump directly into an official Scrypt account</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[SCRYPTBOT_USER, MINERVA_USER, NEWS_USER].map(account => {
+                const accentCol = account.id === "bot_scryptbot" ? BLUE : account.id === "bot_news" ? "#e11d48" : PURPLE;
+                const isActive = me.id === account.id;
+                return <div key={account.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: isActive ? `${accentCol}18` : T.input, border: `1.5px solid ${isActive ? accentCol : "transparent"}` }}>
+                  <div style={{ width: 38, height: 38, borderRadius: "50%", overflow: "hidden", flexShrink: 0, lineHeight: 0 }}>
+                    <img src={account.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: T.text, display: "flex", alignItems: "center", gap: 4 }}>{account.username}<span style={{ color: BLUE, fontSize: 11 }}>✓</span></div>
+                    <div style={{ fontSize: 10, color: T.sub, fontFamily: "monospace" }}>pw: {account.password}</div>
+                  </div>
+                  {isActive
+                    ? <span style={{ fontSize: 11, color: accentCol, fontWeight: 700 }}>Active</span>
+                    : <button onClick={() => {
+                        const all = LS.get("su") || [];
+                        if (!all.find(x => x.id === account.id)) LS.set("su", [...all, account]);
+                        setMe(account); setSf({ u: "", pw: "", pw2: "", bio: "" }); setTab("home"); notify(`Switched to ${account.username} ✓`);
+                      }} style={{ background: accentCol, color: "white", border: "none", borderRadius: 9999, padding: "6px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>Switch →</button>}
+                </div>;
+              })}
+            </div>
+          </div>
+
           <button onClick={() => { setMe(null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
           {/* ── CLAUDE API KEY ── */}
