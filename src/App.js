@@ -1638,13 +1638,13 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
       </div>
 
       <div style={{ background: T.card, borderRadius: 20, padding: "28px 24px", boxShadow: dark ? "0 4px 32px rgba(0,0,0,0.4)" : "0 2px 16px rgba(0,0,0,0.08)" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} onKeyDown={e => e.key === "Enter" && go()} autoCapitalize="none" />
-          <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} onKeyDown={e => e.key === "Enter" && go()} />
+        <form style={{ display: "flex", flexDirection: "column", gap: 12 }} onSubmit={e => { e.preventDefault(); go(); }}>
+          <input name="username" autoComplete="username" value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} autoCapitalize="none" autoCorrect="off" spellCheck="false" />
+          <input name="password" autoComplete="current-password" type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} />
           {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8 }}>{err}</div>}
-          <button onClick={go} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "16px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginTop: 4 }}>Sign In</button>
-          <button onClick={onSignup} style={{ background: T.card, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Create account</button>
-        </div>
+          <button type="submit" style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "16px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginTop: 4 }}>Sign In</button>
+          <button type="button" onClick={onSignup} style={{ background: T.card, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Create account</button>
+        </form>
       </div>
 
 
@@ -2906,46 +2906,62 @@ export default function App() {
     setMe(p => ({ ...p, ...upd }));
     notify("Saving...");
     (async () => {
+      const mediaUpd = {};
       // Upload profile song to Supabase Storage if changed
       if (sfSnapshot.profileSong !== undefined) {
         if (sfSnapshot.profileSong) {
-          // base64 data URL — upload to storage
-          const isUrl = sfSnapshot.profileSong.startsWith("http");
+          const isUrl = typeof sfSnapshot.profileSong === "string" && sfSnapshot.profileSong.startsWith("http");
           if (!isUrl) {
-            const path = `${meSnapshot.id}/profile_song`;
-            const url = await STORAGE.upload("audio", path, sfSnapshot.profileSong);
-            upd.hasProfileSong = true;
-            upd.profileSongName = sfSnapshot.profileSongName || null;
-            upd.profileSong = url || sfSnapshot.profileSong; // fall back to base64 if upload fails
+            const url = await STORAGE.upload("audio", `${meSnapshot.id}/profile_song`, sfSnapshot.profileSong);
+            if (url) {
+              mediaUpd.hasProfileSong = true;
+              mediaUpd.profileSongName = sfSnapshot.profileSongName || null;
+              mediaUpd.profileSong = url;
+            }
+            // If upload failed (no bucket yet), store base64 in IDB as fallback so it still works locally
+            if (!url) {
+              IDB.set(`psong_${meSnapshot.id}`, sfSnapshot.profileSong);
+              mediaUpd.hasProfileSong = true;
+              mediaUpd.profileSongName = sfSnapshot.profileSongName || null;
+              mediaUpd.profileSong = sfSnapshot.profileSong;
+            }
           }
         } else {
-          await STORAGE.remove("audio", `${meSnapshot.id}/profile_song`);
-          upd.hasProfileSong = false;
-          upd.profileSongName = null;
-          upd.profileSong = null;
+          STORAGE.remove("audio", `${meSnapshot.id}/profile_song`);
+          IDB.del(`psong_${meSnapshot.id}`);
+          mediaUpd.hasProfileSong = false;
+          mediaUpd.profileSongName = null;
+          mediaUpd.profileSong = null;
         }
       }
       // Upload info card photos to Supabase Storage if changed
       for (const f of INFO_FIELDS) {
         if (sfSnapshot[f.photoKey] !== undefined) {
           if (sfSnapshot[f.photoKey]) {
-            const isUrl = sfSnapshot[f.photoKey].startsWith("http");
+            const isUrl = typeof sfSnapshot[f.photoKey] === "string" && sfSnapshot[f.photoKey].startsWith("http");
             if (!isUrl) {
-              const path = `${meSnapshot.id}/${f.photoKey}`;
-              const url = await STORAGE.upload("media", path, sfSnapshot[f.photoKey]);
-              upd[f.photoKey] = url || sfSnapshot[f.photoKey];
+              const url = await STORAGE.upload("media", `${meSnapshot.id}/${f.photoKey}`, sfSnapshot[f.photoKey]);
+              if (url) {
+                mediaUpd[f.photoKey] = url;
+              } else {
+                // Fallback: store base64 in IDB
+                IDB.set(`icard_${meSnapshot.id}_${f.photoKey}`, sfSnapshot[f.photoKey]);
+                mediaUpd[f.photoKey] = sfSnapshot[f.photoKey];
+              }
             }
           } else {
-            await STORAGE.remove("media", `${meSnapshot.id}/${f.photoKey}`);
-            upd[f.photoKey] = null;
+            STORAGE.remove("media", `${meSnapshot.id}/${f.photoKey}`);
+            IDB.del(`icard_${meSnapshot.id}_${f.photoKey}`);
+            mediaUpd[f.photoKey] = null;
           }
         }
       }
-      // Final state update with storage URLs
-      const finalUsers = users.map(u => u.id === meSnapshot.id ? { ...u, ...upd } : u);
+      // Merge all updates and write to DB in one shot
+      const finalUpd = { ...upd, ...mediaUpd };
+      const updatedMe = { ...meSnapshot, ...finalUpd };
+      const finalUsers = users.map(u => u.id === meSnapshot.id ? updatedMe : u);
       setUsers(finalUsers);
-      setMe(p => ({ ...p, ...upd }));
-      const updatedMe = { ...meSnapshot, ...upd };
+      setMe(updatedMe);
       try { await DB.updateUser(meSnapshot.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); }
       notify("Saved ✓");
     })();
@@ -2962,20 +2978,35 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [sf]);
 
-  // resolvePhoto — photos are now Supabase Storage URLs stored directly on user object
+  // Media cache for IDB fallback (when Supabase Storage buckets aren't set up yet)
+  const [idbCache, setIdbCache] = useState({});
+  useEffect(() => {
+    if (!me?.id) return;
+    (async () => {
+      const cache = {};
+      for (const f of INFO_FIELDS) {
+        const v = await IDB.get(`icard_${me.id}_${f.photoKey}`);
+        if (v) cache[`icard_${me.id}_${f.photoKey}`] = v;
+      }
+      const song = await IDB.get(`psong_${me.id}`);
+      if (song) cache[`psong_${me.id}`] = song;
+      setIdbCache(cache);
+    })();
+  }, [me?.id]);
+
   const resolvePhoto = useCallback((user, photoKey) => {
     const val = user[photoKey];
-    if (!val) return null;
-    if (typeof val === "string" && (val.startsWith("http") || val.startsWith("data:"))) return val;
-    return null;
-  }, []);
+    if (val && typeof val === "string" && (val.startsWith("http") || val.startsWith("data:"))) return val;
+    // IDB fallback for when Storage buckets aren't configured
+    return idbCache[`icard_${user.id}_${photoKey}`] || null;
+  }, [idbCache]);
 
-  // resolveProfileSong — song URL stored directly on user object (Supabase Storage)
   const resolveProfileSong = useCallback((user) => {
     if (!user.hasProfileSong && !user.profileSong) return null;
-    if (!user.profileSong) return null;
-    return { song: user.profileSong, name: user.profileSongName, label: user.profileSongLabel || null };
-  }, []);
+    const song = user.profileSong || idbCache[`psong_${user.id}`] || null;
+    if (!song) return null;
+    return { song, name: user.profileSongName, label: user.profileSongLabel || null };
+  }, [idbCache]);
 
   if (pg === "loading" || (pg === "app" && dbLoading)) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
     <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BLUE, padding: "14px 28px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", overflow: "hidden" }}>
