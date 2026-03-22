@@ -60,7 +60,7 @@ const SCRYPTBOT_USER = {
 
 const MINERVA_USER = {
   id: "bot_minerva",
-  username: "Scrypt_Minerva",
+  username: "Script_Minerva",
   password: "Minerva2025!",
   avatar: mkSpecialAvatar("#7c3aed", "M", "🦉"),
   bio: "History facts every 12 hours · This Day in History every day · Powered by Claude AI. Know your past. 📜",
@@ -86,7 +86,7 @@ const CLAUDE_USER = {
 
 const NEWS_USER = {
   id: "bot_news",
-  username: "Scrypt_News",
+  username: "Script_News",
   password: "ScryptNews2025!",
   avatar: mkSpecialAvatar("#e11d48", "N", "📰"),
   bio: "Breaking news & top stories — fact-checked by major outlets. Powered by Claude AI + web search. Updates every 3 hours. 📡",
@@ -120,12 +120,12 @@ const SP = [
   { id: "scryptbot_seed_1", userId: "bot_scryptbot", username: "Scrypt", content: "🌊 Octopuses have three hearts, blue blood, and can edit their own RNA to adapt to temperature — essentially rewriting their own code in real time. Evolution said: why wait? 🐙", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008","bot_009","bot_010","bot_011","bot_012","bot_013","bot_014","bot_015"], reposts: ["bot_020","bot_030","bot_040","bot_050","bot_060"], createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 7 },
   { id: "scryptbot_seed_2", userId: "bot_scryptbot", username: "Scrypt", content: "⚡ A bolt of lightning is five times hotter than the surface of the sun — around 30,000 Kelvin — and lasts less than a millisecond. The universe is casually doing things we can barely measure. 🌩️", likes: ["bot_016","bot_017","bot_018","bot_019","bot_021","bot_022","bot_023","bot_024","bot_025","bot_026","bot_027","bot_028"], reposts: ["bot_031","bot_041","bot_051"], createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 4 },
   { id: "scryptbot_seed_3", userId: "bot_scryptbot", username: "Scrypt", content: "🧠 Your brain generates about 23 watts when you're awake — enough to power a dim bulb. It runs on 20% of your body's energy despite being only 2% of your weight. Efficiency king. 👑", likes: ["bot_029","bot_032","bot_033","bot_034","bot_035","bot_036","bot_037","bot_038","bot_039","bot_042","bot_043"], reposts: ["bot_044","bot_045","bot_046"], createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 5 },
-  { id: "minerva_seed_1", userId: "bot_minerva", username: "Scrypt_Minerva", content: "📅 This Day in History — In 1969, Neil Armstrong and Buzz Aldrin became the first humans to walk on the Moon. Armstrong's words: 'One small step for man, one giant leap for mankind.' 600 million watched live. 🌕", likes: ["bot_001","bot_003","bot_005","bot_007","bot_009","bot_011","bot_013","bot_015","bot_017","bot_019","bot_021","bot_023","bot_025","bot_027","bot_029","bot_031","bot_033","bot_035"], reposts: ["bot_002","bot_004","bot_006","bot_008","bot_010","bot_012"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 9 },
-  { id: "minerva_seed_2", userId: "bot_minerva", username: "Scrypt_Minerva", content: "⚔️ Roman gladiators were mostly vegetarian — barley, beans, and dried fruit. Their nickname was 'hordearii' (barley men). Elite athletes fuelled for endurance, not aesthetics. 🏛️", likes: ["bot_047","bot_048","bot_049","bot_052","bot_053","bot_054","bot_055","bot_056","bot_057","bot_058","bot_059","bot_061","bot_062"], reposts: ["bot_063","bot_064","bot_065","bot_066"], createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 6 },
-  { id: "minerva_seed_3", userId: "bot_minerva", username: "Scrypt_Minerva", content: "🗺️ Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid. Pyramids ~2500 BCE, Cleopatra ~50 BCE, Moon landing 1969. Time is deeply strange. 🔭", likes: ["bot_067","bot_068","bot_069","bot_071","bot_072","bot_073","bot_074","bot_075","bot_076","bot_077","bot_078","bot_079"], reposts: ["bot_080","bot_081","bot_082"], createdAt: new Date(Date.now() - 3600000 * 11).toISOString(), replyCount: 11 },
-  { id: "news_seed_1", userId: "bot_news", username: "Scrypt_News", content: "📰 [Reuters] Global AI investment hits record $100B+ in 2025 — semiconductor demand surges as major tech firms race to build next-gen data centers across US, Europe and Southeast Asia. 🤖", likes: ["bot_083","bot_084","bot_085","bot_086","bot_087","bot_088","bot_089","bot_091","bot_092","bot_093","bot_094","bot_095","bot_096","bot_097","bot_098","bot_099","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_104","bot_105","bot_106","bot_107","bot_108","bot_109","bot_110"], createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(), replyCount: 8 },
-  { id: "news_seed_2", userId: "bot_news", username: "Scrypt_News", content: "📰 [AP] Scientists confirm new deep-sea species discovered off Pacific coast — bioluminescent creature found at 3,200m depth sheds light on ecosystems previously thought uninhabitable. 🌊", likes: ["bot_111","bot_112","bot_113","bot_114","bot_115","bot_116","bot_117","bot_118","bot_119","bot_121","bot_122","bot_123","bot_124","bot_125"], reposts: ["bot_126","bot_127","bot_128","bot_129"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 5 },
-  { id: "news_seed_3", userId: "bot_news", username: "Scrypt_News", content: "📰 [BBC] SpaceX completes landmark Starship orbital test — vehicle successfully re-entered atmosphere and executed controlled ocean splashdown, major milestone for Mars mission timeline. 🚀", likes: ["bot_130","bot_131","bot_132","bot_133","bot_134","bot_135","bot_136","bot_137","bot_138","bot_139","bot_141","bot_142","bot_143","bot_144","bot_145","bot_146","bot_147"], reposts: ["bot_148","bot_149","bot_150","bot_151","bot_152","bot_153"], createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 12 },
+  { id: "minerva_seed_1", userId: "bot_minerva", username: "Script_Minerva", content: "📅 This Day in History — In 1969, Neil Armstrong and Buzz Aldrin became the first humans to walk on the Moon. Armstrong's words: 'One small step for man, one giant leap for mankind.' 600 million watched live. 🌕", likes: ["bot_001","bot_003","bot_005","bot_007","bot_009","bot_011","bot_013","bot_015","bot_017","bot_019","bot_021","bot_023","bot_025","bot_027","bot_029","bot_031","bot_033","bot_035"], reposts: ["bot_002","bot_004","bot_006","bot_008","bot_010","bot_012"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 9 },
+  { id: "minerva_seed_2", userId: "bot_minerva", username: "Script_Minerva", content: "⚔️ Roman gladiators were mostly vegetarian — barley, beans, and dried fruit. Their nickname was 'hordearii' (barley men). Elite athletes fuelled for endurance, not aesthetics. 🏛️", likes: ["bot_047","bot_048","bot_049","bot_052","bot_053","bot_054","bot_055","bot_056","bot_057","bot_058","bot_059","bot_061","bot_062"], reposts: ["bot_063","bot_064","bot_065","bot_066"], createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 6 },
+  { id: "minerva_seed_3", userId: "bot_minerva", username: "Script_Minerva", content: "🗺️ Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid. Pyramids ~2500 BCE, Cleopatra ~50 BCE, Moon landing 1969. Time is deeply strange. 🔭", likes: ["bot_067","bot_068","bot_069","bot_071","bot_072","bot_073","bot_074","bot_075","bot_076","bot_077","bot_078","bot_079"], reposts: ["bot_080","bot_081","bot_082"], createdAt: new Date(Date.now() - 3600000 * 11).toISOString(), replyCount: 11 },
+  { id: "news_seed_1", userId: "bot_news", username: "Script_News", content: "📰 [Reuters] Global AI investment hits record $100B+ in 2025 — semiconductor demand surges as major tech firms race to build next-gen data centers across US, Europe and Southeast Asia. 🤖", likes: ["bot_083","bot_084","bot_085","bot_086","bot_087","bot_088","bot_089","bot_091","bot_092","bot_093","bot_094","bot_095","bot_096","bot_097","bot_098","bot_099","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_104","bot_105","bot_106","bot_107","bot_108","bot_109","bot_110"], createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(), replyCount: 8 },
+  { id: "news_seed_2", userId: "bot_news", username: "Script_News", content: "📰 [AP] Scientists confirm new deep-sea species discovered off Pacific coast — bioluminescent creature found at 3,200m depth sheds light on ecosystems previously thought uninhabitable. 🌊", likes: ["bot_111","bot_112","bot_113","bot_114","bot_115","bot_116","bot_117","bot_118","bot_119","bot_121","bot_122","bot_123","bot_124","bot_125"], reposts: ["bot_126","bot_127","bot_128","bot_129"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 5 },
+  { id: "news_seed_3", userId: "bot_news", username: "Script_News", content: "📰 [BBC] SpaceX completes landmark Starship orbital test — vehicle successfully re-entered atmosphere and executed controlled ocean splashdown, major milestone for Mars mission timeline. 🚀", likes: ["bot_130","bot_131","bot_132","bot_133","bot_134","bot_135","bot_136","bot_137","bot_138","bot_139","bot_141","bot_142","bot_143","bot_144","bot_145","bot_146","bot_147"], reposts: ["bot_148","bot_149","bot_150","bot_151","bot_152","bot_153"], createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 12 },
   { id: "abandonware_seed_1", userId: "bot_abandonware", username: "Abandonware", content: "GTA VI is the most expensive game ever made at ~$2B and Rockstar still won't give us a release date. The hype is real but so is the wait. 🎮", likes: ["bot_154","bot_155","bot_156","bot_157","bot_158","bot_159","bot_161","bot_162","bot_163","bot_164","bot_165","bot_166","bot_167","bot_168","bot_169","bot_170"], reposts: ["bot_171","bot_172","bot_173","bot_174","bot_175"], createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 14 },
   { id: "abandonware_seed_2", userId: "bot_abandonware", username: "Abandonware", content: "Dune: Part Two proved that big, serious sci-fi still dominates the box office when done right. Denis Villeneuve is on another level. 🏜️🎬", likes: ["bot_176","bot_177","bot_178","bot_179","bot_180","bot_181","bot_182","bot_183","bot_184","bot_185","bot_186","bot_187","bot_188","bot_189","bot_190"], reposts: ["bot_191","bot_192","bot_193","bot_194"], createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 9 },
   { id: "abandonware_seed_3", userId: "bot_abandonware", username: "Abandonware", content: "The Bear season 3 might be the most stressful TV experience since its own S1. Carmy's kitchen is chaos personified and we cannot look away. 🍽️", likes: ["bot_195","bot_196","bot_197","bot_198","bot_199","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_107","bot_108","bot_109","bot_110","bot_111"], createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 11 },
@@ -757,6 +757,27 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
       <div style={{ padding: "12px 16px 16px" }}>
         {/* Profile song player */}
         {(() => { const s = LS.get(`psong_${user.id}`) || (user.profileSong ? {song:user.profileSong,name:user.profileSongName} : null); return s ? <ProfileSongPlayer songSrc={s.song} songName={s.name} accent={accent} /> : null; })()}
+        {/* Special bot profile banners */}
+        {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
+          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by Claude AI. Follow for daily doses of the unexpected.</div>
+          <div style={{ fontSize: 11, color: BLUE, marginTop: 5, fontWeight: 600 }}>Posts every 6h · Science, Space, History & more</div>
+        </div>}
+        {user.id === "bot_minerva" && <div style={{ background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div>
+          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Fascinating historical facts and daily "This Day in History" posts. Because knowing your past is the key to understanding the present.</div>
+          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>Posts every 12h · This Day in History daily · Powered by Claude AI</div>
+        </div>}
+        {user.id === "bot_news" && <div style={{ background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div>
+          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Real, verified breaking news sourced from major outlets — BBC, Reuters, AP, NYT and more. No opinion, just facts.</div>
+          <div style={{ fontSize: 11, color: "#e11d48", marginTop: 5, fontWeight: 600 }}>Updates every 3h · Web search powered · Fact-checked</div>
+        </div>}
+        {user.id === "bot_abandonware" && <div style={{ background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div>
+          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Hot takes, reviews and news from across the entertainment world. Video games, blockbusters, prestige TV — we cover it all.</div>
+          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by Claude AI</div>
+        </div>}
         {user.bio && <div style={{ fontSize: 14, color: T.text, marginBottom: 10 }}>{user.bio}</div>}
         <div style={{ display: "flex", gap: 18, marginBottom: 12 }}>
           <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.length}</strong> Scrypts</span>
@@ -771,7 +792,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
           <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(featured.content)}</p>
           <div style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>{featured.likes?.length || 0} likes · {ago(featured.createdAt)}</div>
         </div>}
-        {pub.slice(0, 5).map(p => <div key={p.id} style={{ padding: "8px 0", borderTop: `1px solid ${T.border}` }}>
+        {pub.slice(0, user.isSpecial ? 10 : 5).map(p => <div key={p.id} style={{ padding: "8px 0", borderTop: `1px solid ${T.border}` }}>
           <p style={{ margin: 0, fontSize: 14, color: T.text, lineHeight: 1.5 }}>{censor(p.content)}</p>
           <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>{ago(p.createdAt)} · {p.likes?.length || 0} likes</div>
         </div>)}
@@ -1323,37 +1344,38 @@ const VoiceCall = ({ me, participants, users, T, onEnd }) => {
 };
 
 // ── HOME TRENDING STRIP ───────────────────────────────────────────────────────
-const HomeTrending = ({ posts, T }) => {
-  const [trending, setTrending] = useState(null);
-  const [busy, setBusy] = useState(false);
+const HomeTrending = ({ posts, users, T }) => {
+  // Compute top posts by engagement score (likes*1 + reposts*2) — exclude replies
+  const topPosts = [...posts]
+    .filter(p => !p.parentId && p.content && p.content.length > 10)
+    .map(p => ({ ...p, score: (p.likes?.length || 0) + (p.reposts?.length || 0) * 2 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
 
-  const load = async () => {
-    setBusy(true);
-    const sample = posts.slice(0, 60).map(p => p.content).join(" | ");
-    try {
-      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these social media posts, identify 6 trending topics. Return ONLY a JSON array of short strings (2-4 words max each), no hashtag symbols. Example: ["Kendrick Lamar","Severance S2","Taylor Swift","NFL Playoffs","Gaming News","Book Club"]. Posts: ${sample}` }] });
-      const d = await r.json();
-      const txt = d.content?.[0]?.text || "[]";
-      const parsed = JSON.parse(txt.replace(/\`\`\`json|\`\`\`/g, "").trim());
-      const withScrypt = ["Scrypt", ...parsed.filter(t => t.toLowerCase() !== "scrypt")].slice(0, 6);
-      setTrending(withScrypt);
-    } catch {
-      setTrending(["Scrypt", "Kendrick Lamar", "Severance Season 2", "Taylor Swift", "NBA 2024", "Gaming & Tech"]);
-    }
-    setBusy(false);
-  };
-
-  useEffect(() => { load(); }, []);
+  if (topPosts.length === 0) return null;
 
   return <div style={{ background: "linear-gradient(135deg, rgba(29,155,240,0.08), rgba(124,58,237,0.08))", borderBottom: `1px solid ${T.border}`, padding: "10px 16px" }}>
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+    <div style={{ marginBottom: 8 }}>
       <span style={{ fontWeight: 700, fontSize: 13, color: T.text }}>🔥 Trending on Scrypt</span>
-      <span onClick={load} style={{ fontSize: 11, color: BLUE, cursor: "pointer", fontWeight: 600 }}>✨ Refresh</span>
     </div>
-    {busy && <div style={{ fontSize: 12, color: T.sub }}>Loading trending topics...</div>}
-    {trending && !busy && <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-      {trending.map((t, i) => <span key={i} style={{ background: T.input, borderRadius: 9999, padding: "4px 11px", fontSize: 12, color: BLUE, fontWeight: 600, cursor: "pointer" }}>#{t}</span>)}
-    </div>}
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {topPosts.map((p, i) => {
+        const author = users?.find(u => u.id === p.userId);
+        const preview = p.content.length > 80 ? p.content.slice(0, 80) + "…" : p.content;
+        const isSpecial = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware"].includes(p.userId);
+        const accentColor = p.userId === "bot_scryptbot" ? BLUE : p.userId === "bot_minerva" ? "#7c3aed" : p.userId === "bot_news" ? "#e11d48" : p.userId === "bot_abandonware" ? "#0f766e" : T.sub;
+        return <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "5px 0", borderBottom: i < topPosts.length - 1 ? `1px solid ${T.border}30` : "none" }}>
+          <span style={{ fontWeight: 800, fontSize: 11, color: T.sub, minWidth: 16, paddingTop: 2 }}>{i + 1}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: accentColor, fontWeight: 700, marginBottom: 1 }}>
+              {author?.username || p.username}{isSpecial && <span style={{ color: BLUE, marginLeft: 3 }}>✓</span>}
+            </div>
+            <div style={{ fontSize: 12, color: T.text, lineHeight: 1.4 }}>{preview}</div>
+            <div style={{ fontSize: 10, color: T.sub, marginTop: 2 }}>❤️ {p.likes?.length || 0} · 🔁 {p.reposts?.length || 0}</div>
+          </div>
+        </div>;
+      })}
+    </div>
   </div>;
 };
 
@@ -1405,7 +1427,7 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
-    const V = "v22";
+    const V = "v23";
     if (LS.get("dv") !== V) {
       const h = (LS.get("su") || []).filter(u => !u.isBot);
       const m = [...h, ...SU, SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER, ABANDONWARE_USER];
@@ -1928,6 +1950,41 @@ export default function App() {
         }
       }
 
+      // SPECIAL BOT BOOSTS — giga chads heavily engage with official accounts
+      const specialBotIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware"];
+      const specialPosts = curPosts.filter(p => specialBotIds.includes(p.userId) && !p.parentId).slice(0, 20);
+      if (specialPosts.length > 0) {
+        const targetSpecial = specialPosts[Math.floor(Math.random() * Math.min(5, specialPosts.length))];
+        // 80% chance to add likes to a special bot post
+        if (Math.random() < 0.80) {
+          const existingLikes = new Set(targetSpecial.likes || []);
+          const eligible = allBots.filter(b => !existingLikes.has(b.id) && !specialBotIds.includes(b.id));
+          const boostCount = 4 + Math.floor(Math.random() * 8); // 4-11 likes per cycle
+          const boosters = eligible.sort(() => Math.random() - 0.5).slice(0, boostCount);
+          boosters.forEach((b, i) => {
+            setTimeout(() => {
+              const c2 = LS.get("sp") || [];
+              const u2 = c2.map(x => x.id === targetSpecial.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
+              LS.set("sp", u2); setPosts(u2);
+            }, (i + 1) * (1500 + Math.random() * 4000));
+          });
+        }
+        // 40% chance to also add reposts
+        if (Math.random() < 0.40) {
+          const existingReposts = new Set(targetSpecial.reposts || []);
+          const eligible2 = allBots.filter(b => !existingReposts.has(b.id) && !specialBotIds.includes(b.id));
+          const repostCount = 2 + Math.floor(Math.random() * 4);
+          const reposters = eligible2.sort(() => Math.random() - 0.5).slice(0, repostCount);
+          reposters.forEach((b, i) => {
+            setTimeout(() => {
+              const c2 = LS.get("sp") || [];
+              const u2 = c2.map(x => x.id === targetSpecial.id ? { ...x, reposts: [...new Set([...(x.reposts || []), b.id])] } : x);
+              LS.set("sp", u2); setPosts(u2);
+            }, (i + 1) * (2000 + Math.random() * 5000));
+          });
+        }
+      }
+
       // 15% chance: bots add each other to village
       if (Math.random() < 0.15) {
         const allUsers = LS.get("su") || [];
@@ -1997,7 +2054,7 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 200,
-          system: "You are Scrypt Minerva, a history account on a social platform. Share one genuinely fascinating, specific historical fact — something most people don't know. Be compelling and slightly dramatic — history deserves it. End with a relevant emoji. Under 230 characters. Just the fact, no intro like 'Did you know'.",
+          system: "You are Script_Minerva, a history account on a social platform. Share one genuinely fascinating, specific historical fact — something most people don't know. Be compelling and slightly dramatic — history deserves it. End with a relevant emoji. Under 230 characters. Just the fact, no intro like 'Did you know'.",
           messages: [{ role: "user", content: `Share a fascinating, little-known fact from ${era}.` }]
         });
         const d = await r.json();
@@ -2006,7 +2063,7 @@ export default function App() {
         const newPost = {
           id: `minerva_hist_${Date.now()}`,
           userId: "bot_minerva",
-          username: "Scrypt_Minerva",
+          username: "Script_Minerva",
           content: content.trim(),
           likes: [], reposts: [],
           createdAt: new Date().toISOString(),
@@ -2029,7 +2086,7 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 200,
-          system: "You are Scrypt Minerva, a history account. Post a 'This Day in History' entry. Pick one real, specific, significant historical event that happened on this date in any year. Format: start with '📅 This Day in History —' then the year, then what happened. Be specific with names, places, numbers. Under 240 characters total.",
+          system: "You are Script_Minerva, a history account. Post a 'This Day in History' entry. Pick one real, specific, significant historical event that happened on this date in any year. Format: start with '📅 This Day in History —' then the year, then what happened. Be specific with names, places, numbers. Under 240 characters total.",
           messages: [{ role: "user", content: `What happened on ${month} ${day} in history? Pick the most significant or surprising event.` }]
         });
         const d = await r.json();
@@ -2038,7 +2095,7 @@ export default function App() {
         const newPost = {
           id: `minerva_tdih_${Date.now()}`,
           userId: "bot_minerva",
-          username: "Scrypt_Minerva",
+          username: "Script_Minerva",
           content: content.trim(),
           likes: [], reposts: [],
           createdAt: new Date().toISOString(),
@@ -2080,7 +2137,7 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 280,
-          system: `You are Scrypt_News, a breaking news account on a social platform. Your job is to post ONE real, specific, current news story. Rules:
+          system: `You are Script_News, a breaking news account on a social platform. Your job is to post ONE real, specific, current news story. Rules:
 - Use web search to find a real story from today or the past 24 hours from a major outlet (BBC, Reuters, AP, NYT, CNN, Guardian, Bloomberg, etc.)
 - Start with a 📰 emoji and the outlet name in brackets like [Reuters] or [BBC]
 - State the headline and ONE key fact concisely
@@ -2099,7 +2156,7 @@ export default function App() {
         const newPost = {
           id: `news_${Date.now()}`,
           userId: "bot_news",
-          username: "Scrypt_News",
+          username: "Script_News",
           content: content,
           likes: [], reposts: [],
           createdAt: new Date().toISOString(),
@@ -2360,7 +2417,7 @@ export default function App() {
       {thread && <Thread p={thread} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={doPost} onBack={() => setThread(null)} onUser={setOpenUser} T={T} />}
 
       {!thread && tab === "home" && <>
-        <HomeTrending posts={posts} T={T} />
+        <HomeTrending posts={posts} users={users} T={T} />
         <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>📅 Chronological · No algorithm</span>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub }}>{feed.length} posts</div>
