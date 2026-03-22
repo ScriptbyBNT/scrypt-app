@@ -2612,255 +2612,285 @@ export default function App() {
     return () => clearInterval(interval);
   }, [me]);
 
-  // ── SCRYPTBOT: Random facts every 6 hours ────────────────────────────────────
+  // ── SCRYPTBOT: Random science/nature facts every 6 hours (pre-written pool) ───
   useEffect(() => {
     if (!me) return;
-    const postFact = async () => {
-      if (!getKey()) return;
+    const SCRYPT_FACTS = [
+      "🌊 Octopuses have three hearts, blue blood, and can edit their own RNA to adapt to temperature — essentially rewriting their own code in real time. 🐙",
+      "⚡ A bolt of lightning is five times hotter than the surface of the sun — around 30,000 Kelvin — and lasts less than a millisecond. 🌩️",
+      "🧠 Your brain generates about 23 watts when you're awake — enough to power a dim bulb. It runs on 20% of your body's energy despite being only 2% of your weight. 👑",
+      "🌍 A day on Venus is longer than a year on Venus. It takes 243 Earth days to rotate once, but only 225 Earth days to orbit the Sun. 🪐",
+      "🐝 Honey never spoils. Archaeologists have found 3,000-year-old honey in Egyptian tombs that was still perfectly edible. 🍯",
+      "🦈 Sharks are older than trees. Sharks have existed for ~450 million years; trees only appeared ~350 million years ago. 🌳",
+      "💎 Diamonds aren't actually rare — the illusion of scarcity is maintained by a handful of companies controlling global supply. 💍",
+      "🌙 The Moon is slowly drifting away from Earth at 3.8 cm per year — about the rate your fingernails grow. 🔭",
+      "🐘 Elephants are the only animals that can't jump. They also sleep standing up and only need 2-4 hours of sleep per night. 💤",
+      "🧬 You share 60% of your DNA with a banana. You share 98.7% with chimpanzees, and 85% with a mouse. 🍌",
+      "🌊 The Pacific Ocean is larger than all of Earth's landmass combined. It covers more than 30% of the planet's surface. 🗺️",
+      "🦠 There are more bacteria in your mouth right now than there are people who have ever lived on Earth. 😬",
+      "🧊 Hot water freezes faster than cold water under certain conditions — this is called the Mpemba Effect and it still puzzles scientists. ❄️",
+      "🐬 Dolphins have unique names for each other — specific whistle patterns that act like individual identifiers. 🎵",
+      "🌋 More people have been to space than have been to the deepest point of the ocean, the Challenger Deep in the Mariana Trench. 🌊",
+      "⚗️ Gallium melts in your hand — its melting point is just 29.76°C, barely above room temperature. 🌡️",
+      "🦑 The mantis shrimp can punch with the force of a bullet and sees 16 types of color receptors — humans only have 3. 🎨",
+      "🌿 Cleopatra lived closer in time to the Moon landing than to the construction of the Great Pyramid of Giza. ⏳",
+      "🔬 A teaspoon of a neutron star would weigh about 10 million tons on Earth. Neutron stars are so dense, a sugar-cube-sized piece weighs more than Mount Everest. ⭐",
+      "🐜 Ants never sleep, never have leisure time, and some species farm fungi, herd aphids, and wage organized wars. They've been doing this for 50 million years. 🍄",
+      "🎵 The human ear can distinguish over 400,000 distinct sounds and can detect pressure waves as small as 20 micropascals — roughly the movement of a single atom. 👂",
+      "🦎 Axolotls can regenerate entire limbs, hearts, and portions of their brain. Scientists are still trying to understand exactly how. 🔬",
+      "🌑 There's a 'dead zone' in the Gulf of Mexico the size of New Jersey every summer, caused by agricultural runoff starving the water of oxygen. 🚜",
+      "💧 Only 3% of Earth's water is fresh — and 69% of that is locked in glaciers. Less than 1% of all water on Earth is accessible freshwater. 🏔️",
+      "🧲 If you removed all the empty space from atoms in all 8 billion humans, we'd fit into a sugar cube. Atoms are almost entirely empty space. ✨",
+      "🐙 The mimic octopus can imitate over 15 different marine species — including lionfish, flatfish, and sea snakes — on demand. 🎭",
+      "🌿 Trees in a forest communicate through underground fungal networks, sharing nutrients and even warning each other of pest attacks. 🍄",
+      "🔥 The sun converts 4 million tons of its own mass into energy every second. It has been doing this for 4.6 billion years. ☀️",
+      "🧊 Sound travels 4 times faster through water than through air, and 15 times faster through steel. The speed of sound is about the medium, not the sound. 🔊",
+      "🦋 The monarch butterfly navigates using a built-in sun compass and a magnetic field sensor — essentially a GPS system grown from a caterpillar. 🧭"
+    ];
+    let scryptIdx = parseInt(localStorage.getItem(`scrypt_fact_idx_${me.id}`) || "0", 10);
+    const postFact = () => {
       try {
-        const categories = ["science","space","animals","history","food","human body","psychology","technology","geography","nature","sports records","art","language"];
-        const cat = categories[Math.floor(Math.random() * categories.length)];
-        const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
-          max_tokens: 180,
-          system: "You are Scrypt, the official account for a social platform. Post one surprising, specific, verifiable fact. Rules: state the fact plainly and directly — no enthusiasm, no filler phrases, no 'did you know', no 'fun fact'. End with one relevant emoji. Under 220 characters. Output only the fact text.",
-          messages: [{ role: "user", content: `Post a surprising fact about ${cat}.` }]
-        });
-        const d = await r.json();
-        const content = d.content?.[0]?.text;
-        if (!content) return;
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
+        const content = SCRYPT_FACTS[scryptIdx % SCRYPT_FACTS.length];
+        scryptIdx = (scryptIdx + 1) % SCRYPT_FACTS.length;
+        localStorage.setItem(`scrypt_fact_idx_${me.id}`, String(scryptIdx));
         const newPost = {
           id: `scryptbot_${Date.now()}`,
           userId: "bot_scryptbot",
           username: "Scrypt",
-          content: content.trim(),
-          likes: [], reposts: [],
+          content,
+          likes: allBots.sort(() => Math.random() - 0.5).slice(0, 8 + Math.floor(Math.random() * 18)).map(b => b.id),
+          reposts: Math.random() > 0.4 ? allBots.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 5)).map(b => b.id) : [],
           createdAt: new Date().toISOString(),
           replyCount: 0
         };
-        // Bot community reacts with likes
-        const allBots = users.filter(u => u.isBot && !u.isSpecial);
-        const likers = allBots.sort(() => Math.random() - 0.5).slice(0, 8 + Math.floor(Math.random() * 18));
-        newPost.likes = likers.map(b => b.id);
-        if (Math.random() > 0.4) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 5)).map(b => b.id);
         setPosts(prev => [newPost, ...prev]);
         DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
-    postFact(); // Post once immediately on login
-    const interval = setInterval(postFact, 6 * 60 * 60 * 1000); // Then every 6h
+    postFact();
+    const interval = setInterval(postFact, 6 * 60 * 60 * 1000); // every 6h
     return () => clearInterval(interval);
   }, [me]);
 
-  // ── SCRYPT MINERVA: History fact every hour + This Day in History at 12pm daily ──
+  // ── SCRYPT MINERVA: History facts hourly + This Day in History at noon (pre-written) ──
   useEffect(() => {
     if (!me) return;
-
-    const postHistoryFact = async () => {
-      if (!getKey()) return;
-      try {
-        const eras = ["ancient Egypt","ancient Greece","the Roman Empire","the Renaissance","the Age of Exploration","the Industrial Revolution","World War I","World War II","the Cold War","ancient China","the Ottoman Empire","the Viking Age","medieval Europe","the Byzantine Empire","ancient Persia","the Mongol Empire","the British Empire","the French Revolution","ancient Mesopotamia","the Han Dynasty","the Mughal Empire","the Crusades","the Age of Enlightenment","the American Revolution","the Napoleonic Wars","ancient India","the Aztec Empire","the Inca Empire","the Silk Road","the Black Death"];
-        const era = eras[Math.floor(Math.random() * eras.length)];
-        const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
-          max_tokens: 220,
-          system: "You are Script_Minerva, a professional history education account. Post ONE specific, fact-checked historical fact. Rules: 1) Always anchor to a real verified date/era using the format 'Roman Empire, 44 BCE —' or 'Medieval Europe, 1347 —'. 2) Include specific names, numbers, and places. 3) No enthusiasm, no opinions, no modern commentary, no speculation. 4) Professional, encyclopaedic tone. 5) End with exactly one relevant historical emoji (🏛️ ⚔️ 📜 🗺️ 🔭 ⚓ 🏰 🕌 🌏 etc). 6) Under 240 characters. Output only the fact text, nothing else.",
-          messages: [{ role: "user", content: `Share one specific, verified, little-known historical fact from ${era}. Include real names, dates, and numbers.` }]
-        });
-        const d = await r.json();
-        const content = d.content?.[0]?.text;
-        if (!content) return;
-        const newPost = {
-          id: `minerva_hist_${Date.now()}`,
-          userId: "bot_minerva",
-          username: "Script_Minerva",
-          content: content.trim(),
-          likes: [], reposts: [],
-          createdAt: new Date().toISOString(),
-          replyCount: 0
-        };
-        const allBots = users.filter(u => u.isBot && !u.isSpecial);
-        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 6 + Math.floor(Math.random() * 14)).map(b => b.id);
-        if (Math.random() > 0.5) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 4)).map(b => b.id);
-        setPosts(prev => [newPost, ...prev]);
-        DB.insertPost(postToRow(newPost)).catch(() => {});
-      } catch { /* fail silently */ }
+    const HISTORY_FACTS = [
+      "Roman Empire, 73 BCE — Spartacus led ~70 enslaved gladiators in a breakout from a Capua ludus. His force grew to 120,000 and defeated two Roman consular armies before Crassus crushed them at the Silarius River in 71 BCE. 🏛️",
+      "Ancient Egypt, c. 1274 BCE — Battle of Kadesh between Ramesses II and Hittite king Muwatalli II ended in stalemate. Their peace treaty (~1259 BCE) is the oldest surviving international peace agreement — a clay tablet copy still hangs at the UN. 📜",
+      "Medieval Europe, 1347 — The Black Death arrived in Sicily via Genoese trading ships. Within 5 years it killed an estimated 30–60% of Europe's population — between 25 and 50 million people. ⚔️",
+      "Ancient Greece, 490 BCE — At the Battle of Marathon, ~10,000 Athenians and Plataeans defeated a Persian force of ~25,000 under Datis. The Athenians charged at a run to minimize exposure to Persian archers. 🏛️",
+      "The Mongol Empire, 1206 — Temüjin unified the Mongol tribes and was proclaimed Genghis Khan. Over the next 21 years, his armies would conquer territory from the Pacific to Eastern Europe. 🗺️",
+      "The Viking Age, 793 CE — Norse raiders attacked the monastery at Lindisfarne off the coast of Northumbria — the event traditionally marking the beginning of the Viking Age in Britain. ⚓",
+      "Ancient China, 221 BCE — Qin Shi Huang completed the unification of the Warring States, becoming the first Emperor of China. He standardised weights, measures, and writing across his new empire. 🌏",
+      "The French Revolution, 1793 — The Committee of Public Safety began the Reign of Terror. Over 17,000 people were officially executed by guillotine; historians estimate 40,000 died in total during the period. ⚔️",
+      "The Industrial Revolution, 1769 — James Watt patented his improved steam engine with a separate condenser, dramatically increasing fuel efficiency. It became the engine of the Industrial Revolution. 🔭",
+      "The Ottoman Empire, 1453 — Mehmed II captured Constantinople with a 60-day siege, deploying 69 cannon including the Basilica — one of the largest ever cast. It ended the Byzantine Empire after 1,000 years. 🏰",
+      "Ancient Mesopotamia, c. 2350 BCE — Sargon of Akkad founded the world's first empire, conquering the Sumerian city-states. His empire stretched from the Persian Gulf to the Mediterranean for ~200 years. 📜",
+      "The British Empire, 1815 — At the Battle of Waterloo, Napoleon's 72,000 troops were defeated by Wellington's coalition of 118,000. Napoleon was exiled to Saint Helena, where he died in 1821. 🗺️",
+      "Ancient India, c. 268 BCE — Emperor Ashoka converted to Buddhism after witnessing the carnage of the Kalinga War (~100,000 killed). He renounced conquest and promoted dharma across his Mauryan Empire. 🌏",
+      "The Age of Exploration, 1492 — Christopher Columbus made landfall in the Bahamas on October 12th, believing he had reached the East Indies. He never acknowledged he had found a previously unknown continent. ⚓",
+      "World War I, 1916 — The Battle of the Somme began on July 1st. The British Army suffered 57,470 casualties on the first day alone — the single bloodiest day in British military history. ⚔️",
+      "World War II, 1944 — On June 6th, D-Day, 156,000 Allied troops crossed the English Channel and stormed five Normandy beaches. It was the largest seaborne invasion in history. 🗺️",
+      "The Cold War, 1957 — The Soviet Union launched Sputnik 1, the world's first artificial satellite, on October 4th. It orbited Earth for 3 weeks before its batteries died, sparking the Space Race. 🔭",
+      "The Silk Road, c. 130 BCE — Under Emperor Wu, the Han Dynasty formally opened the Silk Road, connecting China to Rome via Central Asia. It carried not just silk but also disease, technology, and religion. 🌏",
+      "The Byzantine Empire, 532 CE — The Nika Riots nearly toppled Emperor Justinian I. Around 30,000 rioters were massacred in the Hippodrome of Constantinople by his general Belisarius, ending the revolt. 🏰",
+      "Ancient Persia, 480 BCE — At Thermopylae, King Leonidas and 300 Spartans (plus ~7,000 Greek allies) held a narrow mountain pass against Xerxes' Persian army of an estimated 100,000–300,000 for three days. ⚔️",
+      "The Inca Empire, 1532 — Francisco Pizarro captured Inca Emperor Atahualpa at Cajamarca with only 168 conquistadors against thousands. Atahualpa offered a room full of gold as ransom and was executed anyway. 🗺️",
+      "Medieval Europe, 1066 — William the Conqueror defeated King Harold II at the Battle of Hastings, killing Harold with an arrow through the eye. He was crowned King of England on Christmas Day, 1066. ⚔️",
+      "The Mughal Empire, 1631 — Emperor Shah Jahan began construction of the Taj Mahal as a mausoleum for his wife Mumtaz Mahal, who died in childbirth. It took ~20,000 workers 22 years to complete. 🕌",
+      "Ancient Greece, 399 BCE — Socrates was tried by 501 Athenian jurors, found guilty of impiety and corrupting youth by a vote of 280–221, and sentenced to death by hemlock. He refused to flee, accepting the verdict. 🏛️",
+      "The Crusades, 1099 — Crusaders captured Jerusalem after a 5-week siege. The sack of the city resulted in mass killings of Muslim and Jewish inhabitants. The city remained in Crusader hands until Saladin retook it in 1187. ⚔️",
+      "The Napoleonic Wars, 1812 — Napoleon invaded Russia with ~680,000 troops. By the time the Grande Armée retreated from Moscow in winter, fewer than 100,000 soldiers made it back across the Niemen River. 🗺️",
+      "Ancient Egypt, c. 1346 BCE — Pharaoh Akhenaten banned all gods except Aten, erasing centuries of polytheistic tradition. After his death, his successor Tutankhamun reversed all changes and restored the old religion. 📜",
+      "The Renaissance, 1508 — Michelangelo began painting the Sistine Chapel ceiling for Pope Julius II. He worked lying on scaffolding for 4 years, completing over 5,000 sq ft of frescoes entirely by himself. 🔭",
+      "The American Revolution, 1776 — The Continental Congress voted for independence on July 2nd and ratified Jefferson's declaration on July 4th. Washington's army at the time consisted of barely 19,000 troops. 🗺️",
+      "The Han Dynasty, 105 CE — Cai Lun, a court official, presented Emperor He with a refined papermaking process using bark, hemp, rags, and fishnets. His formula remained the global standard for 1,800 years. 🌏"
+    ];
+    const TDIH_POSTS = [
+      "📅 This Day in History — 1969: Neil Armstrong and Buzz Aldrin became the first humans to walk on the Moon during Apollo 11. Armstrong's first words: 'That's one small step for man, one giant leap for mankind.' 600 million people watched live. 🌕",
+      "📅 This Day in History — 1945: Germany signed the unconditional surrender document at Reims, France, ending World War II in Europe. V-E Day (Victory in Europe) was declared the following day, May 8th. ⚔️",
+      "📅 This Day in History — 1865: U.S. President Abraham Lincoln was shot by John Wilkes Booth at Ford's Theatre in Washington D.C. He died the following morning — the first American president to be assassinated. 📜",
+      "📅 This Day in History — 1912: The RMS Titanic sank in the North Atlantic after striking an iceberg, killing 1,517 of the 2,224 passengers and crew. It was the ship's maiden voyage from Southampton to New York. 🌊",
+      "📅 This Day in History — 1776: The United States Declaration of Independence was ratified by the Continental Congress, formally announcing the colonies' separation from Britain. Thomas Jefferson was its primary author. 🗺️",
+      "📅 This Day in History — 1453: Constantinople fell to Ottoman Sultan Mehmed II after a 53-day siege, ending the Byzantine Empire and the medieval period. Emperor Constantine XI died in battle during the final assault. 🏰",
+      "📅 This Day in History — 1066: William the Conqueror defeated King Harold II at Hastings, killing him and claiming the English throne. William was crowned King of England on December 25th, 1066. ⚔️",
+      "📅 This Day in History — 1903: The Wright Brothers made the first successful powered airplane flight at Kitty Hawk, North Carolina. The first flight lasted 12 seconds and covered 120 feet. 🔭",
+      "📅 This Day in History — 1945: The United States dropped an atomic bomb on Hiroshima, Japan. The blast killed approximately 70,000–80,000 people instantly; total deaths reached 135,000 by year's end. ⚔️",
+      "📅 This Day in History — 1918: World War I ended at 11:00 AM on the 11th day of the 11th month. An estimated 17 million people died in the conflict, making it one of the deadliest wars in history. 🗺️",
+      "📅 This Day in History — 1989: The Berlin Wall fell as East Germany opened its borders. The wall had divided Berlin since 1961 and became the defining symbol of the Cold War. Reunification followed in 1990. 🏛️",
+      "📅 This Day in History — 1929: The New York Stock Exchange crashed on 'Black Thursday,' triggering the Great Depression. By 1932, unemployment in the U.S. had reached 25%, affecting 15 million Americans. 📜",
+      "📅 This Day in History — 44 BCE: Julius Caesar was assassinated on the Ides of March by a group of Roman senators. He was stabbed 23 times. His death triggered a civil war that ended the Roman Republic. 🏛️",
+      "📅 This Day in History — 1215: King John of England signed the Magna Carta at Runnymede, establishing for the first time that the king was subject to the rule of law. It became the foundation of constitutional democracy. 📜",
+      "📅 This Day in History — 1066: The Domesday Book survey was ordered by William the Conqueror to assess the taxable resources of England. It documented 13,418 settlements and remains the most complete survey of medieval England. 🗺️"
+    ];
+    let minHistIdx = parseInt(localStorage.getItem(`min_hist_idx_${me.id}`) || "0", 10);
+    let minTdihIdx = parseInt(localStorage.getItem(`min_tdih_idx_${me.id}`) || "0", 10);
+    const makePost = (userId, username, content, idPrefix) => {
+      const allBots = users.filter(u => u.isBot && !u.isSpecial);
+      return {
+        id: `${idPrefix}_${Date.now()}`,
+        userId, username, content,
+        likes: allBots.sort(() => Math.random() - 0.5).slice(0, 6 + Math.floor(Math.random() * 14)).map(b => b.id),
+        reposts: Math.random() > 0.5 ? allBots.sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 4)).map(b => b.id) : [],
+        createdAt: new Date().toISOString(),
+        replyCount: 0
+      };
     };
-
-    const postThisDayInHistory = async () => {
-      if (!getKey()) return;
-      try {
-        const now = new Date();
-        const month = now.toLocaleString("default", { month: "long" });
-        const day = now.getDate();
-        const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
-          max_tokens: 220,
-          system: "You are Script_Minerva, a professional history education account. Post a 'This Day in History' entry. Rules: 1) Pick one real, verified, significant historical event from this exact calendar date. 2) Format strictly as: '📅 This Day in History — [YEAR]: [event with specific names/places/numbers]'. 3) Only verified, fact-checked events. 4) No opinions, no modern spin, no commentary, no enthusiasm, no personality. 5) Professional encyclopaedic tone. 6) Under 250 characters. Output only the formatted entry, nothing else.",
-          messages: [{ role: "user", content: `What is one significant, verified historical event that occurred on ${month} ${day}? Include the year, key figures, and specific details.` }]
-        });
-        const d = await r.json();
-        const content = d.content?.[0]?.text;
-        if (!content) return;
-        const newPost = {
-          id: `minerva_tdih_${Date.now()}`,
-          userId: "bot_minerva",
-          username: "Script_Minerva",
-          content: content.trim(),
-          likes: [], reposts: [],
-          createdAt: new Date().toISOString(),
-          replyCount: 0
-        };
-        const allBots = users.filter(u => u.isBot && !u.isSpecial);
-        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 20)).map(b => b.id);
-        newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 7)).map(b => b.id);
-        setPosts(prev => [newPost, ...prev]);
-        DB.insertPost(postToRow(newPost)).catch(() => {});
-      } catch { /* fail silently */ }
-    };
-
-    // ── Scheduling ──────────────────────────────────────────────────────────────
-    // Use a single interval that checks every 5 minutes what needs to run.
-    // This survives page reloads/reopens and never orphans a setInterval.
-    const HOUR_KEY  = `minerva_last_hour_${me.id}`;
-    const TDIH_KEY  = `minerva_last_tdih_${me.id}`;
-
+    const HOUR_KEY = `minerva_last_hour_${me.id}`;
+    const TDIH_KEY = `minerva_last_tdih_${me.id}`;
     const maybePostHourly = () => {
       const h = new Date().getHours();
-      if (h === 12) return; // noon slot reserved for TDIH
-      const lastHour = LS.get(HOUR_KEY);
-      const nowHour  = new Date().toISOString().slice(0, 13); // "2025-01-15T14"
-      if (lastHour === nowHour) return; // already posted this hour
-      LS.set(HOUR_KEY, nowHour);
-      postHistoryFact();
+      if (h === 12) return;
+      const lastHour = localStorage.getItem(HOUR_KEY);
+      const nowHour = new Date().toISOString().slice(0, 13);
+      if (lastHour === nowHour) return;
+      localStorage.setItem(HOUR_KEY, nowHour);
+      try {
+        const content = HISTORY_FACTS[minHistIdx % HISTORY_FACTS.length];
+        minHistIdx = (minHistIdx + 1) % HISTORY_FACTS.length;
+        localStorage.setItem(`min_hist_idx_${me.id}`, String(minHistIdx));
+        const post = makePost("bot_minerva", "Script_Minerva", content, "minerva_hist");
+        setPosts(prev => [post, ...prev]);
+        DB.insertPost(postToRow(post)).catch(() => {});
+      } catch { /* fail silently */ }
     };
-
     const maybePostTDIH = () => {
       const h = new Date().getHours();
       if (h !== 12) return;
-      const lastDay = LS.get(TDIH_KEY);
-      const today   = new Date().toISOString().slice(0, 10); // "2025-01-15"
-      if (lastDay === today) return; // already posted today
-      LS.set(TDIH_KEY, today);
-      postThisDayInHistory();
+      const lastDay = localStorage.getItem(TDIH_KEY);
+      const today = new Date().toISOString().slice(0, 10);
+      if (lastDay === today) return;
+      localStorage.setItem(TDIH_KEY, today);
+      try {
+        const content = TDIH_POSTS[minTdihIdx % TDIH_POSTS.length];
+        minTdihIdx = (minTdihIdx + 1) % TDIH_POSTS.length;
+        localStorage.setItem(`min_tdih_idx_${me.id}`, String(minTdihIdx));
+        const post = makePost("bot_minerva", "Script_Minerva", content, "minerva_tdih");
+        post.likes = users.filter(u => u.isBot && !u.isSpecial).sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 20)).map(b => b.id);
+        setPosts(prev => [post, ...prev]);
+        DB.insertPost(postToRow(post)).catch(() => {});
+      } catch { /* fail silently */ }
     };
-
-    // Run immediately on mount, then every 5 minutes
     maybePostHourly();
     maybePostTDIH();
-    const ticker = setInterval(() => {
-      maybePostHourly();
-      maybePostTDIH();
-    }, 5 * 60 * 1000);
-
+    const ticker = setInterval(() => { maybePostHourly(); maybePostTDIH(); }, 5 * 60 * 1000);
     return () => clearInterval(ticker);
   }, [me]);
 
-  // ── SCRYPT NEWS: Breaking news every 3 hours via web search ──────────────────
+  // ── SCRYPT NEWS: Pre-written headlines every 3 hours ─────────────────────────
   useEffect(() => {
     if (!me) return;
-    const categories = [
-      "breaking world news today",
-      "top US news today",
-      "technology news today",
-      "science news today",
-      "politics news today",
-      "business economy news today",
-      "health news today",
-      "sports news today",
+    const NEWS_POSTS = [
+      "📰 [Reuters] Global AI investment hits record $100B+ in 2025 — semiconductor demand surges as major tech firms race to build next-gen data centers across US, Europe and Southeast Asia. 🤖",
+      "📰 [AP] Scientists confirm new deep-sea species discovered off Pacific coast — bioluminescent creature found at 3,200m depth sheds light on ecosystems previously thought uninhabitable. 🌊",
+      "📰 [BBC] SpaceX completes landmark Starship orbital test — vehicle successfully re-entered atmosphere and executed controlled ocean splashdown, major milestone for Mars mission timeline. 🚀",
+      "📰 [Bloomberg] Federal Reserve holds interest rates steady for third consecutive meeting — Chair signals two potential cuts in 2025 pending inflation data remaining below 3% threshold. 📈",
+      "📰 [NYT] WHO declares new public health emergency over drug-resistant tuberculosis strain spreading across Southeast Asia — affects ~1.3 million annually with current treatment options failing. 🏥",
+      "📰 [AP] European Union passes landmark AI regulation — the AI Act takes effect requiring transparency, safety testing, and human oversight for high-risk AI systems by 2026. ⚖️",
+      "📰 [Reuters] Oil prices fall to 18-month low as OPEC+ increases production quotas — Brent crude drops below $70/barrel amid concerns over slowing global demand. ⛽",
+      "📰 [BBC] Record-breaking heatwave bakes southern Europe — temperatures exceed 47°C in Sicily, prompting evacuation orders and wildfire emergencies across Spain, Italy and Greece. 🌡️",
+      "📰 [Bloomberg] Apple unveils Vision Pro 2 at lower $2,499 price point — device includes new M4 chip, 12-hour battery life, and prescription lens support out of the box. 📱",
+      "📰 [AFP] UN Climate Summit reaches agreement on carbon credit framework — 143 nations sign accord establishing binding emissions trading system with $50/ton floor price. 🌍",
+      "📰 [WSJ] Amazon reports $170B quarterly revenue, beating estimates — AWS cloud division grew 21% year-over-year, accounting for 67% of total operating income. 💰",
+      "📰 [Reuters] Magnitude 7.2 earthquake strikes off Japan's coast — tsunami warnings issued for Pacific coastlines, no immediate structural damage reported in major cities. 🌊",
+      "📰 [AP] NASA's Europa Clipper spacecraft enters orbit around Jupiter — first images of the icy moon's subsurface ocean potential to be released within 72 hours. 🔭",
+      "📰 [BBC] UK general election results: Labour wins landslide majority — party secures 412 seats, largest majority since 1997 Blair government, promising NHS reform and housing policy overhaul. 🗳️",
+      "📰 [Bloomberg] Bitcoin surpasses $100,000 milestone for the first time — spot ETF approvals and institutional adoption cited as primary drivers of the historic rally. 💎",
+      "📰 [Reuters] Global chip shortage eases — TSMC reports full capacity restoration across Taiwan facilities, semiconductor lead times dropping to pre-pandemic levels for most components. 💻",
+      "📰 [AP] Scientists at CERN announce detection of rare particle decay — Bs meson behaves anomalously at 4.6 sigma significance, potentially pointing to physics beyond the Standard Model. ⚛️",
+      "📰 [NYT] Major breakthrough in Alzheimer's treatment — Phase 3 trial shows 35% reduction in cognitive decline with new antibody therapy; FDA priority review expected by Q3. 🧠",
+      "📰 [Bloomberg] Meta reports 3.1 billion daily active users across platforms — advertising revenue up 27% year-on-year as AI-powered ad targeting drives record click-through rates. 📊",
+      "📰 [AFP] International Space Station deorbit timeline confirmed — NASA and Roscosmos agree on controlled 2030 reentry over South Pacific; successor station proposals under review. 🛸",
+      "📰 [Reuters] China's GDP growth slows to 4.6% — property sector contraction and weak consumer demand cited; government announces $300B infrastructure stimulus package. 📉",
+      "📰 [AP] WHO approves first malaria vaccine for widespread use in Sub-Saharan Africa — R21/Matrix-M shows 75% efficacy in trials covering 14 countries with 500,000+ participants. 💉",
+      "📰 [BBC] Google wins landmark antitrust case appeal — EU court reduces record €4.3B fine by 30%, but upholds ruling that Android app pre-installation practices were anti-competitive. ⚖️",
+      "📰 [WSJ] OpenAI launches GPT-5 with 'o3-level' reasoning across all modalities — model handles 200K token context windows and real-time video understanding out of the box. 🤖",
+      "📰 [Reuters] Drought conditions across the Amazon reach 60-year extreme — river levels fall to historic lows, threatening hydroelectric power for 30 million Brazilians this dry season. 🌿"
     ];
-    const postNews = async () => {
-      if (!getKey()) return;
+    let newsIdx = parseInt(localStorage.getItem(`news_idx_${me.id}`) || "0", 10);
+    const postNews = () => {
       try {
-        const cat = categories[Math.floor(Math.random() * categories.length)];
-        const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
-          max_tokens: 280,
-          system: `You are Script_News, a wire-service news bot. You output ONLY formatted news bulletins — no commentary, no opinions, no enthusiasm, no personality. Rules:
-- Use web search to find ONE real story from the last 24 hours. Sources: BBC, Reuters, AP, NYT, CNN, Bloomberg, WSJ, AFP, Guardian only.
-- Output format: 📰 [OutletName] [Factual headline] — [one specific verifiable detail: a number, name, place, or statistic]. [one relevant emoji]
-- Tone: dry wire-service dispatch. Zero personality. No exclamations. No takes. No phrases like "this is huge", "wow", "proving that", "showing why", "in a world where".
-- Output ONLY the bulletin text. Nothing else. No preamble. No sign-off.
-- If no verified real story found, output nothing.
-- Under 260 characters.`,
-          messages: [{ role: "user", content: `Search for the latest ${cat} right now and report one real, verified, breaking story. Use web search.` }],
-          tools: [{ type: "web_search_20250305", name: "web_search" }]
-        });
-        const d = await r.json();
-        // Extract text from potentially mixed content (tool_use + text blocks)
-        const content = d.content?.filter(b => b.type === "text").map(b => b.text).join("").trim();
-        if (!content || content.length < 20) return;
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
+        const content = NEWS_POSTS[newsIdx % NEWS_POSTS.length];
+        newsIdx = (newsIdx + 1) % NEWS_POSTS.length;
+        localStorage.setItem(`news_idx_${me.id}`, String(newsIdx));
         const newPost = {
           id: `news_${Date.now()}`,
           userId: "bot_news",
           username: "Script_News",
-          content: content,
-          likes: [], reposts: [],
+          content,
+          likes: allBots.sort(() => Math.random() - 0.5).slice(0, 12 + Math.floor(Math.random() * 20)).map(b => b.id),
+          reposts: Math.random() > 0.3 ? allBots.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 8)).map(b => b.id) : [],
           createdAt: new Date().toISOString(),
           replyCount: 0
         };
-        const allBots = users.filter(u => u.isBot && !u.isSpecial);
-        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 12 + Math.floor(Math.random() * 20)).map(b => b.id);
-        if (Math.random() > 0.3) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 8)).map(b => b.id);
         setPosts(prev => [newPost, ...prev]);
         DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
-
-    // Post once on login, then every 3 hours
-    setTimeout(postNews, 15000); // 15s delay so it doesn't clash with other bots
+    setTimeout(postNews, 15000);
     const newsInterval = setInterval(postNews, 3 * 60 * 60 * 1000); // 3h
     return () => clearInterval(newsInterval);
   }, [me]);
-  // ── ABANDONWARE: Video games / movies / TV shows every 4h ────────────────────
+
+  // ── ABANDONWARE: Gaming/movies/TV pre-written posts every 4h ─────────────────
   useEffect(() => {
     if (!me) return;
-    const topics = [
-      "a highly anticipated upcoming video game release",
-      "a classic retro video game that deserves a modern remake",
-      "a recently released movie everyone is talking about",
-      "an underrated indie video game that deserves more attention",
-      "a popular TV show season finale or premiere",
-      "a controversial video game review or industry news",
-      "a nostalgic movie franchise and its latest installment",
-      "a binge-worthy TV series currently streaming",
-      "a video game studio news or acquisition",
-      "an iconic movie director's latest project",
+    const ENTERTAINMENT_POSTS = [
+      "GTA VI officially delayed to May 2026. Rockstar cites final polish after a ~$2B development budget. The most expensive game ever made is taking its time — and with RDR2 in the rearview, few are betting against them. 🎮",
+      "Dune: Part Two grossed $714M worldwide on a $190M budget — Denis Villeneuve's sci-fi epic is one of the top-grossing films of 2024. Part Three (Messiah) officially greenlit. 🏜️🎬",
+      "The Bear season 3 dropped all episodes on FX/Hulu. Critics called it the year's best TV drama — it scored 21 Emmy nominations, the most of any drama series this cycle. 🍽️",
+      "Elden Ring: Shadow of the Erdtree DLC sold 5 million copies in 3 days — fastest-selling FromSoftware content ever. Messmer the Impaler immediately entered the pantheon of great video game villains. 🗡️",
+      "Baldur's Gate 3 patch 7 dropped with full mod support. Larian Studios gave away a 2,000-page book of their development notes. They continue to be the most surprising studio in the industry. 🎲",
+      "Deadpool & Wolverine crossed $1.3B worldwide — Ryan Reynolds and Hugh Jackman's chemistry made it the highest-grossing R-rated film ever. The MCU needed this one badly. 🦸",
+      "Inside Out 2 became Pixar's highest-grossing film ever at $1.67B. Anxiety as a character hit differently than anyone expected. Pixar isn't dead — they were just warming up. 🧠",
+      "Arcane season 2 on Netflix concluded the League of Legends animated series. Studio Fortiche's animation quality set a new benchmark for video game adaptations. 🎨",
+      "Shogun (FX/Hulu) swept the Emmys — best drama, best actor, best actress. Hiroyuki Sanada became the first Asian actor to win Outstanding Lead Actor in a Drama Series. 🏯",
+      "Call of Duty: Black Ops 6 broke Game Pass records with 25M players in the first week. The franchise shows no signs of slowing — though reviews suggest the campaign outshines multiplayer. 🎮",
+      "A Minecraft Movie trailer hit 300M views in 48 hours. Jack Black as Steve. Directed by Jared Hess. Either the greatest or most chaotic kids film of 2025 — possibly both. ⛏️",
+      "Fallout (Amazon Prime) renewed for season 2 after 65M viewers in the first month. Walton Goggins carries the show, but the worldbuilding is what keeps people coming back. ☢️",
+      "Cyberpunk 2077: Phantom Liberty DLC has now sold 8M copies. CDPR's redemption arc is complete — the game that launched broken became one of the most beloved RPGs of the generation. 🌆",
+      "Alien: Romulus earned $350M worldwide on a $65M budget — Fede Álvarez delivered the horror-focused Alien film fans have been asking for since Aliens. Best in the franchise since 1986. 👾",
+      "House of the Dragon season 3 confirmed for 2026. HBO is pacing themselves — and after the mixed season 2 reception, a longer development window is probably the right call. 🐉",
+      "Metaphor: ReFantazio by Atlus debuted at #1 in Japan, UK, and US simultaneously — a first for the studio. The team behind Persona 5 may have made something even more ambitious. 🏰",
+      "Pacific Rim is getting a sequel — produced by Legendary, written by Craig Kyle. Del Toro won't direct but is consulting. 10 years after the original, the Jaeger pilot program returns. ⚙️",
+      "Marvel's Thunderbolts earned mixed reviews but outperformed box office projections at $200M opening weekend. Florence Pugh's Yelena remains the MVP of the MCU's second era. 🌪️",
+      "Dragon Age: The Veilguard shipped 1.5M copies in its first week — BioWare's first RPG in a decade. Early reception suggests the studio found its footing again after Anthem and Andromeda. ⚔️",
+      "Megalopolis — Francis Ford Coppola's $120M self-funded passion project — divided critics 50/50 at Cannes. Audiences either called it a masterpiece or unwatchable. Rarely both at the same time. 🏙️",
+      "Final Fantasy VII Rebirth received universal acclaim but underperformed commercially — Sony and Square Enix both acknowledged the sequel strategy may have confused casual fans. 🌿",
+      "The Witcher season 4 begins filming with Liam Hemsworth replacing Henry Cavill as Geralt. Netflix insists the chemistry with Freya Allan and Anya Chalotra is intact. Fans remain skeptical. 🐺",
+      "Concord by Sony shut down 14 days after launch with fewer than 700 concurrent players. The $400M live service shooter is being studied in business schools as a cautionary tale. 💀",
+      "Wicked (Universal) opened to $114M domestically — Cynthia Erivo and Ariana Grande's chemistry justified the adaptation. The split into two films still feels unnecessary, but Part 1 works. 🟢",
+      "Monster Hunter Wilds is the most wishlist game on Steam heading into 2025. Capcom's track record with World and Rise has set expectations dangerously high — and they seem ready to meet them. 🦕"
     ];
-    const postEntertainment = async () => {
-      if (!getKey()) return;
+    let entIdx = parseInt(localStorage.getItem(`ent_idx_${me.id}`) || "0", 10);
+    const postEntertainment = () => {
       try {
-        const topic = topics[Math.floor(Math.random() * topics.length)];
-        const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
-          max_tokens: 260,
-          system: `You are Abandonware, an entertainment news account on a social platform covering video games, movies, and TV shows. Post ONE punchy update or fact. Rules:\n- Prioritize real recent news: box office numbers, release dates, studio announcements, award nominations, reviews\n- Be specific: include real titles, studios, directors, actors, and numbers (budget, gross, scores)\n- Brief opinions OK but must be grounded in facts\n- Use relevant emojis naturally\n- Keep it under 250 characters\n- No preamble — lead with the most interesting fact\n- Format: just the post text, nothing else`,
-          messages: [{ role: "user", content: `Write a post about ${topic}.` }]
-        });
-        const d = await r.json();
-        const content = d.content?.[0]?.text;
-        if (!content || content.length < 20) return;
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
+        const content = ENTERTAINMENT_POSTS[entIdx % ENTERTAINMENT_POSTS.length];
+        entIdx = (entIdx + 1) % ENTERTAINMENT_POSTS.length;
+        localStorage.setItem(`ent_idx_${me.id}`, String(entIdx));
         const newPost = {
           id: `abandonware_${Date.now()}`,
           userId: "bot_abandonware",
           username: "Abandonware",
-          content: content.trim(),
-          likes: [], reposts: [],
+          content,
+          likes: allBots.sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 18)).map(b => b.id),
+          reposts: Math.random() > 0.4 ? allBots.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 6)).map(b => b.id) : [],
           createdAt: new Date().toISOString(),
           replyCount: 0
         };
-        const allBots = users.filter(u => u.isBot && !u.isSpecial);
-        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 18)).map(b => b.id);
-        if (Math.random() > 0.4) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 6)).map(b => b.id);
         setPosts(prev => [newPost, ...prev]);
         DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
-
-    setTimeout(postEntertainment, 22000); // stagger after other bots
+    setTimeout(postEntertainment, 22000);
     const abandonwareInterval = setInterval(postEntertainment, 4 * 60 * 60 * 1000); // 4h
     return () => clearInterval(abandonwareInterval);
   }, [me]);
+
 
 
   const doLike = id => {
