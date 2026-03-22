@@ -1223,10 +1223,7 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
                   <div style={{ fontSize: 11, color: T.sub, marginTop: 1 }}>{account.bio.slice(0, 55)}…</div>
                 </div>
               </div>
-              <div style={{ background: dark ? "#0d0d0d" : "#f5f5f5", borderRadius: 8, padding: "8px 10px", marginBottom: 8, fontFamily: "monospace", fontSize: 12 }}>
-                <div style={{ color: T.sub, marginBottom: 3 }}>Username: <span style={{ color: accentFor(account), fontWeight: 700 }}>{account.username}</span></div>
-                <div style={{ color: T.sub }}>Password: <span style={{ color: accentFor(account), fontWeight: 700 }}>{account.password}</span></div>
-              </div>
+
               <button
                 onClick={() => quickLogin(account)}
                 style={{ width: "100%", background: accentFor(account), color: "white", border: "none", borderRadius: 9999, padding: "10px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
