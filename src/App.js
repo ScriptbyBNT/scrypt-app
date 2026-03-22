@@ -105,6 +105,7 @@ const rowToUser = r => {
     featuredPostId: r.featured_post_id || r.featuredPostId || null,
     hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
     profileSongName: r.profile_song_name || r.profileSongName || null,
+    wallpaper: r.wallpaper ? tryParse(r.wallpaper, null) : null,
     ...(r.info_fields ? tryParse(r.info_fields, {}) : {}),
   };
 };
@@ -140,23 +141,33 @@ const postToRow = p => ({
   pinned: p.pinned || false,
 });
 
-const userToRow = u => ({
-  id: u.id,
-  username: u.username,
-  password: u.password,
-  avatar: u.avatar || null,
-  bio: u.bio || null,
-  is_bot: u.isBot || false,
-  is_special: u.isSpecial || false,
-  verified: u.verified || false,
-  village: JSON.stringify(u.village || []),
-  joined_at: u.joinedAt || new Date().toISOString(),
-  mood: u.mood || null,
-  accent_color: u.accentColor || null,
-  featured_post_id: u.featuredPostId || null,
-  has_profile_song: u.hasProfileSong || false,
-  profile_song_name: u.profileSongName || null,
-});
+const INFO_FIELD_KEYS = ["infoMovie","infoArtist","infoShow","infoBook","infoGame","infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
+const userToRow = u => {
+  // Pack info card text + photo fields + song + song label into info_fields JSON column
+  const infoFields = {};
+  INFO_FIELD_KEYS.forEach(k => { if (u[k]) infoFields[k] = u[k]; });
+  if (u.profileSong) infoFields.profileSong = u.profileSong;
+  if (u.profileSongLabel) infoFields.profileSongLabel = u.profileSongLabel;
+  return {
+    id: u.id,
+    username: u.username,
+    password: u.password,
+    avatar: u.avatar || null,
+    bio: u.bio || null,
+    is_bot: u.isBot || false,
+    is_special: u.isSpecial || false,
+    verified: u.verified || false,
+    village: JSON.stringify(u.village || []),
+    joined_at: u.joinedAt || new Date().toISOString(),
+    mood: u.mood || null,
+    accent_color: u.accentColor || null,
+    featured_post_id: u.featuredPostId || null,
+    has_profile_song: u.hasProfileSong || false,
+    profile_song_name: u.profileSongName || null,
+    wallpaper: u.wallpaper ? JSON.stringify(u.wallpaper) : null,
+    info_fields: Object.keys(infoFields).length > 0 ? JSON.stringify(infoFields) : null,
+  };
+};
 
 const clickToRow = c => ({
   id: c.id,
@@ -841,7 +852,7 @@ const ACCENT_COLORS = [
 const getAccent = (user) => ACCENT_COLORS.find(a => a.id === user?.accentColor) || ACCENT_COLORS[0];
 
 // ── PROFILE SONG PLAYER ────────────────────────────────────────────────────────
-const ProfileSongPlayer = ({ songSrc, songName, accent }) => {
+const ProfileSongPlayer = ({ songSrc, songLabel, accent }) => {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
   if (!songSrc) return null;
@@ -854,8 +865,7 @@ const ProfileSongPlayer = ({ songSrc, songName, accent }) => {
     <audio ref={audioRef} src={songSrc} onEnded={() => setPlaying(false)} />
     <button onClick={toggle} style={{ background: accent.color, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "white", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{playing ? "⏸" : "▶"}</button>
     <div style={{ flex: 1, overflow: "hidden" }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: accent.color }}>🎵 Profile Song</div>
-      <div style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{songName || "Custom clip"}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: accent.color }}>🎵 {songLabel || "Profile Song"}</div>
     </div>
   </div>;
 };
@@ -1062,7 +1072,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
       </div>
       <div style={{ padding: "12px 16px 16px" }}>
         {/* Profile song player */}
-        {(() => { const s = LS.get(`psong_${user.id}`) || (user.profileSong ? {song:user.profileSong,name:user.profileSongName} : null); return s ? <ProfileSongPlayer songSrc={s.song} songName={s.name} accent={accent} /> : null; })()}
+        {(() => { const s = user.profileSong ? {song:user.profileSong,label:user.profileSongLabel||null} : LS.get(`psong_${user.id}`); return s ? <ProfileSongPlayer songSrc={s.song} songLabel={s.label} accent={accent} /> : null; })()}
         {/* Special bot profile banners */}
         {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
@@ -2774,19 +2784,21 @@ export default function App() {
     if (sfSnapshot.mood !== undefined) upd.mood = sfSnapshot.mood;
     if (sfSnapshot.accentColor !== undefined) upd.accentColor = sfSnapshot.accentColor;
     if (sfSnapshot.featuredPostId !== undefined) upd.featuredPostId = sfSnapshot.featuredPostId;
-    // Profile song — stored separately to avoid bloating users array
+    // Profile song — saved to Supabase via info_fields (userToRow handles packing)
     if (sfSnapshot.profileSong !== undefined) {
-      LS.set(`psong_${meSnapshot.id}`, sfSnapshot.profileSong ? { song: sfSnapshot.profileSong, name: sfSnapshot.profileSongName } : null);
       upd.hasProfileSong = !!sfSnapshot.profileSong;
       upd.profileSongName = sfSnapshot.profileSongName || null;
       upd.profileSong = sfSnapshot.profileSong || null;
     }
-    // Info card text fields
+    if (sfSnapshot.profileSongLabel !== undefined) upd.profileSongLabel = sfSnapshot.profileSongLabel;
+    // Info card text + photo fields — saved directly to Supabase via info_fields JSON
     INFO_FIELDS.forEach(f => {
       if (sfSnapshot[f.key] !== undefined) upd[f.key] = sfSnapshot[f.key];
       if (sfSnapshot[f.photoKey] !== undefined) {
+        // Store base64 directly in upd so userToRow packs it into info_fields for Supabase
+        upd[f.photoKey] = sfSnapshot[f.photoKey] || null;
+        // Also mirror to localStorage as fast local cache
         LS.set(`icard_${meSnapshot.id}_${f.photoKey}`, sfSnapshot[f.photoKey] || null);
-        upd[f.photoKey] = sfSnapshot[f.photoKey] ? `__local__${f.photoKey}` : null;
       }
     });
     if (Object.keys(upd).length === 0) return;
@@ -2802,7 +2814,7 @@ export default function App() {
   useEffect(() => {
     if (!me) return;
     const hasChanges = sf.u || sf.bio || sf.mood !== undefined || sf.accentColor !== undefined ||
-      sf.featuredPostId !== undefined || sf.profileSong !== undefined ||
+      sf.featuredPostId !== undefined || sf.profileSong !== undefined || sf.profileSongLabel !== undefined ||
       INFO_FIELDS.some(f => sf[f.key] !== undefined || sf[f.photoKey] !== undefined);
     if (!hasChanges) return;
     const timer = setTimeout(() => doSave(sf, me), 800);
@@ -2813,15 +2825,18 @@ export default function App() {
   const resolvePhoto = (user, photoKey) => {
     const val = user[photoKey];
     if (!val) return null;
-    if (val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
-    return val; // legacy direct base64
+    // Legacy: was stored as __local__ reference pointing to localStorage
+    if (typeof val === "string" && val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
+    return val; // direct base64 (new path, stored in Supabase via info_fields)
   };
 
-  // Helper: resolve profile song
+  // Helper: resolve profile song — reads from user object (Supabase) directly
   const resolveProfileSong = (user) => {
     if (!user.hasProfileSong && !user.profileSong) return null;
+    if (user.profileSong) return { song: user.profileSong, name: user.profileSongName, label: user.profileSongLabel || null };
+    // Fallback to localStorage cache for legacy data
     const stored = LS.get(`psong_${user.id}`);
-    return stored ? { song: stored.song, name: stored.name } : (user.profileSong ? { song: user.profileSong, name: user.profileSongName } : null);
+    return stored ? { song: stored.song, name: stored.name, label: stored.label || null } : null;
   };
 
   if (pg === "loading" || (pg === "app" && dbLoading)) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
@@ -3165,7 +3180,7 @@ export default function App() {
                 <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mutuals.length}</strong> Mutuals</span>
               </div>
             </div>
-            {(() => { const s = resolveProfileSong(me); return s ? <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer songSrc={s.song} songName={s.name} accent={myAccent} /></div> : null; })()}
+            {(() => { const s = resolveProfileSong(me); return s ? <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer songSrc={s.song} songLabel={s.label} accent={myAccent} /></div> : null; })()}
             {INFO_FIELDS.some(f => me[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} resolvePhoto={resolvePhoto} /></div>}
             {feat && <div style={{ margin: "10px 16px", padding: "10px 12px", border: `1.5px solid ${myAccent.color}`, borderRadius: 12, background: `${myAccent.color}08` }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: myAccent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
@@ -3296,18 +3311,28 @@ export default function App() {
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🎵 Profile Song</div>
             <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Upload a short audio clip (up to ~10 sec) that plays on your profile</div>
-            {(me.hasProfileSong || me.profileSong || sf.profileSong) && (() => { const preview = sf.profileSong; const s = preview ? {song:preview,name:sf.profileSongName} : resolveProfileSong(me); return s ? <div style={{ marginBottom: 8 }}><ProfileSongPlayer songSrc={s.song} songName={s.name} accent={myAccent} /></div> : null; })()}
-            <label style={{ display: "inline-block", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-              🎵 {me.profileSong ? "Change Song" : "Upload Song"}
-              <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
-                const f = e.target.files[0]; if (!f) return;
-                const r = new FileReader();
-                r.onload = x => setSf(p => ({ ...p, profileSong: x.target.result, profileSongName: f.name }));
-                r.readAsDataURL(f);
-              }} />
-            </label>
-            {(sf.profileSong || me.profileSong) && <button onClick={() => setSf(p => ({ ...p, profileSong: null, profileSongName: null }))} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
-            {sf.profileSong && <div style={{ fontSize: 11, color: T.sub, marginTop: 6 }}>Preview: {sf.profileSongName}</div>}
+            {(me.hasProfileSong || me.profileSong || sf.profileSong) && (() => { const preview = sf.profileSong; const lbl = sf.profileSongLabel !== undefined ? sf.profileSongLabel : me.profileSongLabel; const s = preview ? {song:preview,label:lbl} : resolveProfileSong(me); return s ? <div style={{ marginBottom: 8 }}><ProfileSongPlayer songSrc={s.song} songLabel={lbl || s.label} accent={myAccent} /></div> : null; })()}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <label style={{ display: "inline-block", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                🎵 {(me.profileSong || sf.profileSong) ? "Change Song" : "Upload Song"}
+                <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
+                  const f = e.target.files[0]; if (!f) return;
+                  const r = new FileReader();
+                  r.onload = x => setSf(p => ({ ...p, profileSong: x.target.result, profileSongName: f.name }));
+                  r.readAsDataURL(f);
+                }} />
+              </label>
+              {(sf.profileSong || me.profileSong) && <button onClick={() => setSf(p => ({ ...p, profileSong: null, profileSongName: null, profileSongLabel: "" }))} style={{ background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+            </div>
+            {(sf.profileSong || me.profileSong) && <div style={{ marginTop: 4 }}>
+              <label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 4 }}>LABEL (shown on your profile instead of filename)</label>
+              <input
+                value={sf.profileSongLabel !== undefined ? sf.profileSongLabel : (me.profileSongLabel || "")}
+                onChange={e => setSf(p => ({ ...p, profileSongLabel: e.target.value }))}
+                placeholder='e.g. "Mood 🎶" or "My Song"'
+                style={{ width: "100%", boxSizing: "border-box", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 10px", fontSize: 12, outline: "none" }}
+              />
+            </div>}
           </div>
 
           {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
