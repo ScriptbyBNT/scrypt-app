@@ -2674,43 +2674,40 @@ export default function App() {
     };
 
     // ── Scheduling ──────────────────────────────────────────────────────────────
-    // This Day in History fires once a day at 12:00pm local time.
-    // History facts fire every hour EXCEPT the 12pm slot (Minerva posts TDIH then).
-    const scheduleNoon = () => {
-      const now = new Date();
-      const next = new Date(now);
-      next.setHours(12, 0, 0, 0);
-      if (next <= now) next.setDate(next.getDate() + 1); // already past noon → tomorrow
-      const msUntilNoon = next - now;
-      return setTimeout(() => {
-        postThisDayInHistory();
-        setInterval(postThisDayInHistory, 24 * 60 * 60 * 1000); // daily thereafter
-      }, msUntilNoon);
+    // Use a single interval that checks every 5 minutes what needs to run.
+    // This survives page reloads/reopens and never orphans a setInterval.
+    const HOUR_KEY  = `minerva_last_hour_${me.id}`;
+    const TDIH_KEY  = `minerva_last_tdih_${me.id}`;
+
+    const maybePostHourly = () => {
+      const h = new Date().getHours();
+      if (h === 12) return; // noon slot reserved for TDIH
+      const lastHour = LS.get(HOUR_KEY);
+      const nowHour  = new Date().toISOString().slice(0, 13); // "2025-01-15T14"
+      if (lastHour === nowHour) return; // already posted this hour
+      LS.set(HOUR_KEY, nowHour);
+      postHistoryFact();
     };
 
-    const scheduleHourly = () => {
-      // Fire once on load (if current hour ≠ 12), then every hour skip 12pm
-      const tick = () => {
-        const h = new Date().getHours();
-        if (h !== 12) postHistoryFact(); // skip the noon slot
-      };
-      // Align to the next top-of-hour
-      const now = new Date();
-      const msUntilHour = (60 - now.getMinutes()) * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
-      tick(); // immediate first post
-      return setTimeout(() => {
-        tick();
-        setInterval(tick, 60 * 60 * 1000);
-      }, msUntilHour);
+    const maybePostTDIH = () => {
+      const h = new Date().getHours();
+      if (h !== 12) return;
+      const lastDay = LS.get(TDIH_KEY);
+      const today   = new Date().toISOString().slice(0, 10); // "2025-01-15"
+      if (lastDay === today) return; // already posted today
+      LS.set(TDIH_KEY, today);
+      postThisDayInHistory();
     };
 
-    const noonTimer  = scheduleNoon();
-    const hourTimer  = scheduleHourly();
-    // Also fire TDIH immediately on login if it's already noon (±5 min)
-    const h = new Date().getHours(), m = new Date().getMinutes();
-    if (h === 12 && m < 5) setTimeout(postThisDayInHistory, 3000);
+    // Run immediately on mount, then every 5 minutes
+    maybePostHourly();
+    maybePostTDIH();
+    const ticker = setInterval(() => {
+      maybePostHourly();
+      maybePostTDIH();
+    }, 5 * 60 * 1000);
 
-    return () => { clearTimeout(noonTimer); clearTimeout(hourTimer); };
+    return () => clearInterval(ticker);
   }, [me]);
 
   // ── SCRYPT NEWS: Breaking news every 3 hours via web search ──────────────────
