@@ -149,21 +149,21 @@ const userToRow = u => ({
   is_bot: u.isBot || false,
   is_special: u.isSpecial || false,
   verified: u.verified || false,
-  village: JSON.stringify(u.village || []),
+  village: JSON.stringify(Array.isArray(u.village) ? u.village : []),
   joined_at: u.joinedAt || new Date().toISOString(),
   mood: u.mood || null,
   accent_color: u.accentColor || null,
   featured_post_id: u.featuredPostId || null,
   has_profile_song: u.hasProfileSong || false,
   profile_song_name: u.profileSongName || null,
-  wallpaper: u.wallpaper ? JSON.stringify(u.wallpaper) : null,
   profile_song: u.profileSong || null,
+  wallpaper: u.wallpaper ? JSON.stringify(u.wallpaper) : null,
   info_fields: JSON.stringify({
-    infoMovie:  u.infoMovie  || null,
+    infoMovie: u.infoMovie || null,
     infoArtist: u.infoArtist || null,
-    infoShow:   u.infoShow   || null,
-    infoBook:   u.infoBook   || null,
-    infoGame:   u.infoGame   || null,
+    infoShow: u.infoShow || null,
+    infoBook: u.infoBook || null,
+    infoGame: u.infoGame || null,
   }),
 });
 
@@ -1751,7 +1751,7 @@ export default function App() {
   const [showWallpaper, setShowWallpaper] = useState(false);
   const [toast, setToast] = useState("");
   const [search, setSearch] = useState("");
-  const [sf, setSf] = useState({ u: "", pw: "", pw2: "", bio: "" });
+  const [sf, setSf] = useState({ u: "", pw: "", pw2: "", bio: undefined });
   const [serr, setSerr] = useState("");
   const [cName, setCName] = useState("");
   const [cImg, setCImg] = useState(null);
@@ -1764,7 +1764,7 @@ export default function App() {
 
   // Reset settings form whenever the logged-in account changes
   useEffect(() => {
-    setSf({ u: "", pw: "", pw2: "", bio: "" });
+    setSf({ u: "", pw: "", pw2: "", bio: undefined });
     setSerr("");
   }, [me?.id]);
 
@@ -2772,33 +2772,32 @@ export default function App() {
       if (sf.pw !== sf.pw2) { setSerr("Passwords don't match."); return; }
       upd.password = sf.pw;
     }
-    if (sf.bio !== undefined && sf.bio !== "") upd.bio = sf.bio;
-    if (sf.mood !== undefined) upd.mood = sf.mood;
+    // bio: save if it was touched (even if empty — lets user clear their bio)
+    if (sf.bio !== undefined) upd.bio = sf.bio || null;
+    if (sf.mood !== undefined) upd.mood = sf.mood || null;
     if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
     if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
-    // Profile song — save to Supabase AND localStorage as backup
+    // Profile song — save to Supabase AND localStorage
     if (sf.profileSong !== undefined) {
-      LS.set(`psong_${me.id}`, { song: sf.profileSong, name: sf.profileSongName });
+      LS.set(`psong_${me.id}`, sf.profileSong ? { song: sf.profileSong, name: sf.profileSongName } : null);
       upd.hasProfileSong = !!sf.profileSong;
       upd.profileSongName = sf.profileSongName || null;
       upd.profileSong = sf.profileSong || null;
     }
-    // Info card text fields
+    // Info card fields
     INFO_FIELDS.forEach(f => {
-      if (sf[f.key] !== undefined) upd[f.key] = sf[f.key];
-      // Info card photos — stored separately per card to avoid freezing users array
+      if (sf[f.key] !== undefined) upd[f.key] = sf[f.key] || null;
       if (sf[f.photoKey] !== undefined) {
         LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
         upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
       }
     });
-    const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
-    setUsers(updatedUsers);
-    setMe(p => ({ ...p, ...upd }));
-    // Save to Supabase
     const updatedMe = { ...me, ...upd };
+    setUsers(users.map(u => u.id === me.id ? updatedMe : u));
+    setMe(updatedMe);
+    // Save everything to Supabase
     (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
-    setSf({ u: "", pw: "", pw2: "", bio: "" });
+    setSf({ u: "", pw: "", pw2: "", bio: undefined });
     notify("Profile saved! ✓");
   };
 
@@ -3213,8 +3212,8 @@ export default function App() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>USERNAME</label><input value={sf.u} onChange={e => setSf(p => ({ ...p, u: e.target.value }))} placeholder={me.username} style={inp13} /></div>
-              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>BIO</label><input value={sf.bio} onChange={e => setSf(p => ({ ...p, bio: e.target.value }))} placeholder={me.bio || "Tell us about yourself..."} style={inp13} /></div>
-              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>😌 MOOD STATUS</label><input value={sf.mood ?? (me.mood || "")} onChange={e => setSf(p => ({ ...p, mood: e.target.value }))} placeholder='e.g. "feeling unstoppable today 🔥"' style={inp13} /></div>
+              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>BIO</label><input value={sf.bio !== undefined ? sf.bio : (me.bio || "")} onChange={e => setSf(p => ({ ...p, bio: e.target.value }))} placeholder="Tell us about yourself..." style={inp13} /></div>
+              <div><label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>😌 MOOD STATUS</label><input value={sf.mood !== undefined ? sf.mood : (me.mood || "")} onChange={e => setSf(p => ({ ...p, mood: e.target.value }))} placeholder='e.g. "feeling unstoppable today 🔥"' style={inp13} /></div>
             </div>
           </div>
 
@@ -3261,7 +3260,8 @@ export default function App() {
                           {currentPhoto ? "Change" : "Add photo"}
                           <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file); e.target.value = ""; }} />
                         </label>
-                        {currentPhoto && <button onClick={() => setSf(p => ({ ...p, [f.photoKey]: null }))} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>Remove</button>}
+                        {currentPhoto && <button onClick={() => setSf(p => ({ ...p, [f.photoKey]: null }))} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Photo</button>}
+                        {(me[f.key] || currentText) && <button onClick={() => setSf(p => ({ ...p, [f.key]: "" }))} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Clear</button>}
                       </div>
                     </div>
                     <input value={currentText} onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))} placeholder={`Your ${f.label.toLowerCase()}...`} style={{ ...inp13, padding: "6px 9px", fontSize: 13 }} />
@@ -3297,8 +3297,7 @@ export default function App() {
                 const r = new FileReader();
                 r.onload = x => setSf(p => ({ ...p, profileSong: x.target.result, profileSongName: f.name }));
                 r.readAsDataURL(f);
-              }} />
-            </label>
+              }} />            </label>
             {(sf.profileSong || me.profileSong) && <button onClick={() => setSf(p => ({ ...p, profileSong: null, profileSongName: null }))} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
             {sf.profileSong && <div style={{ fontSize: 11, color: T.sub, marginTop: 6 }}>Preview: {sf.profileSongName}</div>}
           </div>
@@ -3308,7 +3307,7 @@ export default function App() {
 
 
 
-          <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
+          <button onClick={() => { setMe(null); localStorage.removeItem("session_uid"); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
           {/* ── CHANGE PASSWORD (optional) ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
