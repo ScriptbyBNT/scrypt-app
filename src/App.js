@@ -1483,7 +1483,11 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
       return;
     }
     try {
-      const rows = await DB.getUserByUsername(u.trim().toLowerCase());
+      const raw = u.trim();
+      // Try exact username first (covers existing accounts with original casing)
+      // Then try lowercase (covers new accounts stored in lowercase)
+      let rows = await DB.getUserByUsername(raw);
+      if (!rows || rows.length === 0) rows = await DB.getUserByUsername(raw.toLowerCase());
       const f = rows && rows[0] ? rowToUser(rows[0]) : null;
       if (!f || f.password !== pw) { setErr("Invalid username or password."); return; }
       onLogin(f);
