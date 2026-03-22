@@ -10,6 +10,54 @@ const LS = {
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
 
+// ── INDEXEDDB — for large binary data (photos, audio) ────────────────────────
+const IDB = (() => {
+  const DB_NAME = "scrypt_media", STORE = "blobs", VERSION = 1;
+  let _db = null;
+  const open = () => new Promise((res, rej) => {
+    if (_db) return res(_db);
+    const req = indexedDB.open(DB_NAME, VERSION);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
+    req.onsuccess = e => { _db = e.target.result; res(_db); };
+    req.onerror = () => rej(req.error);
+  });
+  return {
+    set: async (key, val) => {
+      try {
+        const db = await open();
+        return new Promise((res, rej) => {
+          const tx = db.transaction(STORE, "readwrite");
+          tx.objectStore(STORE).put(val, key);
+          tx.oncomplete = () => res(true);
+          tx.onerror = () => rej(tx.error);
+        });
+      } catch(e) { console.error("IDB set error", e); return false; }
+    },
+    get: async (key) => {
+      try {
+        const db = await open();
+        return new Promise((res, rej) => {
+          const tx = db.transaction(STORE, "readonly");
+          const req = tx.objectStore(STORE).get(key);
+          req.onsuccess = () => res(req.result ?? null);
+          req.onerror = () => rej(req.error);
+        });
+      } catch(e) { console.error("IDB get error", e); return null; }
+    },
+    del: async (key) => {
+      try {
+        const db = await open();
+        return new Promise((res, rej) => {
+          const tx = db.transaction(STORE, "readwrite");
+          tx.objectStore(STORE).delete(key);
+          tx.oncomplete = () => res(true);
+          tx.onerror = () => rej(tx.error);
+        });
+      } catch(e) { return false; }
+    },
+  };
+})();
+
 // ── SUPABASE CLIENT ────────────────────────────────────────────────────────────
 const SUPA_URL = "https://wzrxrgybdwoawhaleuah.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6cnhyZ3liZHdvYXdoYWxldWFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTQwNzYsImV4cCI6MjA4ODg5MDA3Nn0.tkFdz7v-r5M21_WeiP7PI0Ipe3XdfHnvwZ1p7CRRUqc";
@@ -141,12 +189,17 @@ const postToRow = p => ({
   pinned: p.pinned || false,
 });
 
-const INFO_FIELD_KEYS = ["infoMovie","infoArtist","infoShow","infoBook","infoGame","infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
+const INFO_TEXT_KEYS = ["infoMovie","infoArtist","infoShow","infoBook","infoGame"];
+const INFO_PHOTO_KEYS = ["infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
+const INFO_FIELD_KEYS = [...INFO_TEXT_KEYS, ...INFO_PHOTO_KEYS];
 const userToRow = u => {
-  // Pack info card text + photo fields + song + song label into info_fields JSON column
+  // Pack info card TEXT fields + song into info_fields JSON column
+  // Photos are stored in localStorage (too large for DB text column)
   const infoFields = {};
-  INFO_FIELD_KEYS.forEach(k => { if (u[k]) infoFields[k] = u[k]; });
-  if (u.profileSong) infoFields.profileSong = u.profileSong;
+  INFO_TEXT_KEYS.forEach(k => { if (u[k]) infoFields[k] = u[k]; });
+  // Store flag per photo so we know one exists even across devices
+  INFO_PHOTO_KEYS.forEach(k => { if (u[k]) infoFields[k + "_flag"] = true; });
+  // profileSong audio is stored in IndexedDB, not Supabase (too large)
   if (u.profileSongLabel) infoFields.profileSongLabel = u.profileSongLabel;
   return {
     id: u.id,
@@ -1007,7 +1060,7 @@ const ImageCropModal = ({ src, onSave, onClose, T }) => {
 };
 
 const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
-  const filled = INFO_FIELDS.filter(f => user[f.key]);
+  const filled = INFO_FIELDS.filter(f => user[f.key] || (resolvePhoto && resolvePhoto(user, f.photoKey)));
   if (!filled.length) return null;
   return <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7, marginBottom: 12 }}>
     {filled.map(f => {
@@ -1036,6 +1089,28 @@ const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
 
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
 const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
+  const [modalMedia, setModalMedia] = useState({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const updates = {};
+      for (const f of INFO_FIELDS) {
+        const val = await IDB.get(`icard_${user.id}_${f.photoKey}`);
+        if (val) updates[f.photoKey] = val;
+      }
+      const song = await IDB.get(`psong_${user.id}`);
+      if (song) updates._song = song;
+      if (!cancelled) setModalMedia(updates);
+    })();
+    return () => { cancelled = true; };
+  }, [user.id]);
+  const resolveModalPhoto = (u, k) => modalMedia[k] || (u[k]?.startsWith?.("data:") ? u[k] : null);
+  const resolveModalSong = (u) => {
+    if (!u.hasProfileSong && !u.profileSong) return null;
+    const song = modalMedia._song || u.profileSong;
+    if (!song) return null;
+    return { song, label: u.profileSongLabel || null };
+  };
   const myV = me.village || [];
   const inV = myV.includes(user.id);
   const isMe = user.id === me.id;
@@ -1072,7 +1147,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
       </div>
       <div style={{ padding: "12px 16px 16px" }}>
         {/* Profile song player */}
-        {(() => { const s = user.profileSong ? {song:user.profileSong,label:user.profileSongLabel||null} : LS.get(`psong_${user.id}`); return s ? <ProfileSongPlayer songSrc={s.song} songLabel={s.label} accent={accent} /> : null; })()}
+        {(() => { const s = resolveModalSong(user); return s ? <ProfileSongPlayer songSrc={s.song} songLabel={s.label} accent={accent} /> : null; })()}
         {/* Special bot profile banners */}
         {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
@@ -1101,7 +1176,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
           <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.reduce((s, p) => s + (p.likes?.length || 0), 0)}</strong> Likes</span>
         </div>
         {/* Info cards */}
-        <ProfileInfoCards user={user} accent={accent} resolvePhoto={(u,k) => { const v=u[k]; if(!v) return null; if(v.startsWith("__local__")) return LS.get(`icard_${u.id}_${v.replace("__local__","")}`); return v; }} />
+        <ProfileInfoCards user={user} accent={accent} resolvePhoto={resolveModalPhoto} />
         {/* Featured post */}
         {featured && <div style={{ marginBottom: 12, padding: "10px 12px", border: `1.5px solid ${accent.color}`, borderRadius: 12, background: `${accent.color}08` }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: accent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
@@ -2784,21 +2859,31 @@ export default function App() {
     if (sfSnapshot.mood !== undefined) upd.mood = sfSnapshot.mood;
     if (sfSnapshot.accentColor !== undefined) upd.accentColor = sfSnapshot.accentColor;
     if (sfSnapshot.featuredPostId !== undefined) upd.featuredPostId = sfSnapshot.featuredPostId;
-    // Profile song — saved to Supabase via info_fields (userToRow handles packing)
+    // Profile song — audio stored in IndexedDB, metadata in Supabase
     if (sfSnapshot.profileSong !== undefined) {
+      const songKey = `psong_${meSnapshot.id}`;
+      if (sfSnapshot.profileSong) {
+        IDB.set(songKey, sfSnapshot.profileSong);
+      } else {
+        IDB.del(songKey);
+      }
       upd.hasProfileSong = !!sfSnapshot.profileSong;
       upd.profileSongName = sfSnapshot.profileSongName || null;
-      upd.profileSong = sfSnapshot.profileSong || null;
+      upd.profileSong = sfSnapshot.profileSong || null; // in-memory only this session
     }
     if (sfSnapshot.profileSongLabel !== undefined) upd.profileSongLabel = sfSnapshot.profileSongLabel;
-    // Info card text + photo fields — saved directly to Supabase via info_fields JSON
+    // Info card text fields — saved to Supabase; photos saved to IndexedDB (no size limit)
     INFO_FIELDS.forEach(f => {
       if (sfSnapshot[f.key] !== undefined) upd[f.key] = sfSnapshot[f.key];
       if (sfSnapshot[f.photoKey] !== undefined) {
-        // Store base64 directly in upd so userToRow packs it into info_fields for Supabase
+        const idbKey = `icard_${meSnapshot.id}_${f.photoKey}`;
+        if (sfSnapshot[f.photoKey]) {
+          IDB.set(idbKey, sfSnapshot[f.photoKey]);
+        } else {
+          IDB.del(idbKey);
+        }
+        // Keep in-memory so profile renders immediately this session
         upd[f.photoKey] = sfSnapshot[f.photoKey] || null;
-        // Also mirror to localStorage as fast local cache
-        LS.set(`icard_${meSnapshot.id}_${f.photoKey}`, sfSnapshot[f.photoKey] || null);
       }
     });
     if (Object.keys(upd).length === 0) return;
@@ -2806,7 +2891,11 @@ export default function App() {
     setUsers(updatedUsers);
     setMe(p => ({ ...p, ...upd }));
     const updatedMe = { ...meSnapshot, ...upd };
-    (async () => { try { await DB.updateUser(meSnapshot.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
+    (async () => {
+      try { await DB.updateUser(meSnapshot.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); }
+      // Reload media cache so new photos/song show up immediately
+      loadMediaForUser(meSnapshot.id);
+    })();
     notify("Saved ✓");
   }, [users]);
 
@@ -2821,22 +2910,40 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [sf]);
 
-  // Helper: resolve a stored photo key to actual base64
+  // Media cache — loaded from IndexedDB on mount and after saves
+  const [mediaCache, setMediaCache] = useState({});
+  const loadMediaForUser = useCallback(async (uid) => {
+    if (!uid) return;
+    const updates = {};
+    for (const f of INFO_FIELDS) {
+      const key = `icard_${uid}_${f.photoKey}`;
+      const val = await IDB.get(key);
+      if (val) updates[key] = val;
+    }
+    const song = await IDB.get(`psong_${uid}`);
+    if (song) updates[`psong_${uid}`] = song;
+    setMediaCache(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  useEffect(() => { if (me?.id) loadMediaForUser(me.id); }, [me?.id]);
+
+  // resolvePhoto reads from mediaCache (loaded from IDB) or in-memory session fallback
   const resolvePhoto = (user, photoKey) => {
+    const cached = mediaCache[`icard_${user.id}_${photoKey}`];
+    if (cached) return cached;
     const val = user[photoKey];
     if (!val) return null;
-    // Legacy: was stored as __local__ reference pointing to localStorage
-    if (typeof val === "string" && val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
-    return val; // direct base64 (new path, stored in Supabase via info_fields)
+    if (typeof val === "string" && val.startsWith("data:")) return val;
+    return null;
   };
 
-  // Helper: resolve profile song — reads from user object (Supabase) directly
+  // Helper: resolve profile song — reads from mediaCache (IndexedDB) or in-memory session
   const resolveProfileSong = (user) => {
     if (!user.hasProfileSong && !user.profileSong) return null;
-    if (user.profileSong) return { song: user.profileSong, name: user.profileSongName, label: user.profileSongLabel || null };
-    // Fallback to localStorage cache for legacy data
-    const stored = LS.get(`psong_${user.id}`);
-    return stored ? { song: stored.song, name: stored.name, label: stored.label || null } : null;
+    const cached = mediaCache[`psong_${user.id}`];
+    const song = cached || user.profileSong;
+    if (!song) return null;
+    return { song, name: user.profileSongName, label: user.profileSongLabel || null };
   };
 
   if (pg === "loading" || (pg === "app" && dbLoading)) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
@@ -3196,7 +3303,7 @@ export default function App() {
               </div>
             </div>
             {(() => { const s = resolveProfileSong(me); return s ? <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer songSrc={s.song} songLabel={s.label} accent={myAccent} /></div> : null; })()}
-            {INFO_FIELDS.some(f => me[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} resolvePhoto={resolvePhoto} /></div>}
+            {INFO_FIELDS.some(f => me[f.key] || resolvePhoto(me, f.photoKey)) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} resolvePhoto={resolvePhoto} /></div>}
             {feat && <div style={{ margin: "10px 16px", padding: "10px 12px", border: `1.5px solid ${myAccent.color}`, borderRadius: 12, background: `${myAccent.color}08` }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: myAccent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
               <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(feat.content)}</p>
