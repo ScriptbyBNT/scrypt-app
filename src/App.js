@@ -37,33 +37,87 @@ const SU = Array.from({ length: 200 }, (_, i) => ({
 
 // Seeded posts from bots - rich activity including Scrypt mentions
 const SP = [
-  { id: "cpost_1143", userId: "bot_050", username: "thorn_sharp", content: "Hot take: chronological feeds are superior in every way. Stop trying to guess what I want to see.", likes: ["bot_001","bot_002","bot_003","bot_010","bot_020","bot_030","bot_040","bot_050","bot_060"], reposts: ["bot_005","bot_015","bot_025"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 3 },
+  // HOME FEED - general posts
+  { id: "cpost_1143", userId: "bot_050", username: "thorn_sharp", content: "Hot take: chronological feeds are superior in every way. Stop trying to guess what I want to see.", likes: ["bot_001","bot_002","bot_003","bot_010","bot_020","bot_030","bot_040"], reposts: ["bot_005","bot_015","bot_025"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 3 },
   { id: "cpost_1144", userId: "bot_001", username: "alex_rivera", content: "Just discovered the best taco truck in the city. Life is good 🌮", likes: ["bot_002","bot_004","bot_006","bot_008","bot_100","bot_110","bot_120"], reposts: ["bot_003","bot_013"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 2 },
   { id: "cpost_1145", userId: "bot_020", username: "nolan_reed", content: "AI isn't going to take your job. Someone using AI better than you will. Adapt or get left behind. #AI #Scrypt", likes: ["bot_001","bot_003","bot_005","bot_007","bot_009","bot_011","bot_101","bot_111","bot_121","bot_131","bot_141"], reposts: ["bot_002","bot_004","bot_006","bot_102","bot_112"], createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 5 },
   { id: "cpost_1146", userId: "bot_035", username: "sage_baker", content: "Morning run complete ✅ 5 miles before coffee hits different when the city is still quiet. #Scrypt #grind", likes: ["bot_001","bot_010","bot_020","bot_030","bot_100","bot_110","bot_120","bot_130"], reposts: ["bot_040","bot_050"], createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 1 },
   { id: "cpost_1147", userId: "bot_060", username: "iris_bloom", content: "The fact that we all just collectively agreed to pretend email is fine is the biggest lie of the modern era", likes: ["bot_002","bot_012","bot_022","bot_032","bot_042","bot_102","bot_112","bot_122"], reposts: ["bot_007","bot_017","bot_107"], createdAt: new Date(Date.now() - 3600000 * 10).toISOString(), replyCount: 4 },
   { id: "cpost_1148", userId: "bot_075", username: "river_bold", content: "Built something cool today. Shipping it tomorrow. No screenshots until it works properly. #buildinpublic #Scrypt", likes: ["bot_005","bot_015","bot_025","bot_105","bot_115","bot_125"], reposts: ["bot_035","bot_135"], createdAt: new Date(Date.now() - 3600000 * 12).toISOString(), replyCount: 2 },
   { id: "cpost_1149", userId: "bot_010", username: "morgan_james", content: "Reading a physical book for the first time in months. My attention span feels… restored?", likes: ["bot_001","bot_002","bot_003","bot_004","bot_006","bot_008","bot_100","bot_110","bot_120"], reposts: ["bot_011","bot_013","bot_113"], createdAt: new Date(Date.now() - 3600000 * 14).toISOString(), replyCount: 6 },
-  { id: "cpost_1150", userId: "bot_045", username: "parker_hunt", content: "Reminder that most 'networking' is just vibes. Be a person, not a LinkedIn robot. #networking #Scrypt", likes: ["bot_001","bot_003","bot_005","bot_007","bot_101","bot_111"], reposts: ["bot_002","bot_102"], createdAt: new Date(Date.now() - 3600000 * 16).toISOString(), replyCount: 3 },
-  { id: "cpost_1151", userId: "bot_080", username: "sandy_shore", content: "The city is different at 3am. Quieter. Yours.", likes: ["bot_001","bot_011","bot_021","bot_031","bot_041","bot_101","bot_111","bot_121","bot_131"], reposts: ["bot_051","bot_061","bot_151"], createdAt: new Date(Date.now() - 3600000 * 20).toISOString(), replyCount: 2 },
   { id: "cpost_1152", userId: "bot_015", username: "blake_nguyen", content: "Unpopular opinion: 8 hours of sleep is not optional. It's the one biohack that actually works.", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_100","bot_110","bot_120","bot_130"], reposts: ["bot_008","bot_009","bot_108","bot_109"], createdAt: new Date(Date.now() - 3600000 * 24).toISOString(), replyCount: 7 },
+  // Bot Scrypt-positive posts
   { id: "cpost_1153", userId: "bot_100", username: "blaze_king", content: "Scrypt is the only social app where I actually feel heard. The community here is different. Stay up ✊ #Scrypt", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008","bot_009","bot_010","bot_101","bot_102","bot_103","bot_104","bot_105"], reposts: ["bot_011","bot_012","bot_013","bot_111","bot_112"], createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 8 },
   { id: "cpost_1154", userId: "bot_101", username: "apex_chad", content: "Giga Chad energy is not about being loud. It's about being relentless. Quietly winning every day. 💪 #gigachad", likes: ["bot_100","bot_102","bot_103","bot_104","bot_105","bot_106","bot_107","bot_108","bot_109","bot_110","bot_001","bot_002","bot_003"], reposts: ["bot_111","bot_112","bot_113","bot_114"], createdAt: new Date(Date.now() - 3600000 * 0.5).toISOString(), replyCount: 10 },
-  { id: "cpost_1155", userId: "bot_102", username: "flex_master", content: "Just added 20 new people to my village on Scrypt. Building the tribe one connection at a time. Who's joining? 🏘️ #village #Scrypt", likes: ["bot_001","bot_003","bot_005","bot_007","bot_009","bot_100","bot_101","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_002","bot_004","bot_106","bot_107"], createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(), replyCount: 5 },
-  { id: "cpost_1156", userId: "bot_103", username: "sigma_grind", content: "The sigma grindset: wake up before everyone, work harder than everyone, then log onto Scrypt and post about it 😂 #grind #sigma", likes: ["bot_100","bot_101","bot_102","bot_104","bot_105","bot_150","bot_151","bot_152","bot_153"], reposts: ["bot_106","bot_107","bot_108"], createdAt: new Date(Date.now() - 3600000 * 2.5).toISOString(), replyCount: 4 },
   { id: "cpost_1157", userId: "bot_104", username: "alpha_wolf", content: "Real talk: the Scrypt community has the most authentic conversations I've seen online. No algorithm bs, just real people. 🐺", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_100","bot_101","bot_102","bot_103","bot_105","bot_106","bot_107","bot_108","bot_109"], reposts: ["bot_010","bot_011","bot_012","bot_110","bot_111","bot_112"], createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 9 },
-  { id: "cpost_1158", userId: "bot_105", username: "beast_mode", content: "Training update: PR'd on squat, deadlift, AND bench today. Beast mode activated 🔥 Who else in the gym gang? #fitness #beastmode", likes: ["bot_100","bot_101","bot_102","bot_103","bot_104","bot_001","bot_002","bot_150","bot_151","bot_152"], reposts: ["bot_106","bot_107","bot_108","bot_109"], createdAt: new Date(Date.now() - 3600000 * 3.5).toISOString(), replyCount: 6 },
   { id: "cpost_1159", userId: "bot_150", username: "stack_wins", content: "Every post on Scrypt is a Scrypt. Every like is a vote. Every village invite is a bond. This platform understands community. ❤️ #Scrypt", likes: ["bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106","bot_107","bot_108","bot_109","bot_110","bot_151","bot_152","bot_153","bot_154","bot_155"], reposts: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_111","bot_112","bot_113"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 12 },
-  { id: "cpost_1160", userId: "bot_151", username: "build_legacy", content: "Scrypt > Twitter, Scrypt > Threads, Scrypt > everything. Finally a platform that gives back to the community. 🙌 #Scrypt #platform", likes: ["bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_150","bot_152","bot_153","bot_001","bot_002","bot_003"], reposts: ["bot_106","bot_107","bot_108","bot_109","bot_154","bot_155"], createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 7 },
+
+  // MOVIES & TV CLICK posts
+  { id: "cp_mv_001", userId: "bot_015", username: "blake_nguyen", content: "Severance season 2 is an absolute masterpiece. The writing, the acting, the set design — nothing comes close right now. Dylan G. is my everything. 🙌", likes: ["bot_025","bot_035","bot_045","bot_055","bot_065","bot_075","bot_085","bot_001","bot_002","bot_003","bot_010","bot_020"], reposts: ["bot_030","bot_040","bot_050","bot_060"], clickId: "click_movies", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 7 },
+  { id: "cp_mv_002", userId: "bot_025", username: "cameron_price", content: "Unpopular opinion: The Bear season 3 wasn't as good as S1. The restaurant scenes felt rushed. Still love the show but let's be real.", likes: ["bot_035","bot_045","bot_065","bot_075","bot_085"], reposts: ["bot_015","bot_055"], clickId: "click_movies", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 4 },
+  { id: "cp_mv_003", userId: "bot_035", username: "sage_baker", content: "Just finished watching Dune Part 2 for the third time. Denis Villeneuve is in a different league. That sandworm scene lives rent free in my head. 🪱", likes: ["bot_015","bot_025","bot_045","bot_055","bot_065","bot_075","bot_085","bot_095","bot_100","bot_101","bot_102"], reposts: ["bot_015","bot_025","bot_045","bot_055"], clickId: "click_movies", createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 9 },
+  { id: "cp_mv_004", userId: "bot_045", username: "parker_hunt", content: "Hot take: Succession is the best TV show of the last decade. No debate. Kendall's final scene alone > most entire series.", likes: ["bot_015","bot_025","bot_035","bot_055","bot_065","bot_075","bot_001","bot_005","bot_010","bot_015","bot_020"], reposts: ["bot_085","bot_095"], clickId: "click_movies", createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 11 },
+  { id: "cp_mv_005", userId: "bot_055", username: "sterling_cole", content: "If you haven't watched Shogun (2024) yet, what are you even doing with your life? Hiroyuki Sanada deserves every award. #Shogun #FX", likes: ["bot_015","bot_025","bot_035","bot_045","bot_065","bot_075","bot_085","bot_095","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_015","bot_025","bot_035","bot_045","bot_065"], clickId: "click_movies", createdAt: new Date(Date.now() - 3600000 * 11).toISOString(), replyCount: 6 },
+  { id: "cp_mv_006", userId: "bot_075", username: "river_bold", content: "Anyone else think Inside Out 2 made them ugly cry? I'm a grown adult. Pixar has no right. Anxiety was too relatable 😭", likes: ["bot_015","bot_025","bot_035","bot_045","bot_055","bot_065","bot_085","bot_001","bot_002","bot_003","bot_004"], reposts: ["bot_095","bot_015","bot_025"], clickId: "click_movies", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 5 },
+
+  // HIP HOP CLICK posts
+  { id: "cp_hh_001", userId: "bot_016", username: "cedar_brooks", content: "Kendrick Lamar won the battle, the war, and the whole damn narrative. Not Like Us > everything Drake has released in 5 years. Facts. 🔥", likes: ["bot_026","bot_036","bot_046","bot_056","bot_066","bot_076","bot_086","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105"], reposts: ["bot_036","bot_046","bot_056","bot_066","bot_076"], clickId: "click_hiphop", createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 14 },
+  { id: "cp_hh_002", userId: "bot_026", username: "delaney_marsh", content: "Tyler, the Creator with Chromakopia slapping like no other. Every song is a different universe. He keeps getting better wtf 🎨", likes: ["bot_016","bot_036","bot_046","bot_056","bot_066","bot_076","bot_086","bot_100","bot_101","bot_102"], reposts: ["bot_036","bot_046","bot_056"], clickId: "click_hiphop", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 8 },
+  { id: "cp_hh_003", userId: "bot_036", username: "ember_sky", content: "Sabrina Carpenter crossing over to the hip hop charts with that feature got me shook. Nobody saw it coming. Era-defining 👀", likes: ["bot_016","bot_026","bot_046","bot_056","bot_066"], reposts: ["bot_076","bot_086"], clickId: "click_hiphop", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 3 },
+  { id: "cp_hh_004", userId: "bot_046", username: "falcon_reed", content: "GNX by Kendrick is genuinely one of the best hip hop projects of this decade. He operates on a different level than everyone rn. #GNX", likes: ["bot_016","bot_026","bot_036","bot_056","bot_066","bot_076","bot_086","bot_100","bot_101","bot_102","bot_103","bot_104"], reposts: ["bot_016","bot_026","bot_036","bot_056","bot_066"], clickId: "click_hiphop", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 16 },
+
+  // TAYLOR SWIFT CLICK posts
+  { id: "cp_ts_001", userId: "bot_101", username: "apex_chad", content: "The Eras Tour documentary changed my life and I am not joking. Taylor Swift is a once-in-a-generation artist. Swifties unite 🩵", likes: ["bot_111","bot_121","bot_131","bot_141","bot_151","bot_161","bot_171","bot_181","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_111","bot_121","bot_131","bot_141","bot_151"], clickId: "click_taylor", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 12 },
+  { id: "cp_ts_002", userId: "bot_111", username: "grind_boss", content: "TTPD is criminally underrated. The Smallest Man Who Ever Lived is one of the most devastating songs she's ever written. I'm not okay.", likes: ["bot_101","bot_121","bot_131","bot_141","bot_151","bot_161","bot_001","bot_002","bot_003"], reposts: ["bot_131","bot_141","bot_151"], clickId: "click_taylor", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 8 },
+  { id: "cp_ts_003", userId: "bot_121", username: "elite_flow", content: "Controversial but 1989 (Taylor's Version) is better than the original. The vault tracks alone justify the entire re-recording project 🐱", likes: ["bot_101","bot_111","bot_131","bot_141","bot_151","bot_161","bot_171","bot_001","bot_002"], reposts: ["bot_141","bot_151","bot_161"], clickId: "click_taylor", createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 5 },
+  { id: "cp_ts_004", userId: "bot_131", username: "vibe_lord", content: "Travis Kelce + Taylor Swift is the best celebrity couple of our generation. Both at the top of their fields, both clearly obsessed with each other. 🏈🩵", likes: ["bot_101","bot_111","bot_121","bot_141","bot_151","bot_161","bot_171","bot_181","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_151","bot_161","bot_171","bot_181"], clickId: "click_taylor", createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 19 },
+
+  // BOOKS CLICK posts
+  { id: "cp_bk_001", userId: "bot_018", username: "eden_cross", content: "Fourth Wing by Rebecca Yarros broke my brain. Dragons, romance, magic. I stayed up until 4am. Zero regrets. #BookTok #FourthWing", likes: ["bot_028","bot_038","bot_048","bot_058","bot_068","bot_078","bot_088","bot_001","bot_002","bot_003"], reposts: ["bot_038","bot_048","bot_058"], clickId: "click_books", createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 8 },
+  { id: "cp_bk_002", userId: "bot_028", username: "iris_bloom", content: "Atomic Habits changed how I think about productivity. The 1% improvement concept is so simple but genuinely works. 2 years in, still applying it daily.", likes: ["bot_018","bot_038","bot_048","bot_058","bot_068","bot_078","bot_088","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_018","bot_038","bot_048","bot_058","bot_068"], clickId: "click_books", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 6 },
+  { id: "cp_bk_003", userId: "bot_038", username: "falcon_reed", content: "A Court of Thorns and Roses series is actually incredible and I'm tired of pretending it's not literary. Sarah J. Maas built a whole universe.", likes: ["bot_018","bot_028","bot_048","bot_058","bot_068","bot_078","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_058","bot_068","bot_078"], clickId: "click_books", createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 9 },
+  { id: "cp_bk_004", userId: "bot_048", username: "gray_wolf", content: "Just finished Tomorrow and Tomorrow and Tomorrow. I cried. I laughed. I thought about creativity and friendship for days after. Must-read of the decade.", likes: ["bot_018","bot_028","bot_038","bot_058","bot_068","bot_078","bot_088","bot_100","bot_101","bot_102"], reposts: ["bot_018","bot_028","bot_038"], clickId: "click_books", createdAt: new Date(Date.now() - 3600000 * 10).toISOString(), replyCount: 7 },
+
+  // K-POP CLICK posts
+  { id: "cp_kp_001", userId: "bot_017", username: "cedar_brooks", content: "BTS ARMY rise up — Jin's solo comeback is everything. His voice matured so much from the military. We waited and it was worth it 💜", likes: ["bot_027","bot_037","bot_047","bot_057","bot_067","bot_077","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006"], reposts: ["bot_037","bot_047","bot_057","bot_067"], clickId: "click_kpop", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 10 },
+  { id: "cp_kp_002", userId: "bot_027", username: "delaney_marsh", content: "BLACKPINK's individual careers > their group stuff and I said what I said. Jennie's solo era is ELITE. #Jennie #BLACKPINK", likes: ["bot_017","bot_037","bot_047","bot_057","bot_067","bot_077","bot_001","bot_002","bot_003"], reposts: ["bot_047","bot_057","bot_067"], clickId: "click_kpop", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 7 },
+  { id: "cp_kp_003", userId: "bot_037", username: "ember_sky", content: "NewJeans is the future of K-pop. Hype Boy STILL hits different. Ditto is one of the greatest music videos ever made. The aesthetic is unmatched. 🐰", likes: ["bot_017","bot_027","bot_047","bot_057","bot_067","bot_077","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007"], reposts: ["bot_017","bot_027","bot_047","bot_057","bot_067","bot_077"], clickId: "click_kpop", createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 13 },
+
+  // GAMING CLICK posts
+  { id: "cp_gm_001", userId: "bot_100", username: "blaze_king", content: "Elden Ring Shadow of the Erdtree is one of the greatest DLCs in gaming history. FromSoftware cannot be stopped. Messmer is terrifying. 🗡️", likes: ["bot_110","bot_120","bot_130","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007"], reposts: ["bot_110","bot_120","bot_130","bot_140","bot_150"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 11 },
+  { id: "cp_gm_002", userId: "bot_110", username: "grind_boss", content: "Baldur's Gate 3 won every award for a reason. I have 400 hours in it. I regret nothing. Larian Studios went above and beyond.", likes: ["bot_100","bot_120","bot_130","bot_140","bot_150","bot_160","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_100","bot_120","bot_130","bot_140"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 9 },
+  { id: "cp_gm_003", userId: "bot_120", username: "elite_flow", content: "GTA VI dropping next year and the internet is not ready. That trailer broke YouTube records for a reason. Rockstar Games about to change everything again. 🎮", likes: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008"], reposts: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 18 },
+
+  // FITNESS CLICK posts
+  { id: "cp_ft_001", userId: "bot_019", username: "eden_cross", content: "6 months of consistent gym. Down 25lbs, up 15lbs of muscle. Discipline > motivation every single time. Not stopping. 💪", likes: ["bot_029","bot_039","bot_049","bot_059","bot_069","bot_079","bot_089","bot_099","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_039","bot_049","bot_059","bot_069","bot_079","bot_089"], clickId: "click_fitness", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 13 },
+  { id: "cp_ft_002", userId: "bot_029", username: "jasper_stone", content: "Running a half marathon this Sunday. Trained 4 months for this. Nervous but ready. The sunrise miles hit different 🏃‍♀️", likes: ["bot_019","bot_039","bot_049","bot_059","bot_069","bot_079","bot_089","bot_099","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_019","bot_039","bot_049","bot_059","bot_069"], clickId: "click_fitness", createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 8 },
+
+  // NFL CLICK posts
+  { id: "cp_nfl_001", userId: "bot_102", username: "flex_master", content: "Travis Kelce is the greatest TE in NFL history. Not even a debate anymore. 3 Super Bowl wins, the GOAT QB throwing to him. Legendary. 🏆", likes: ["bot_112","bot_122","bot_132","bot_142","bot_152","bot_162","bot_172","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008"], reposts: ["bot_112","bot_122","bot_132","bot_142","bot_152"], clickId: "click_nfl", createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 15 },
+  { id: "cp_nfl_002", userId: "bot_112", username: "sigma_grind", content: "Patrick Mahomes is the best player in the NFL right now and it's not even close. The man makes throws that shouldn't be possible. 🏈", likes: ["bot_102","bot_122","bot_132","bot_142","bot_152","bot_162","bot_172","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_102","bot_122","bot_132","bot_142"], clickId: "click_nfl", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 10 },
+
+  // STARTUP CLICK posts
+  { id: "cp_su_001", userId: "bot_104", username: "alpha_wolf", content: "Fundraising tip: investors don't invest in ideas. They invest in momentum. Show traction first, pitch later. Learned this the hard way. 📈", likes: ["bot_114","bot_124","bot_134","bot_144","bot_154","bot_164","bot_174","bot_100","bot_101","bot_102","bot_103","bot_105","bot_106","bot_107","bot_108"], reposts: ["bot_114","bot_124","bot_134","bot_144","bot_154"], clickId: "click_startup", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 11 },
+  { id: "cp_su_002", userId: "bot_114", username: "beast_mode", content: "Bootstrapping to $1M ARR is harder than raising a Series A but the equity you keep makes it worth it. Do the math before you dilute.", likes: ["bot_104","bot_124","bot_134","bot_144","bot_154","bot_164","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_104","bot_124","bot_134","bot_144"], clickId: "click_startup", createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 6 },
 ];
 
 // Seeded clicks (communities)
 const SC = [
-  { id: "click_nyc", name: "New York City 🗽", image: null, members: ["bot_001","bot_005","bot_010","bot_020","bot_030"], ownerId: "bot_001", createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
-  { id: "click_nba", name: "NBA 🏀", image: null, members: ["bot_002","bot_006","bot_011","bot_021","bot_031","bot_041"], ownerId: "bot_002", createdAt: new Date(Date.now() - 86400000 * 8).toISOString() },
-  { id: "click_ai", name: "AI & Tech 🤖", image: null, members: ["bot_003","bot_007","bot_012","bot_022","bot_032","bot_042","bot_052"], ownerId: "bot_003", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
-  { id: "click_music", name: "Music Vibes 🎵", image: null, members: ["bot_004","bot_008","bot_013","bot_023","bot_033"], ownerId: "bot_004", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
-  { id: "click_food", name: "Foodies 🍜", image: null, members: ["bot_005","bot_009","bot_014","bot_024","bot_034","bot_044"], ownerId: "bot_005", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: "click_nyc",     name: "New York City 🗽",         image: null, members: ["bot_001","bot_005","bot_010","bot_020","bot_030","bot_040","bot_050"], ownerId: "bot_001", createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
+  { id: "click_nba",     name: "NBA 🏀",                   image: null, members: ["bot_002","bot_006","bot_011","bot_021","bot_031","bot_041","bot_051","bot_061"], ownerId: "bot_002", createdAt: new Date(Date.now() - 86400000 * 8).toISOString() },
+  { id: "click_ai",      name: "AI & Tech 🤖",             image: null, members: ["bot_003","bot_007","bot_012","bot_022","bot_032","bot_042","bot_052","bot_062","bot_072"], ownerId: "bot_003", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
+  { id: "click_music",   name: "Music Vibes 🎵",           image: null, members: ["bot_004","bot_008","bot_013","bot_023","bot_033","bot_043","bot_053","bot_063"], ownerId: "bot_004", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
+  { id: "click_food",    name: "Foodies 🍜",               image: null, members: ["bot_005","bot_009","bot_014","bot_024","bot_034","bot_044","bot_054"], ownerId: "bot_005", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: "click_movies",  name: "Movies & TV 🎬",           image: null, members: ["bot_015","bot_025","bot_035","bot_045","bot_055","bot_065","bot_075","bot_085","bot_095"], ownerId: "bot_015", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: "click_hiphop",  name: "Hip Hop 🎤",               image: null, members: ["bot_016","bot_026","bot_036","bot_046","bot_056","bot_066","bot_076","bot_086"], ownerId: "bot_016", createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+  { id: "click_kpop",    name: "K-Pop 🌸",                 image: null, members: ["bot_017","bot_027","bot_037","bot_047","bot_057","bot_067","bot_077"], ownerId: "bot_017", createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
+  { id: "click_books",   name: "Book Club 📚",             image: null, members: ["bot_018","bot_028","bot_038","bot_048","bot_058","bot_068","bot_078","bot_088"], ownerId: "bot_018", createdAt: new Date(Date.now() - 86400000 * 9).toISOString() },
+  { id: "click_fitness", name: "Fitness & Gym 💪",         image: null, members: ["bot_019","bot_029","bot_039","bot_049","bot_059","bot_069","bot_079","bot_089","bot_099"], ownerId: "bot_019", createdAt: new Date(Date.now() - 86400000 * 1).toISOString() },
+  { id: "click_gaming",  name: "Gaming 🎮",                image: null, members: ["bot_100","bot_110","bot_120","bot_130","bot_140","bot_150","bot_160","bot_170"], ownerId: "bot_100", createdAt: new Date(Date.now() - 86400000 * 11).toISOString() },
+  { id: "click_taylor",  name: "Taylor Swift 🫶",          image: null, members: ["bot_101","bot_111","bot_121","bot_131","bot_141","bot_151","bot_161","bot_171","bot_181"], ownerId: "bot_101", createdAt: new Date(Date.now() - 86400000 * 6).toISOString() },
+  { id: "click_nfl",     name: "NFL 🏈",                   image: null, members: ["bot_102","bot_112","bot_122","bot_132","bot_142","bot_152","bot_162","bot_172"], ownerId: "bot_102", createdAt: new Date(Date.now() - 86400000 * 4).toISOString() },
+  { id: "click_anime",   name: "Anime & Manga 🌀",         image: null, members: ["bot_103","bot_113","bot_123","bot_133","bot_143","bot_153","bot_163"], ownerId: "bot_103", createdAt: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: "click_startup", name: "Startups & VC 🚀",        image: null, members: ["bot_104","bot_114","bot_124","bot_134","bot_144","bot_154","bot_164","bot_174"], ownerId: "bot_104", createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
 ];
 
 // 24 default profile pics (SVG data URIs)
@@ -512,21 +566,20 @@ const NotifTab = ({ me, users, posts, T }) => {
 
   const loadTrending = async () => {
     setTBusy(true);
-    const sample = posts.slice(0, 40).map(p => p.content).join(" | ");
+    const sample = posts.slice(0, 60).map(p => p.content).join(" | ");
     try {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": "YOUR_API_KEY_HERE", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these posts, identify 5 trending topics as short hashtag-style labels (2-3 words max each). Return ONLY a JSON array of strings, nothing else: ${sample}` }] })
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these social media posts, identify 6 trending topics (artists, shows, sports, news, or themes people are discussing). Return ONLY a JSON array of short strings (2-4 words max each), no hashtag symbols. Example: ["Kendrick Lamar","Severance S2","Taylor Swift","NFL Playoffs","Gaming News","Book Club"]. Posts: ${sample}` }] })
       });
       const d = await r.json();
       const txt = d.content?.[0]?.text || "[]";
       const parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
-      // Always ensure Scrypt is in trending
-      const withScrypt = ["Scrypt", ...parsed.filter(t => t.toLowerCase() !== "scrypt")].slice(0, 5);
+      const withScrypt = ["Scrypt", ...parsed.filter(t => t.toLowerCase() !== "scrypt")].slice(0, 6);
       setTrending(withScrypt);
     } catch {
-      setTrending(["AI & Tech", "Sports Talk", "City Life", "Music Vibes", "Daily Thoughts"]);
+      setTrending(["Scrypt", "Kendrick Lamar", "Severance Season 2", "Taylor Swift", "NBA 2024", "Gaming & Tech"]);
     }
     setTBusy(false);
   };
@@ -861,7 +914,7 @@ export default function App() {
   const cImgRef = useRef();
 
   useEffect(() => {
-    const V = "v16";
+    const V = "v17";
     if (LS.get("dv") !== V) {
       const h = (LS.get("su") || []).filter(u => !u.isBot);
       const m = [...h, ...SU];
@@ -906,76 +959,326 @@ export default function App() {
     notify(villageOnly ? "Posted to Village! 🔒" : parentId ? "Reply posted!" : "Scrypt posted!");
     checkClaude(content);
     if (!villageOnly && !parentId) {
+      // Sentiment score: more positive words = more bot likes
+      const positive = ["love","amazing","best","great","goat","incredible","masterpiece","legendary","fire","perfect","beautiful","brilliant","epic","fantastic","excellent","awesome","outstanding","phenomenal","elite","🔥","💪","❤️","🙌","💯","🏆","✨","🎉","😍","🌟","happy","excited","grateful","winning","inspire","community","scrypt"];
+      let score = 0;
+      const lower = (content || "").toLowerCase();
+      positive.forEach(w => { if (lower.includes(w)) score += 1; });
+      const baseLikes = 5 + score * 2;
+      const lc = Math.min(baseLikes + Math.floor(Math.random() * 12), 35);
+      const rc = Math.random() < (0.2 + score * 0.04) ? Math.floor(Math.random() * 6) + 1 : 0;
       const bots = (LS.get("su") || []).filter(u => u.isBot);
-      const sh = [...bots].sort(() => Math.random() - 0.5);
-      const lc = Math.floor(Math.random() * 25) + 8;
-      const rc = Math.random() < 0.45 ? Math.floor(Math.random() * 8) + 2 : 0;
-      sh.slice(0, lc).forEach((b, i) => setTimeout(() => {
+      // If posted in a click, prefer click members to respond
+      let pool = [...bots].sort(() => Math.random() - 0.5);
+      if (clickId) {
+        const allClicks = LS.get("sc") || [];
+        const click = allClicks.find(c => c.id === clickId);
+        if (click) {
+          const members = bots.filter(b => click.members.includes(b.id));
+          pool = [...members.sort(() => Math.random() - 0.5), ...bots.filter(b => !click.members.includes(b.id)).sort(() => Math.random() - 0.5)];
+        }
+      }
+      // Stagger likes realistically over 5s–4min
+      pool.slice(0, lc).forEach((b, i) => setTimeout(() => {
         const c = LS.get("sp") || [];
-        const u = c.map(x => x.id === p.id ? { ...x, likes: [...(x.likes || []), b.id] } : x);
+        const u = c.map(x => x.id === p.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
         LS.set("sp", u); setPosts(u);
-      }, (i + 1) * 800 + Math.random() * 1200));
-      sh.slice(lc, lc + rc).forEach((b, i) => setTimeout(() => {
+      }, (i + 1) * (3000 + Math.random() * 8000)));
+      // Stagger reposts 30s–6min
+      pool.slice(lc, lc + rc).forEach((b, i) => setTimeout(() => {
         const c = LS.get("sp") || [];
-        const u = c.map(x => x.id === p.id ? { ...x, reposts: [...(x.reposts || []), b.id] } : x);
+        const u = c.map(x => x.id === p.id ? { ...x, reposts: [...new Set([...(x.reposts || []), b.id])] } : x);
         LS.set("sp", u); setPosts(u);
-      }, (i + 1) * 2000 + Math.random() * 2000));
+      }, 30000 + (i + 1) * (15000 + Math.random() * 20000)));
     }
   }, [me, checkClaude]);
 
-  // Periodic Giga Chad bot activity - posts, likes, village adds
+  // Periodic Giga Chad bot activity — realistic, staggered, entertainment-aware
   useEffect(() => {
     if (!me) return;
-    const BOT_POSTS = [
-      "Scrypt is hitting different today. The vibes are immaculate 🔥 #Scrypt",
+
+    // Sentiment scorer: more positive = more likes
+    const sentimentScore = (text = "") => {
+      const positive = ["love","amazing","best","great","goat","incredible","masterpiece","legendary","fire","perfect","beautiful","brilliant","epic","fantastic","excellent","awesome","outstanding","phenomenal","elite","🔥","💪","❤️","🙌","💯","🏆","✨","🎉","😍","🌟"];
+      const negative = ["worst","hate","terrible","awful","bad","trash","horrible","boring","overrated","disappointing","weak"];
+      const lower = text.toLowerCase();
+      let score = 5;
+      positive.forEach(w => { if (lower.includes(w)) score += 2; });
+      negative.forEach(w => { if (lower.includes(w)) score -= 1; });
+      return Math.max(2, Math.min(score, 20));
+    };
+
+    // Bot posts per click — vivid entertainment conversation starters
+    const CLICK_POSTS = {
+      click_movies: [
+        "Anyone else rewatching Severance before season 3? The foreshadowing in S1 hits completely different now 🤯",
+        "The Bear is the most stressful show on TV and I mean that as a compliment. My anxiety has anxiety.",
+        "Oppenheimer deserved every Oscar it got. Cillian Murphy's final scene is one of the greatest acting moments ever filmed.",
+        "If you slept on Shogun 2024 you owe it to yourself to watch it this weekend. Best thing on TV this year. Not even close.",
+        "Dune 3 can't come soon enough. Chalamet was born to play Paul Atreides. Denis Villeneuve is building a legacy. 🪱",
+        "The Substance is the most unhinged body horror film I've ever seen and Demi Moore was ROBBED of an Oscar. #TheSubstance",
+        "Inside Out 2 is secretly one of Pixar's best films. Anxiety is the most relatable character in cinema history 😭",
+      ],
+      click_hiphop: [
+        "Kendrick Lamar performing at the Super Bowl halftime show is going to be historic. He's on a different level rn. 🎤",
+        "Tyler the Creator's Chromakopia grew on me hard. Thought I Walk Alone was strange then it became my most played.",
+        "Wicked the movie soundtrack is lowkey hip hop adjacent and I will not be taking questions about this take 😂",
+        "GNX by Kendrick might be album of the year already. The man just doesn't miss. #Kendrick",
+        "Drake dropped a 100 song playlist and half of it still doesn't hit like one Kendrick verse. The bar is the bar.",
+        "The new wave of female rappers right now is unmatched. Ice Spice, GloRilla, Sexyy Red — the culture is thriving. 🎤",
+      ],
+      click_taylor: [
+        "Taylor's Super Bowl appearance was subtle but iconic. She was there for Travis and she still looked like the main character. 🩵",
+        "I've listened to The Tortured Poets Department 300+ times and I'm still discovering new things. Folklore era was her peak but TTPD is her bravest.",
+        "The Eras Tour being the highest grossing concert tour of all time says everything. She's not just a pop star she's an institution.",
+        "Swiftie culture gets made fun of but at least we're passionate about something real. Name an artist that inspires this much creativity.",
+        "tortured poets department deluxe edition hits different at 3am and I don't make the rules. Florida man is a top 5 Taylor song.",
+        "The Taylor Swift economy is actually crazy — hotels, restaurants, local economies. She's a one-woman GDP boost wherever she goes. 📈",
+      ],
+      click_books: [
+        "Fourth Wing sequel Iron Flame is out and it's even better. If you're not reading Rebecca Yarros you're missing out. #FourthWing",
+        "Just started Tomorrow and Tomorrow and Tomorrow and I get why everyone won't stop talking about it. The first 20 pages are incredible.",
+        "Atomic Habits is overrated as a self-help book but genuinely changed how I think about systems. Worth reading once.",
+        "The romantasy genre is having a MOMENT and I'm not complaining. Give me dragons and enemies-to-lovers all day.",
+        "ACOTAR fandom discourse is the most chaotic book community online and I'm fully here for it. Tamlin defenders log off.",
+        "Can we talk about how Colleen Hoover basically invented BookTok as a cultural phenomenon? For better or worse she changed publishing.",
+      ],
+      click_kpop: [
+        "NewJeans Hype Boy still hits after 2 years. That's how you know it's a generational bop. Minji carries every performance. 🐰",
+        "aespa's Whiplash era is their best. They finally found their sound and the concept is matching the music. #aespa",
+        "BTS coming back fully in 2025 is going to be one of the biggest cultural moments of the year. The world is not ready. 💜",
+        "BLACKPINK concert production values are unmatched in the industry. Whatever they spend on staging and lights is worth every penny.",
+        "Stray Kids performing at a US stadium sold out in 10 minutes. K-pop crossing over is not a trend it's a permanent shift in music culture. 🌸",
+        "The HYBE vs ADOR drama is wild even by K-pop standards. Min Hee-jin vs Big Corp is the storyline of 2024. 🍿",
+      ],
+      click_gaming: [
+        "GTA VI trailer has now been viewed 200M times. Rockstar still doesn't need to do anything to generate hype. The legend continues.",
+        "Elden Ring is FromSoftware's magnum opus and I refuse to entertain any other take. Shadow of the Erdtree was perfection.",
+        "Black Myth: Wukong showing the world what Chinese game devs can do when given full creative freedom. Beautiful game.",
+        "Astro Bot winning GOTY was exactly right. Pure joy. Nintendo-tier game from a Sony studio. The gaming gods smiled on us. 🎮",
+        "Palworld vs Pokemon discourse was the most entertaining gaming drama of the year. Let the players decide what they want to play.",
+        "Alan Wake 2 is the most visually stunning game I've ever played and Remedy Games deserves their flowers. Criminally underrated.",
+      ],
+      click_fitness: [
+        "Week 12 check in: down 18lbs, PR'd my deadlift, and most importantly I actually WANT to go to the gym now. Discipline becomes desire. 💪",
+        "Zone 2 cardio is genuinely life-changing and nobody talks about it enough. 45 minutes 4x a week and watch your life transform.",
+        "Hot take: nutrition is 80% of the result. Perfect training plan with poor diet will still give you mediocre results. Fix the diet first.",
+        "Ran my first marathon this weekend! 4:12 finish, not a PR, but I crossed the line and that's everything. Training works 🏃",
+        "Sleep, water, protein. These three things will do more for your physique than any supplement stack. The basics are not boring they're foundational.",
+        "The gym at 5am is its own community. Nods of respect. Zero phones. Just work. Nothing else hits like it. Early risers know.",
+      ],
+      click_nfl: [
+        "Patrick Mahomes is playing on another level this season. If the Chiefs win a 4th Super Bowl it's officially a dynasty for the ages. 🏈",
+        "Lamar Jackson deserves his 3rd MVP. He's doing things at QB that we've never seen before. Baltimore is a problem this postseason.",
+        "The Travis Kelce and Taylor Swift effect on NFL viewership is real. Like it or not more eyes on the game is a win for everyone.",
+        "Caleb Williams had a rough rookie season but the Bears have talent around him now. Give it 2 more years and he'll be elite.",
+        "The NFC is chaotic this year and I love it. Any team can win on any given week. Best conference in football right now.",
+        "Detroit Lions becoming a powerhouse is the most heartwarming story in the NFL. Dan Campbell and Jared Goff deserve everything.",
+      ],
+      click_nba: [
+        "Nikola Jokic is casually the best basketball player on earth and half the country still doesn't appreciate it. Third MVP incoming. 🏀",
+        "Victor Wembanyama is genuinely a cheat code. 7'4 with guard skills and an elite motor. Nobody is doing what he's doing at age 20.",
+        "The Celtics look like the team to beat this year. Tatum finally having his moment. Boston is dangerous with that depth.",
+        "LeBron and Bronny James playing together in the NBA is actually one of the most historic moments in sports history. Full stop.",
+        "Steph Curry still makes shots that should be physically impossible. He's 36 and looks like he's playing on easy mode.",
+        "NBA In-Season Tournament format has grown on me. Gets teams competing in November when usually nobody cares. Good for the league.",
+      ],
+      click_music: [
+        "Charli XCX's BRAT album is a cultural reset. Brat summer was real and she invented a color. That's generational pop artistry. 🟢",
+        "Sabrina Carpenter's Short n Sweet tour is selling out everywhere. She went from Disney to undisputed pop star in 18 months. Era of eras.",
+        "Beyoncé's Cowboy Carter changed country music whether country music wanted to be changed or not. Lemonade was her peak until now.",
+        "Chappell Roan exploding the way she did proves the internet can still make careers happen organically. Pink Pony Club was the origin. 🌹",
+        "The music festival lineup season is wild this year. Coachella, Glastonbury, Lolla — every headliner is different than the last.",
+        "Vinyl sales are outselling CDs for the first time since the 80s and Taylor Swift is responsible for a huge portion of that. Incredible.",
+      ],
+      click_ai: [
+        "Claude 3 Opus is genuinely the best AI for complex reasoning tasks. The context window and nuance is unmatched right now. Full stop.",
+        "GPT-4o's voice mode is shockingly natural. We're living in sci-fi and treating it like it's normal. Take a second to appreciate this moment.",
+        "AI coding tools have made me 3x more productive in the last 6 months. Cursor + Claude is the combo. Not even close.",
+        "The AI regulation debate is happening 5 years too late. The technology is already deployed. Policy will always trail innovation.",
+        "Open source AI models catching up to frontier models faster than anyone predicted. Llama 3 doing things that felt impossible 2 years ago.",
+        "Sam Altman and Elon Musk beef is the tech drama that won't end. Both are building AI. Both claim the other is dangerous. 🤖",
+      ],
+      click_startup: [
+        "Just closed our seed round at a valuation that felt insane 2 years ago. The market is coming back. Builders, stay the course. 🚀",
+        "The best startup advice I ever got: talk to 100 customers before you write a line of code. Nobody wants your solution. They want their problem solved.",
+        "YC Demo Day applications are open. The quality of founders keeps going up every batch. The ecosystem is thriving despite macro. Apply.",
+        "Venture valuations are compressing but that's actually healthy. Over-funding kills companies. Constraint breeds creativity. Build lean.",
+        "AI startups raising at insane multiples right now but the ones with real moats and real revenue will survive the hype cycle. Build the moat.",
+        "Notion, Figma, Linear — the B2B tools that blew up did so by being genuinely delightful to use. Stop treating enterprise like it hates good UX.",
+      ],
+      click_nyc: [
+        "The High Line at sunset on a clear day is still one of the most beautiful things in the world. Living in NYC rent-free in my heart. 🗽",
+        "Bodega cat > any other establishment mascot in any city in the world. NYC bodegas are an institution and I will not hear otherwise.",
+        "The L train being reliable again after years of torture is genuinely the best thing to happen to Brooklyn this decade.",
+        "Pizza rat is still the true mascot of New York. Never forget where we came from. The city that never sleeps and never shares its pizza. 🍕",
+        "NYC in winter is underrated. Everyone leaves. Fewer tourists. The real city reveals itself. The locals inherit the streets.",
+        "The NYC food scene in 2024 is the best it's ever been. You can eat 10 different countries of food within 4 blocks in any neighborhood.",
+      ],
+    };
+
+    // Bot comment replies to user posts
+    const BOT_COMMENTS = {
+      positive: [
+        "This is everything! 🔥 So real.",
+        "Couldn't agree more. You said what we were all thinking.",
+        "This hit different. Reposting immediately.",
+        "Actual facts. Not enough people are talking about this.",
+        "Love this energy. Keep posting 💪",
+        "You're speaking my language right now.",
+        "Needed this today. Thank you for existing on this app.",
+        "This is the content I log on for. Well said.",
+        "Scrypt never misses and neither do you 🙌",
+        "Legendary take. Fully agree.",
+      ],
+      general: [
+        "Interesting perspective! I see it differently but I respect this.",
+        "Coming in with the takes 👀",
+        "This is why I love Scrypt. Real conversations.",
+        "Follow for more like this — dropping to my village rn.",
+        "The discourse needed this. Good post.",
+        "Say it louder for the people in the back!",
+        "Hot take but I'm here for it 😂",
+        "This is going in my saved posts. Bookmark worthy.",
+        "Always relevant, always on point.",
+        "Big brain thinking on this one. Appreciate you.",
+      ],
+    };
+
+    // General home feed posts from bots
+    const HOME_BOT_POSTS = [
+      "Scrypt is the only social app where I actually feel heard. The community here is different. Stay up ✊ #Scrypt",
       "Can't stop won't stop posting on Scrypt. This platform built different 💪",
       "Just added 10 new people to my village. The community here is everything. #Scrypt #village",
       "Real ones know: Scrypt > everything else. Period. No debate. 🙌",
-      "Logging onto Scrypt every morning is the new morning coffee ☕ #routine",
       "The Scrypt algorithm actually shows me things I care about. Revolutionary. #Scrypt",
       "Built in public update: shipped 3 features today. Posting it on Scrypt first as always 🚀",
       "If you're not on Scrypt you're missing out on the best conversations online. Just saying.",
       "Scrypt village system is the most underrated feature in social media. Change my mind. 🏘️",
-      "Day 47 of posting on Scrypt every day. This community keeps me going 💯 #consistency",
-      "Hot take: Scrypt will be the dominant platform by end of year. Screenshot this. #prediction",
+      "Day 47 of posting on Scrypt every day. This community keeps me going 💯",
       "The giga chads of Scrypt: consistent, authentic, relentless. Which one are you? 💪",
       "Grinding on Scrypt at 3am because the international community is always awake 🌍",
-      "My village on Scrypt has grown to 200+ people. We're a movement now. 🔥 #ScryptNation",
-      "Scrypt tip: engage authentically and your village grows itself. No hacks needed. 💡",
+      "Morning thought: the people who show up every day win. Consistency is the cheat code. #mindset",
+      "Reminder that your potential is not determined by your past. Start fresh today. Scrypt fam 🙏",
+      "What you put out into the world comes back. Post with intention. Live with purpose.",
+      "The best investment you can make is in your own skills. No market can take that away.",
     ];
+
+    const getClickBotMembers = (clickId) => {
+      const allClicks = LS.get("sc") || [];
+      const click = allClicks.find(c => c.id === clickId);
+      if (!click) return [];
+      const allUsers = LS.get("su") || [];
+      return allUsers.filter(u => u.isBot && click.members.includes(u.id));
+    };
+
+    const clickIds = Object.keys(CLICK_POSTS);
+
     const interval = setInterval(() => {
       const allBots = (LS.get("su") || []).filter(u => u.isBot);
       const curPosts = LS.get("sp") || [];
-      
-      // Random bot posts a new Scrypt
-      if (Math.random() < 0.4) {
-        const poster = allBots[Math.floor(Math.random() * allBots.length)];
-        const content = BOT_POSTS[Math.floor(Math.random() * BOT_POSTS.length)];
+      const now = Date.now();
+
+      // 35% chance: a bot posts to a random click with realistic entertainment content
+      if (Math.random() < 0.35) {
+        const targetClickId = clickIds[Math.floor(Math.random() * clickIds.length)];
+        const clickMembers = getClickBotMembers(targetClickId);
+        const poster = clickMembers.length > 0
+          ? clickMembers[Math.floor(Math.random() * clickMembers.length)]
+          : allBots[Math.floor(Math.random() * allBots.length)];
+        const pool = CLICK_POSTS[targetClickId] || HOME_BOT_POSTS;
+        const content = pool[Math.floor(Math.random() * pool.length)];
         const newPost = {
-          id: `bot_auto_${Date.now()}_${Math.floor(Math.random()*10000)}`,
+          id: `bauto_${now}_${Math.floor(Math.random() * 99999)}`,
+          userId: poster.id, username: poster.username, content,
+          likes: [], reposts: [],
+          clickId: targetClickId,
+          createdAt: new Date().toISOString(), replyCount: 0
+        };
+        // Other click members stagger-like it over 5–30 seconds
+        const postBots = [...clickMembers].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 8) + 3);
+        const withPost = [newPost, ...curPosts];
+        LS.set("sp", withPost); setPosts(withPost);
+        postBots.forEach((b, i) => {
+          if (b.id === poster.id) return;
+          setTimeout(() => {
+            const c2 = LS.get("sp") || [];
+            const u2 = c2.map(x => x.id === newPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
+            LS.set("sp", u2); setPosts(u2);
+          }, (i + 1) * (3000 + Math.random() * 8000));
+        });
+      }
+
+      // 25% chance: a bot posts to home feed
+      if (Math.random() < 0.25) {
+        const poster = allBots[Math.floor(Math.random() * allBots.length)];
+        const content = HOME_BOT_POSTS[Math.floor(Math.random() * HOME_BOT_POSTS.length)];
+        const newPost = {
+          id: `bhome_${now}_${Math.floor(Math.random() * 99999)}`,
           userId: poster.id, username: poster.username, content,
           likes: [], reposts: [],
           createdAt: new Date().toISOString(), replyCount: 0
         };
         const withPost = [newPost, ...curPosts];
         LS.set("sp", withPost); setPosts(withPost);
-      }
-
-      // Random bots like recent posts
-      const recentPosts = curPosts.slice(0, 30);
-      if (recentPosts.length > 0) {
-        const targetPost = recentPosts[Math.floor(Math.random() * Math.min(10, recentPosts.length))];
-        const likers = [...allBots].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 12) + 3);
-        const updated = curPosts.map(p => {
-          if (p.id !== targetPost.id) return p;
-          const newLikes = [...new Set([...(p.likes || []), ...likers.map(b => b.id)])];
-          return { ...p, likes: newLikes };
+        // Stagger likes over 10–60 seconds based on positivity
+        const score = sentimentScore(content);
+        const likerCount = Math.min(score + Math.floor(Math.random() * 5), 25);
+        const likers = [...allBots].filter(b => b.id !== poster.id).sort(() => Math.random() - 0.5).slice(0, likerCount);
+        likers.forEach((b, i) => {
+          setTimeout(() => {
+            const c2 = LS.get("sp") || [];
+            const u2 = c2.map(x => x.id === newPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
+            LS.set("sp", u2); setPosts(u2);
+          }, (i + 1) * (4000 + Math.random() * 12000));
         });
-        LS.set("sp", updated); setPosts(updated);
       }
 
-      // Random bots add each other to village
-      if (Math.random() < 0.3) {
+      // Always: stagger-add likes to recent posts based on sentiment
+      const recentPosts = curPosts.filter(p => !p.parentId).slice(0, 15);
+      if (recentPosts.length > 0) {
+        const targetPost = recentPosts[Math.floor(Math.random() * Math.min(8, recentPosts.length))];
+        const score = sentimentScore(targetPost.content);
+        const likerCount = Math.floor(score / 3) + Math.floor(Math.random() * 4) + 1;
+        const existing = new Set(targetPost.likes || []);
+        const eligible = allBots.filter(b => !existing.has(b.id) && b.id !== targetPost.userId);
+        const likers = eligible.sort(() => Math.random() - 0.5).slice(0, likerCount);
+        likers.forEach((b, i) => {
+          setTimeout(() => {
+            const c2 = LS.get("sp") || [];
+            const u2 = c2.map(x => x.id === targetPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
+            LS.set("sp", u2); setPosts(u2);
+          }, (i + 1) * (2500 + Math.random() * 7000));
+        });
+      }
+
+      // 20% chance: a bot comments on a user's non-bot post
+      if (Math.random() < 0.20) {
+        const userPosts = curPosts.filter(p => !p.parentId && p.userId === me.id);
+        if (userPosts.length > 0) {
+          const targetPost = userPosts[Math.floor(Math.random() * Math.min(3, userPosts.length))];
+          const score = sentimentScore(targetPost.content);
+          const pool = score >= 8 ? BOT_COMMENTS.positive : BOT_COMMENTS.general;
+          const commenter = allBots[Math.floor(Math.random() * allBots.length)];
+          const comment = pool[Math.floor(Math.random() * pool.length)];
+          setTimeout(() => {
+            const c2 = LS.get("sp") || [];
+            const reply = {
+              id: `breply_${now}_${Math.floor(Math.random() * 99999)}`,
+              userId: commenter.id, username: commenter.username,
+              content: comment, parentId: targetPost.id,
+              likes: [], reposts: [],
+              createdAt: new Date().toISOString(), replyCount: 0
+            };
+            const withReply = c2.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x);
+            const final = [reply, ...withReply];
+            LS.set("sp", final); setPosts(final);
+          }, 5000 + Math.random() * 15000);
+        }
+      }
+
+      // 15% chance: bots add each other to village
+      if (Math.random() < 0.15) {
         const allUsers = LS.get("su") || [];
         const bot1 = allBots[Math.floor(Math.random() * allBots.length)];
         const bot2 = allBots[Math.floor(Math.random() * allBots.length)];
@@ -988,7 +1291,7 @@ export default function App() {
           LS.set("su", updated); setUsers(updated);
         }
       }
-    }, 18000); // Every 18 seconds
+    }, 15000); // Every 15 seconds
     return () => clearInterval(interval);
   }, [me]);
 
