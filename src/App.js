@@ -3629,6 +3629,43 @@ export default function App() {
 
           <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
+          {/* DEBUG PANEL */}
+          <div style={{ marginTop: 12, background: "#1a1a2e", borderRadius: 10, padding: 12, border: "1px solid #444" }}>
+            <div style={{ color: "#00ff88", fontSize: 11, fontWeight: 700, marginBottom: 8 }}>🔍 DEBUG — Photo Save State</div>
+            <button onClick={() => {
+              const lsData = LS.get(`profile_${me.id}`);
+              const photoKeys = ["infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
+              const report = photoKeys.map(k => {
+                const inMe = me[k];
+                const inLS = lsData?.[k];
+                return `${k}:
+  me: ${inMe ? (inMe.startsWith("data:") ? "BASE64 ✓ ("+Math.round(inMe.length/1024)+"KB)" : "URL ✓") : "null ✗"}
+  LS: ${inLS ? (inLS.startsWith("data:") ? "BASE64 ✓ ("+Math.round(inLS.length/1024)+"KB)" : "URL ✓") : "null ✗"}`;
+              }).join("
+
+");
+              const lsSize = JSON.stringify(lsData || {}).length;
+              alert(`LS profile size: ${Math.round(lsSize/1024)}KB
+
+${report}`);
+            }} style={{ background: "#00ff88", color: "#000", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", marginBottom: 6, width: "100%" }}>
+              Check Photo State
+            </button>
+            <button onClick={() => {
+              try {
+                const testKey = "ls_test_" + Date.now();
+                const bigStr = "x".repeat(100000); // 100KB test
+                localStorage.setItem(testKey, bigStr);
+                localStorage.removeItem(testKey);
+                alert("localStorage works fine — can write 100KB");
+              } catch(e) {
+                alert("localStorage ERROR: " + e.message);
+              }
+            }} style={{ background: "#ffa500", color: "#000", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", width: "100%" }}>
+              Test localStorage Write
+            </button>
+          </div>
+
           {/* ── CHANGE PASSWORD (optional) ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🔒 Change Password</div>
