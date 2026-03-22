@@ -1768,6 +1768,14 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
+    // Safety net: if loading takes > 12 seconds, fall back to login
+    const safetyTimer = setTimeout(() => {
+      console.warn("initDB timeout — falling back to login");
+      LS.set("session_uid", null);
+      setDbLoading(false);
+      setPg("login");
+    }, 12000);
+
     const initDB = async () => {
       setDbLoading(true);
       // Restore session
@@ -1877,9 +1885,20 @@ export default function App() {
         // Session invalid — clear it
         LS.set("session_uid", null);
         setPg("login");
+        return;
       }
+      // No session — go to login
+      setPg("login");
     };
-    initDB();
+    initDB()
+      .then(() => clearTimeout(safetyTimer))
+      .catch(e => {
+        console.error("initDB crashed:", e);
+        clearTimeout(safetyTimer);
+        LS.set("session_uid", null);
+        setDbLoading(false);
+        setPg("login");
+      });
   }, []);
 
   const T = {
