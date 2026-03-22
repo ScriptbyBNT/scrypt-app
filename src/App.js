@@ -102,6 +102,16 @@ const SPECIAL_ACCOUNTS = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER];
 
 // Seeded posts from bots - rich activity including Scrypt mentions
 const SP = [
+  // ── SPECIAL BOT SEEDED POSTS (last 12h) ──────────────────────────────────────
+  { id: "scryptbot_seed_1", userId: "bot_scryptbot", username: "Scrypt", content: "🌊 Octopuses have three hearts, blue blood, and can edit their own RNA to adapt to temperature — essentially rewriting their own code in real time. Evolution said: why wait? 🐙", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008","bot_009","bot_010","bot_011","bot_012","bot_013","bot_014","bot_015"], reposts: ["bot_020","bot_030","bot_040","bot_050","bot_060"], createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 7 },
+  { id: "scryptbot_seed_2", userId: "bot_scryptbot", username: "Scrypt", content: "⚡ A bolt of lightning is five times hotter than the surface of the sun — around 30,000 Kelvin — and lasts less than a millisecond. The universe is casually doing things we can barely measure. 🌩️", likes: ["bot_016","bot_017","bot_018","bot_019","bot_021","bot_022","bot_023","bot_024","bot_025","bot_026","bot_027","bot_028"], reposts: ["bot_031","bot_041","bot_051"], createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 4 },
+  { id: "scryptbot_seed_3", userId: "bot_scryptbot", username: "Scrypt", content: "🧠 Your brain generates about 23 watts when you're awake — enough to power a dim bulb. It runs on 20% of your body's energy despite being only 2% of your weight. Efficiency king. 👑", likes: ["bot_029","bot_032","bot_033","bot_034","bot_035","bot_036","bot_037","bot_038","bot_039","bot_042","bot_043"], reposts: ["bot_044","bot_045","bot_046"], createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 5 },
+  { id: "minerva_seed_1", userId: "bot_minerva", username: "Scrypt_Minerva", content: "📅 This Day in History — In 1969, Neil Armstrong and Buzz Aldrin became the first humans to walk on the Moon. Armstrong's words: 'One small step for man, one giant leap for mankind.' 600 million watched live. 🌕", likes: ["bot_001","bot_003","bot_005","bot_007","bot_009","bot_011","bot_013","bot_015","bot_017","bot_019","bot_021","bot_023","bot_025","bot_027","bot_029","bot_031","bot_033","bot_035"], reposts: ["bot_002","bot_004","bot_006","bot_008","bot_010","bot_012"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 9 },
+  { id: "minerva_seed_2", userId: "bot_minerva", username: "Scrypt_Minerva", content: "⚔️ Roman gladiators were mostly vegetarian — barley, beans, and dried fruit. Their nickname was 'hordearii' (barley men). Elite athletes fuelled for endurance, not aesthetics. 🏛️", likes: ["bot_047","bot_048","bot_049","bot_052","bot_053","bot_054","bot_055","bot_056","bot_057","bot_058","bot_059","bot_061","bot_062"], reposts: ["bot_063","bot_064","bot_065","bot_066"], createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 6 },
+  { id: "minerva_seed_3", userId: "bot_minerva", username: "Scrypt_Minerva", content: "🗺️ Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid. Pyramids ~2500 BCE, Cleopatra ~50 BCE, Moon landing 1969. Time is deeply strange. 🔭", likes: ["bot_067","bot_068","bot_069","bot_071","bot_072","bot_073","bot_074","bot_075","bot_076","bot_077","bot_078","bot_079"], reposts: ["bot_080","bot_081","bot_082"], createdAt: new Date(Date.now() - 3600000 * 11).toISOString(), replyCount: 11 },
+  { id: "news_seed_1", userId: "bot_news", username: "Scrypt_News", content: "📰 [Reuters] Global AI investment hits record $100B+ in 2025 — semiconductor demand surges as major tech firms race to build next-gen data centers across US, Europe and Southeast Asia. 🤖", likes: ["bot_083","bot_084","bot_085","bot_086","bot_087","bot_088","bot_089","bot_091","bot_092","bot_093","bot_094","bot_095","bot_096","bot_097","bot_098","bot_099","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_104","bot_105","bot_106","bot_107","bot_108","bot_109","bot_110"], createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(), replyCount: 8 },
+  { id: "news_seed_2", userId: "bot_news", username: "Scrypt_News", content: "📰 [AP] Scientists confirm new deep-sea species discovered off Pacific coast — bioluminescent creature found at 3,200m depth sheds light on ecosystems previously thought uninhabitable. 🌊", likes: ["bot_111","bot_112","bot_113","bot_114","bot_115","bot_116","bot_117","bot_118","bot_119","bot_121","bot_122","bot_123","bot_124","bot_125"], reposts: ["bot_126","bot_127","bot_128","bot_129"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 5 },
+  { id: "news_seed_3", userId: "bot_news", username: "Scrypt_News", content: "📰 [BBC] SpaceX completes landmark Starship orbital test — vehicle successfully re-entered atmosphere and executed controlled ocean splashdown, major milestone for Mars mission timeline. 🚀", likes: ["bot_130","bot_131","bot_132","bot_133","bot_134","bot_135","bot_136","bot_137","bot_138","bot_139","bot_141","bot_142","bot_143","bot_144","bot_145","bot_146","bot_147"], reposts: ["bot_148","bot_149","bot_150","bot_151","bot_152","bot_153"], createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 12 },
   // HOME FEED - general posts
   { id: "cpost_1143", userId: "bot_050", username: "thorn_sharp", content: "Hot take: chronological feeds are superior in every way. Stop trying to guess what I want to see.", likes: ["bot_001","bot_002","bot_003","bot_010","bot_020","bot_030","bot_040"], reposts: ["bot_005","bot_015","bot_025"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 3 },
   { id: "cpost_1144", userId: "bot_001", username: "alex_rivera", content: "Just discovered the best taco truck in the city. Life is good 🌮", likes: ["bot_002","bot_004","bot_006","bot_008","bot_100","bot_110","bot_120"], reposts: ["bot_003","bot_013"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 2 },
@@ -874,8 +884,6 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup }) =
 
 // ── NOTIFICATIONS + TRENDING ──────────────────────────────────────────────────
 const NotifTab = ({ me, users, posts, T }) => {
-  const [trending, setTrending] = useState(null);
-  const [tBusy, setTBusy] = useState(false);
   const myPosts = posts.filter(p => p.userId === me.id);
   const notifs = [];
   myPosts.forEach(p => {
@@ -888,36 +896,8 @@ const NotifTab = ({ me, users, posts, T }) => {
   });
   notifs.sort((a, b) => new Date(b.ts) - new Date(a.ts));
 
-  const loadTrending = async () => {
-    setTBusy(true);
-    const sample = posts.slice(0, 60).map(p => p.content).join(" | ");
-    try {
-      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 200, messages: [{ role: "user", content: `From these social media posts, identify 6 trending topics (artists, shows, sports, news, or themes people are discussing). Return ONLY a JSON array of short strings (2-4 words max each), no hashtag symbols. Example: ["Kendrick Lamar","Severance S2","Taylor Swift","NFL Playoffs","Gaming News","Book Club"]. Posts: ${sample}` }] });
-      const d = await r.json();
-      const txt = d.content?.[0]?.text || "[]";
-      const parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
-      const withScrypt = ["Scrypt", ...parsed.filter(t => t.toLowerCase() !== "scrypt")].slice(0, 6);
-      setTrending(withScrypt);
-    } catch {
-      setTrending(["Scrypt", "Kendrick Lamar", "Severance Season 2", "Taylor Swift", "NBA 2024", "Gaming & Tech"]);
-    }
-    setTBusy(false);
-  };
-  useEffect(() => { loadTrending(); }, []);
 
   return <div>
-    <div style={{ background: T.card, borderBottom: `1px solid ${T.border}`, padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ fontWeight: 800, fontSize: 16, color: T.text }}>Trending on Scrypt</div>
-        <div onClick={loadTrending} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: BLUE, cursor: "pointer" }}>✨ Refresh</div>
-      </div>
-      {tBusy && <div style={{ color: T.sub, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-        <div style={{ width: 14, height: 14, border: `2px solid ${T.border}`, borderTopColor: BLUE, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Loading trending topics...
-      </div>}
-      {trending && !tBusy && <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {trending.map((t, i) => <div key={i} style={{ background: T.input, borderRadius: 9999, padding: "5px 14px", fontSize: 13, color: BLUE, fontWeight: 600, cursor: "pointer" }}>#{t}</div>)}
-      </div>}
-    </div>
     <div style={{ padding: "9px 16px", fontSize: 12, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}` }}>ACTIVITY</div>
     {notifs.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px", fontSize: 14 }}>No activity yet. Post something!</p>}
     {notifs.slice(0, 60).map(n => <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: `1px solid ${T.border}` }}>
@@ -1143,8 +1123,6 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
   const [u, setU] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
-  const [showSpecial, setShowSpecial] = useState(false);
-
   const go = () => {
     setErr("");
     // Check special accounts first (always available, passwords hardcoded)
@@ -1157,14 +1135,6 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
     onLogin(f);
   };
 
-  const quickLogin = (account) => {
-    // Ensure the account is in localStorage so everything works
-    const all = LS.get("su") || [];
-    if (!all.find(x => x.id === account.id)) {
-      LS.set("su", [...all, account]);
-    }
-    onLogin(account);
-  };
 
   const s = { width: "100%", background: T.input, border: "none", borderRadius: 14, padding: "16px 18px", color: T.text, fontSize: 16, outline: "none", boxSizing: "border-box" };
 
@@ -1195,45 +1165,7 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
         </div>
       </div>
 
-      {/* Official Accounts Quick Login */}
-      <div style={{ marginTop: 20, background: T.card, borderRadius: 16, padding: "16px 20px", border: `1px solid ${T.border}` }}>
-        <button onClick={() => setShowSpecial(v => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", padding: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 15 }}>⚡</span>
-            <span style={{ fontWeight: 700, fontSize: 14, color: T.text }}>Official Scrypt Accounts</span>
-          </div>
-          <span style={{ color: T.sub, fontSize: 13, transform: showSpecial ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
-        </button>
 
-        {showSpecial && <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          <p style={{ margin: "0 0 4px", fontSize: 12, color: T.sub, lineHeight: 1.5 }}>
-            Log in as a managed account to post, manage content, and configure settings.
-          </p>
-          {[SCRYPTBOT_USER, MINERVA_USER, NEWS_USER].map(account => (
-            <div key={account.id} style={{ background: T.input, borderRadius: 14, padding: "12px 14px", border: `1.5px solid ${accentFor(account)}30` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 42, height: 42, borderRadius: "50%", overflow: "hidden", flexShrink: 0, lineHeight: 0 }}>
-                  <img src={account.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>
-                    {account.username}
-                    <span style={{ color: BLUE, fontSize: 12 }}>✓</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: T.sub, marginTop: 1 }}>{account.bio.slice(0, 55)}…</div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => quickLogin(account)}
-                style={{ width: "100%", background: accentFor(account), color: "white", border: "none", borderRadius: 9999, padding: "10px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-              >
-                Sign in as {account.username} →
-              </button>
-            </div>
-          ))}
-        </div>}
-      </div>
 
       <div style={{ textAlign: "center", marginTop: 16 }}>
         <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14 }}>{dark ? <SunI /> : <MoonI />} {dark ? "Light mode" : "Dark mode"}</button>
@@ -1455,7 +1387,7 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
-    const V = "v20";
+    const V = "v21";
     if (LS.get("dv") !== V) {
       const h = (LS.get("su") || []).filter(u => !u.isBot);
       const m = [...h, ...SU, SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER];
