@@ -112,6 +112,51 @@ const DB = {
   upsertDMs: (key, messages) => sbFetch("dms", { method: "POST", body: JSON.stringify({ conversation_key: key, messages: JSON.stringify(messages) }), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
 };
 
+// ── SUPABASE STORAGE ─────────────────────────────────────────────────────────
+// Buckets needed in Supabase dashboard: "media" (photos) and "audio" (songs)
+// Both buckets must be set to PUBLIC
+const STORAGE = {
+  // Upload a base64 data URL to Supabase Storage, returns public URL or null
+  upload: async (bucket, path, dataUrl) => {
+    try {
+      // Convert base64 data URL to binary blob
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const uploadUrl = `${SUPA_URL}/storage/v1/object/${bucket}/${path}`;
+      const r = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          "apikey": SUPA_KEY,
+          "Authorization": `Bearer ${SUPA_KEY}`,
+          "Content-Type": blob.type,
+          "x-upsert": "true",
+        },
+        body: blob,
+      });
+      if (!r.ok) {
+        const err = await r.text();
+        console.error("Storage upload error:", err);
+        return null;
+      }
+      return `${SUPA_URL}/storage/v1/object/public/${bucket}/${path}`;
+    } catch(e) {
+      console.error("Storage upload exception:", e);
+      return null;
+    }
+  },
+  // Delete a file from storage
+  remove: async (bucket, path) => {
+    try {
+      await fetch(`${SUPA_URL}/storage/v1/object/${bucket}/${path}`, {
+        method: "DELETE",
+        headers: { "apikey": SUPA_KEY, "Authorization": `Bearer ${SUPA_KEY}` },
+      });
+    } catch(e) {}
+  },
+  // Get public URL (no fetch needed)
+  url: (bucket, path) => `${SUPA_URL}/storage/v1/object/public/${bucket}/${path}`,
+};
+
 // Convert DB row → app object (posts/clicks come back with snake_case from DB → map to camelCase arrays)
 const rowToPost = r => {
   if (!r) return null;
@@ -193,13 +238,12 @@ const INFO_TEXT_KEYS = ["infoMovie","infoArtist","infoShow","infoBook","infoGame
 const INFO_PHOTO_KEYS = ["infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
 const INFO_FIELD_KEYS = [...INFO_TEXT_KEYS, ...INFO_PHOTO_KEYS];
 const userToRow = u => {
-  // Pack info card TEXT fields + song into info_fields JSON column
-  // Photos are stored in localStorage (too large for DB text column)
+  // Pack info card text + photo URL fields into info_fields JSON column
+  // Photos are now Supabase Storage URLs (short strings, fine for DB)
   const infoFields = {};
   INFO_TEXT_KEYS.forEach(k => { if (u[k]) infoFields[k] = u[k]; });
-  // Store flag per photo so we know one exists even across devices
-  INFO_PHOTO_KEYS.forEach(k => { if (u[k]) infoFields[k + "_flag"] = true; });
-  // profileSong audio is stored in IndexedDB, not Supabase (too large)
+  INFO_PHOTO_KEYS.forEach(k => { if (u[k]) infoFields[k] = u[k]; });
+  if (u.profileSong) infoFields.profileSong = u.profileSong;
   if (u.profileSongLabel) infoFields.profileSongLabel = u.profileSongLabel;
   return {
     id: u.id,
@@ -1089,27 +1133,16 @@ const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
 
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
 const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
-  const [modalMedia, setModalMedia] = useState({});
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const updates = {};
-      for (const f of INFO_FIELDS) {
-        const val = await IDB.get(`icard_${user.id}_${f.photoKey}`);
-        if (val) updates[f.photoKey] = val;
-      }
-      const song = await IDB.get(`psong_${user.id}`);
-      if (song) updates._song = song;
-      if (!cancelled) setModalMedia(updates);
-    })();
-    return () => { cancelled = true; };
-  }, [user.id]);
-  const resolveModalPhoto = (u, k) => modalMedia[k] || (u[k]?.startsWith?.("data:") ? u[k] : null);
+  const resolveModalPhoto = (u, k) => {
+    const val = u[k];
+    if (!val) return null;
+    if (typeof val === "string" && (val.startsWith("http") || val.startsWith("data:"))) return val;
+    return null;
+  };
   const resolveModalSong = (u) => {
     if (!u.hasProfileSong && !u.profileSong) return null;
-    const song = modalMedia._song || u.profileSong;
-    if (!song) return null;
-    return { song, label: u.profileSongLabel || null };
+    if (!u.profileSong) return null;
+    return { song: u.profileSong, label: u.profileSongLabel || null };
   };
   const myV = me.village || [];
   const inV = myV.includes(user.id);
@@ -2859,44 +2892,63 @@ export default function App() {
     if (sfSnapshot.mood !== undefined) upd.mood = sfSnapshot.mood;
     if (sfSnapshot.accentColor !== undefined) upd.accentColor = sfSnapshot.accentColor;
     if (sfSnapshot.featuredPostId !== undefined) upd.featuredPostId = sfSnapshot.featuredPostId;
-    // Profile song — audio stored in IndexedDB, metadata in Supabase
-    if (sfSnapshot.profileSong !== undefined) {
-      const songKey = `psong_${meSnapshot.id}`;
-      if (sfSnapshot.profileSong) {
-        IDB.set(songKey, sfSnapshot.profileSong);
-      } else {
-        IDB.del(songKey);
-      }
-      upd.hasProfileSong = !!sfSnapshot.profileSong;
-      upd.profileSongName = sfSnapshot.profileSongName || null;
-      upd.profileSong = sfSnapshot.profileSong || null; // in-memory only this session
-    }
     if (sfSnapshot.profileSongLabel !== undefined) upd.profileSongLabel = sfSnapshot.profileSongLabel;
-    // Info card text fields — saved to Supabase; photos saved to IndexedDB (no size limit)
+    // Info card text fields — go to Supabase via info_fields
     INFO_FIELDS.forEach(f => {
       if (sfSnapshot[f.key] !== undefined) upd[f.key] = sfSnapshot[f.key];
-      if (sfSnapshot[f.photoKey] !== undefined) {
-        const idbKey = `icard_${meSnapshot.id}_${f.photoKey}`;
-        if (sfSnapshot[f.photoKey]) {
-          IDB.set(idbKey, sfSnapshot[f.photoKey]);
-        } else {
-          IDB.del(idbKey);
-        }
-        // Keep in-memory so profile renders immediately this session
-        upd[f.photoKey] = sfSnapshot[f.photoKey] || null;
-      }
     });
-    if (Object.keys(upd).length === 0) return;
+    if (Object.keys(upd).length === 0 &&
+        sfSnapshot.profileSong === undefined &&
+        !INFO_FIELDS.some(f => sfSnapshot[f.photoKey] !== undefined)) return;
+    // Apply text/metadata updates immediately
     const updatedUsers = users.map(u => u.id === meSnapshot.id ? { ...u, ...upd } : u);
     setUsers(updatedUsers);
     setMe(p => ({ ...p, ...upd }));
-    const updatedMe = { ...meSnapshot, ...upd };
+    notify("Saving...");
     (async () => {
+      // Upload profile song to Supabase Storage if changed
+      if (sfSnapshot.profileSong !== undefined) {
+        if (sfSnapshot.profileSong) {
+          // base64 data URL — upload to storage
+          const isUrl = sfSnapshot.profileSong.startsWith("http");
+          if (!isUrl) {
+            const path = `${meSnapshot.id}/profile_song`;
+            const url = await STORAGE.upload("audio", path, sfSnapshot.profileSong);
+            upd.hasProfileSong = true;
+            upd.profileSongName = sfSnapshot.profileSongName || null;
+            upd.profileSong = url || sfSnapshot.profileSong; // fall back to base64 if upload fails
+          }
+        } else {
+          await STORAGE.remove("audio", `${meSnapshot.id}/profile_song`);
+          upd.hasProfileSong = false;
+          upd.profileSongName = null;
+          upd.profileSong = null;
+        }
+      }
+      // Upload info card photos to Supabase Storage if changed
+      for (const f of INFO_FIELDS) {
+        if (sfSnapshot[f.photoKey] !== undefined) {
+          if (sfSnapshot[f.photoKey]) {
+            const isUrl = sfSnapshot[f.photoKey].startsWith("http");
+            if (!isUrl) {
+              const path = `${meSnapshot.id}/${f.photoKey}`;
+              const url = await STORAGE.upload("media", path, sfSnapshot[f.photoKey]);
+              upd[f.photoKey] = url || sfSnapshot[f.photoKey];
+            }
+          } else {
+            await STORAGE.remove("media", `${meSnapshot.id}/${f.photoKey}`);
+            upd[f.photoKey] = null;
+          }
+        }
+      }
+      // Final state update with storage URLs
+      const finalUsers = users.map(u => u.id === meSnapshot.id ? { ...u, ...upd } : u);
+      setUsers(finalUsers);
+      setMe(p => ({ ...p, ...upd }));
+      const updatedMe = { ...meSnapshot, ...upd };
       try { await DB.updateUser(meSnapshot.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); }
-      // Reload media cache so new photos/song show up immediately
-      loadMediaForUser(meSnapshot.id);
+      notify("Saved ✓");
     })();
-    notify("Saved ✓");
   }, [users]);
 
   // Auto-save settings after 800ms of inactivity
@@ -2910,41 +2962,20 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [sf]);
 
-  // Media cache — loaded from IndexedDB on mount and after saves
-  const [mediaCache, setMediaCache] = useState({});
-  const loadMediaForUser = useCallback(async (uid) => {
-    if (!uid) return;
-    const updates = {};
-    for (const f of INFO_FIELDS) {
-      const key = `icard_${uid}_${f.photoKey}`;
-      const val = await IDB.get(key);
-      if (val) updates[key] = val;
-    }
-    const song = await IDB.get(`psong_${uid}`);
-    if (song) updates[`psong_${uid}`] = song;
-    setMediaCache(prev => ({ ...prev, ...updates }));
-  }, []);
-
-  useEffect(() => { if (me?.id) loadMediaForUser(me.id); }, [me?.id]);
-
-  // resolvePhoto reads from mediaCache (loaded from IDB) or in-memory session fallback
-  const resolvePhoto = (user, photoKey) => {
-    const cached = mediaCache[`icard_${user.id}_${photoKey}`];
-    if (cached) return cached;
+  // resolvePhoto — photos are now Supabase Storage URLs stored directly on user object
+  const resolvePhoto = useCallback((user, photoKey) => {
     const val = user[photoKey];
     if (!val) return null;
-    if (typeof val === "string" && val.startsWith("data:")) return val;
+    if (typeof val === "string" && (val.startsWith("http") || val.startsWith("data:"))) return val;
     return null;
-  };
+  }, []);
 
-  // Helper: resolve profile song — reads from mediaCache (IndexedDB) or in-memory session
-  const resolveProfileSong = (user) => {
+  // resolveProfileSong — song URL stored directly on user object (Supabase Storage)
+  const resolveProfileSong = useCallback((user) => {
     if (!user.hasProfileSong && !user.profileSong) return null;
-    const cached = mediaCache[`psong_${user.id}`];
-    const song = cached || user.profileSong;
-    if (!song) return null;
-    return { song, name: user.profileSongName, label: user.profileSongLabel || null };
-  };
+    if (!user.profileSong) return null;
+    return { song: user.profileSong, name: user.profileSongName, label: user.profileSongLabel || null };
+  }, []);
 
   if (pg === "loading" || (pg === "app" && dbLoading)) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
     <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BLUE, padding: "14px 28px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", overflow: "hidden" }}>
