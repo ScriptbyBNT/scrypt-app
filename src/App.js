@@ -1695,41 +1695,43 @@ export default function App() {
       {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} />}
 
       {!thread && tab === "profile" && <div>
-        {/* Banner / wallpaper */}
-        {(() => { const myAccent = getAccent(me); return <>
-        <div style={{ height: 110, background: me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || myAccent.grad), position: "relative", overflow: "visible", flexShrink: 0, borderBottom: `2px solid ${myAccent.color}` }}>
-          <button onClick={() => setShowWallpaper(true)} style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "white", border: "none", borderRadius: 9999, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🖼️ Edit banner</button>
-          <div style={{ position: "absolute", bottom: -32, left: 16, border: `3px solid ${myAccent.color}`, borderRadius: "50%", zIndex: 2, background: T.card }}>
-            <Av user={me} sz={62} />
-          </div>
-        </div>
-        <div style={{ padding: "40px 16px 12px", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 8 }}>
-            <button onClick={() => setShowPP(true)} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "5px 11px", fontSize: 12, cursor: "pointer" }}>Choose pic</button>
-            <button onClick={() => avRef.current.click()} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "5px 11px", fontSize: 12, cursor: "pointer" }}>Upload photo</button>
-            <input ref={avRef} type="file" accept="image/*" style={{ display: "none" }} onChange={doAvatar} />
-          </div>
-          <div style={{ fontWeight: 800, fontSize: 19, color: T.text }}>{me.username}</div>
-          <div style={{ fontSize: 13, color: T.sub }}>@{me.username.toLowerCase()}</div>
-          {me.mood && <div style={{ fontSize: 14, color: myAccent.color, marginTop: 3, fontStyle: "italic" }}>{me.mood}</div>}
-          {me.bio && <div style={{ fontSize: 14, color: T.text, marginTop: 5 }}>{me.bio}</div>}
-          <div style={{ display: "flex", gap: 20, marginTop: 10 }}>
-            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mine.length}</strong> Scrypts</span>
-            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{myV.length}</strong> Village</span>
-            <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mutuals.length}</strong> Mutuals</span>
-          </div>
-        </div>
-        {/* Profile song player on own profile */}
-        {me.profileSong && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer user={me} accent={myAccent} /></div>}
-        {/* Info cards on own profile */}
-        {INFO_FIELDS.some(f => me[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} /></div>}
-        {/* Featured post on own profile */}
-        {(() => { const feat = me.featuredPostId ? posts.find(p => p.id === me.featuredPostId) : null; return feat ? <div style={{ margin: "10px 16px", padding: "10px 12px", border: `1.5px solid ${myAccent.color}`, borderRadius: 12, background: `${myAccent.color}08` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: myAccent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
-          <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(feat.content)}</p>
-          <div style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>{feat.likes?.length || 0} likes · {ago(feat.createdAt)}</div>
-        </div> : null; })()}
-        </>; })()}
+        {/* Banner */}
+        {(() => {
+          const myAccent = getAccent(me);
+          const bannerBg = me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || myAccent.grad);
+          const feat = me.featuredPostId ? posts.find(p => p.id === me.featuredPostId) : null;
+          return <>
+            <div style={{ height: 110, background: bannerBg, position: "relative", overflow: "visible", flexShrink: 0, borderBottom: `2px solid ${myAccent.color}` }}>
+              <button onClick={() => setShowWallpaper(true)} style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "white", border: "none", borderRadius: 9999, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🖼️ Edit banner</button>
+              <div style={{ position: "absolute", bottom: -32, left: 16, border: `3px solid ${myAccent.color}`, borderRadius: "50%", zIndex: 2, background: T.card }}>
+                <Av user={me} sz={62} />
+              </div>
+            </div>
+            <div style={{ padding: "40px 16px 12px", borderBottom: `1px solid ${T.border}` }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 8 }}>
+                <button onClick={() => setShowPP(true)} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "5px 11px", fontSize: 12, cursor: "pointer" }}>Choose pic</button>
+                <button onClick={() => avRef.current.click()} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "5px 11px", fontSize: 12, cursor: "pointer" }}>Upload photo</button>
+                <input ref={avRef} type="file" accept="image/*" style={{ display: "none" }} onChange={doAvatar} />
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 19, color: T.text }}>{me.username}</div>
+              <div style={{ fontSize: 13, color: T.sub }}>@{me.username.toLowerCase()}</div>
+              {me.mood && <div style={{ fontSize: 14, color: myAccent.color, marginTop: 3, fontStyle: "italic" }}>{me.mood}</div>}
+              {me.bio && <div style={{ fontSize: 14, color: T.text, marginTop: 5 }}>{me.bio}</div>}
+              <div style={{ display: "flex", gap: 20, marginTop: 10 }}>
+                <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mine.length}</strong> Scrypts</span>
+                <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{myV.length}</strong> Village</span>
+                <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mutuals.length}</strong> Mutuals</span>
+              </div>
+            </div>
+            {me.profileSong && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer user={me} accent={myAccent} /></div>}
+            {INFO_FIELDS.some(f => me[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} /></div>}
+            {feat && <div style={{ margin: "10px 16px", padding: "10px 12px", border: `1.5px solid ${myAccent.color}`, borderRadius: 12, background: `${myAccent.color}08` }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: myAccent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
+              <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(feat.content)}</p>
+              <div style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>{feat.likes?.length || 0} likes · {ago(feat.createdAt)}</div>
+            </div>}
+          </>;
+        })()}
         <div style={{ padding: 12, borderBottom: `1px solid ${T.border}`, background: T.card }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: T.text, marginBottom: 8 }}>🏘️ My Village</div>
           {villagers.length === 0 && <p style={{ fontSize: 12, color: T.sub, margin: 0 }}>No villagers yet. Search for people to add!</p>}
@@ -1753,7 +1755,6 @@ export default function App() {
         <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}` }}>MY SCRYPTS</div>
         {mine.filter(p => !p.villageOnly).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
         {mine.filter(p => !p.villageOnly).length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 16px", fontSize: 14 }}>No posts yet. Start Scrypting!</p>}
-        </>; })()}
       </div>}
 
       {!thread && tab === "settings" && (() => {
