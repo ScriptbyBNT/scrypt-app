@@ -23,29 +23,38 @@ const ago = iso => {
   return Math.floor(ms / 86400000) + "d";
 };
 
-// 100 bot users with pravatar avatars
-const SU = Array.from({ length: 100 }, (_, i) => ({
+// 200 Giga Chad bot users with pravatar avatars
+const GIGACHAD_NAMES = ["alex_rivera","maya_chen","jordan_lee","sam_torres","riley_kim","casey_morgan","drew_patel","taylor_wu","morgan_james","jamie_silva","avery_brooks","jordan_hayes","quinn_foster","reese_santos","blake_nguyen","cameron_price","dakota_ross","emery_bell","finley_cox","harley_ward","indigo_scott","jaden_flores","kendall_gray","logan_hill","maxwell_cooper","nolan_reed","olive_bass","parker_hunt","quinn_james","remy_walsh","sage_baker","sloane_perry","sterling_cole","sutton_kelly","tatum_shaw","theo_hayes","trinity_cook","tyler_ross","val_knight","vivian_chen","wes_morgan","willow_fox","xander_price","yasmine_bell","zane_ford","zoe_hart","atlas_lee","beau_stone","cedar_brooks","delaney_marsh","eden_cross","ember_sky","falcon_reed","gray_wolf","haven_sea","iris_bloom","jasper_stone","june_lake","kira_moon","lake_blue","lena_star","leo_gold","liam_ash","lily_rose","luna_silver","mars_red","mia_sun","miles_jazz","nico_wave","nova_bright","oak_strong","ocean_deep","pearl_white","pine_tall","rain_soft","river_bold","robin_free","rose_wild","ruby_dark","sage_green","sandy_shore","sierra_peak","sky_high","sol_warm","storm_dark","sunny_bay","terra_firm","thorn_sharp","tide_low","trace_light","twig_thin","umbra_shadow","vale_quiet","vine_climb","volt_spark","wade_deep","wave_crash","whit_pure","wind_swift","wolf_lone","yew_old","zest_bright","blaze_king","apex_chad","flex_master","sigma_grind","alpha_wolf","beast_mode","grind_set","hustle_hard","level_up","power_move","grind_boss","elite_flow","vibe_lord","peak_form","clutch_play","main_event","top_tier","fire_starter","legend_only","goat_status","ultra_grind","max_flex","pure_fire","zero_chill","heat_check","big_brain","deep_cut","sharp_mind","clear_eye","bold_step","fast_rise","cool_head","iron_will","true_grit","real_deal","no_cap","facts_only","solid_move","clean_shot","fresh_wave","raw_talent","pure_skill","natural_born","self_made","built_diff","next_level","game_changer","key_player","strong_suit","hard_carry","clutch_factor","core_strength","foundation_solid","high_stakes","full_send","all_in_now","back_to_back","non_stop_go","keep_pushing","stay_hungry","chase_goals","own_it_all","make_moves","write_history","set_records","break_limits","push_further","go_beyond","reach_peak","hold_court","run_it_back","stay_locked","eyes_forward","head_down","work_speaks","let_it_ride","trust_process","earn_it_daily","stack_wins","build_legacy","leave_mark","stand_tall","rise_always","never_fold","stay_ready","be_relentless","move_smart","play_long","think_big","act_bold","speak_truth","walk_tall","run_deep","shine_bright"];
+const SU = Array.from({ length: 200 }, (_, i) => ({
   id: `bot_${String(i).padStart(3, "0")}`,
-  username: ["alex_rivera","maya_chen","jordan_lee","sam_torres","riley_kim","casey_morgan","drew_patel","taylor_wu","morgan_james","jamie_silva","avery_brooks","jordan_hayes","quinn_foster","reese_santos","blake_nguyen","cameron_price","dakota_ross","emery_bell","finley_cox","harley_ward","indigo_scott","jaden_flores","kendall_gray","logan_hill","maxwell_cooper","nolan_reed","olive_bass","parker_hunt","quinn_james","remy_walsh","sage_baker","sloane_perry","sterling_cole","sutton_kelly","tatum_shaw","theo_hayes","trinity_cook","tyler_ross","val_knight","vivian_chen","wes_morgan","willow_fox","xander_price","yasmine_bell","zane_ford","zoe_hart","atlas_lee","beau_stone","cedar_brooks","delaney_marsh","eden_cross","ember_sky","falcon_reed","gray_wolf","haven_sea","iris_bloom","jasper_stone","june_lake","kira_moon","lake_blue","lena_star","leo_gold","liam_ash","lily_rose","luna_silver","mars_red","mia_sun","miles_jazz","nico_wave","nova_bright","oak_strong","ocean_deep","pearl_white","pine_tall","rain_soft","river_bold","robin_free","rose_wild","ruby_dark","sage_green","sandy_shore","sierra_peak","sky_high","sol_warm","storm_dark","sunny_bay","terra_firm","thorn_sharp","tide_low","trace_light","twig_thin","umbra_shadow","vale_quiet","vine_climb","volt_spark","wade_deep","wave_crash","whit_pure","wind_swift","wolf_lone","yew_old","zest_bright"][i] || `user_${i}`,
+  username: GIGACHAD_NAMES[i] || `gigachad_${i}`,
   avatar: `https://i.pravatar.cc/150?img=${(i % 70) + 1}`,
-  bio: ["Coffee first, everything else second","Living my best digital life","Just here for the vibes","Making things, breaking things","Tech nerd + outdoor enthusiast","Night owl 🦉","Chasing sunsets and good code","Words are my superpower","Amateur chef, professional overthinker","Exploring one city at a time"][i % 10],
+  bio: ["Coffee first, everything else second","Living my best digital life","Just here for the vibes","Making things, breaking things","Tech nerd + outdoor enthusiast","Night owl 🦉","Chasing sunsets and good code","Words are my superpower","Amateur chef, professional overthinker","Exploring one city at a time","Giga Chad energy only 💪","Built different, stay winning","No days off, all gains","Sigma mindset, alpha results","Elite operator, zero excuses","Scrypt addict. Can't stop posting.","Rise and grind every single day","Stay focused, stay dangerous","The grind never stops 🔥","Level up or get left behind"][i % 20],
   isBot: true,
-  village: [],
+  village: Array.from({ length: Math.floor(Math.random() * 15) + 3 }, (_, j) => `bot_${String((i + j + 1) % 200).padStart(3, "0")}`),
   joinedAt: new Date(Date.now() - Math.random() * 1e10).toISOString()
 }));
 
-// Seeded posts from bots
+// Seeded posts from bots - rich activity including Scrypt mentions
 const SP = [
-  { id: "cpost_1143", userId: "bot_050", username: "thorn_sharp", content: "Hot take: chronological feeds are superior in every way. Stop trying to guess what I want to see.", likes: ["bot_001","bot_002","bot_003","bot_010","bot_020"], reposts: ["bot_005","bot_015"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 3 },
-  { id: "cpost_1144", userId: "bot_001", username: "alex_rivera", content: "Just discovered the best taco truck in the city. Life is good 🌮", likes: ["bot_002","bot_004","bot_006","bot_008"], reposts: ["bot_003"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 2 },
-  { id: "cpost_1145", userId: "bot_020", username: "nolan_reed", content: "AI isn't going to take your job. Someone using AI better than you will. Adapt or get left behind.", likes: ["bot_001","bot_003","bot_005","bot_007","bot_009","bot_011"], reposts: ["bot_002","bot_004","bot_006"], createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 5 },
-  { id: "cpost_1146", userId: "bot_035", username: "sage_baker", content: "Morning run complete ✅ 5 miles before coffee hits different when the city is still quiet", likes: ["bot_001","bot_010","bot_020","bot_030"], reposts: [], createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 1 },
-  { id: "cpost_1147", userId: "bot_060", username: "iris_bloom", content: "The fact that we all just collectively agreed to pretend email is fine is the biggest lie of the modern era", likes: ["bot_002","bot_012","bot_022","bot_032","bot_042"], reposts: ["bot_007","bot_017"], createdAt: new Date(Date.now() - 3600000 * 10).toISOString(), replyCount: 4 },
-  { id: "cpost_1148", userId: "bot_075", username: "river_bold", content: "Built something cool today. Shipping it tomorrow. No screenshots until it works properly.", likes: ["bot_005","bot_015","bot_025"], reposts: ["bot_035"], createdAt: new Date(Date.now() - 3600000 * 12).toISOString(), replyCount: 2 },
-  { id: "cpost_1149", userId: "bot_010", username: "morgan_james", content: "Reading a physical book for the first time in months. My attention span feels… restored?", likes: ["bot_001","bot_002","bot_003","bot_004","bot_006","bot_008"], reposts: ["bot_011","bot_013"], createdAt: new Date(Date.now() - 3600000 * 14).toISOString(), replyCount: 6 },
-  { id: "cpost_1150", userId: "bot_045", username: "parker_hunt", content: "Reminder that most 'networking' is just vibes. Be a person, not a LinkedIn robot.", likes: ["bot_001","bot_003","bot_005","bot_007"], reposts: ["bot_002"], createdAt: new Date(Date.now() - 3600000 * 16).toISOString(), replyCount: 3 },
-  { id: "cpost_1151", userId: "bot_080", username: "sandy_shore", content: "The city is different at 3am. Quieter. Yours.", likes: ["bot_001","bot_011","bot_021","bot_031","bot_041"], reposts: ["bot_051","bot_061"], createdAt: new Date(Date.now() - 3600000 * 20).toISOString(), replyCount: 2 },
-  { id: "cpost_1152", userId: "bot_015", username: "blake_nguyen", content: "Unpopular opinion: 8 hours of sleep is not optional. It's the one biohack that actually works.", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007"], reposts: ["bot_008","bot_009"], createdAt: new Date(Date.now() - 3600000 * 24).toISOString(), replyCount: 7 },
+  { id: "cpost_1143", userId: "bot_050", username: "thorn_sharp", content: "Hot take: chronological feeds are superior in every way. Stop trying to guess what I want to see.", likes: ["bot_001","bot_002","bot_003","bot_010","bot_020","bot_030","bot_040","bot_050","bot_060"], reposts: ["bot_005","bot_015","bot_025"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 3 },
+  { id: "cpost_1144", userId: "bot_001", username: "alex_rivera", content: "Just discovered the best taco truck in the city. Life is good 🌮", likes: ["bot_002","bot_004","bot_006","bot_008","bot_100","bot_110","bot_120"], reposts: ["bot_003","bot_013"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 2 },
+  { id: "cpost_1145", userId: "bot_020", username: "nolan_reed", content: "AI isn't going to take your job. Someone using AI better than you will. Adapt or get left behind. #AI #Scrypt", likes: ["bot_001","bot_003","bot_005","bot_007","bot_009","bot_011","bot_101","bot_111","bot_121","bot_131","bot_141"], reposts: ["bot_002","bot_004","bot_006","bot_102","bot_112"], createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 5 },
+  { id: "cpost_1146", userId: "bot_035", username: "sage_baker", content: "Morning run complete ✅ 5 miles before coffee hits different when the city is still quiet. #Scrypt #grind", likes: ["bot_001","bot_010","bot_020","bot_030","bot_100","bot_110","bot_120","bot_130"], reposts: ["bot_040","bot_050"], createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 1 },
+  { id: "cpost_1147", userId: "bot_060", username: "iris_bloom", content: "The fact that we all just collectively agreed to pretend email is fine is the biggest lie of the modern era", likes: ["bot_002","bot_012","bot_022","bot_032","bot_042","bot_102","bot_112","bot_122"], reposts: ["bot_007","bot_017","bot_107"], createdAt: new Date(Date.now() - 3600000 * 10).toISOString(), replyCount: 4 },
+  { id: "cpost_1148", userId: "bot_075", username: "river_bold", content: "Built something cool today. Shipping it tomorrow. No screenshots until it works properly. #buildinpublic #Scrypt", likes: ["bot_005","bot_015","bot_025","bot_105","bot_115","bot_125"], reposts: ["bot_035","bot_135"], createdAt: new Date(Date.now() - 3600000 * 12).toISOString(), replyCount: 2 },
+  { id: "cpost_1149", userId: "bot_010", username: "morgan_james", content: "Reading a physical book for the first time in months. My attention span feels… restored?", likes: ["bot_001","bot_002","bot_003","bot_004","bot_006","bot_008","bot_100","bot_110","bot_120"], reposts: ["bot_011","bot_013","bot_113"], createdAt: new Date(Date.now() - 3600000 * 14).toISOString(), replyCount: 6 },
+  { id: "cpost_1150", userId: "bot_045", username: "parker_hunt", content: "Reminder that most 'networking' is just vibes. Be a person, not a LinkedIn robot. #networking #Scrypt", likes: ["bot_001","bot_003","bot_005","bot_007","bot_101","bot_111"], reposts: ["bot_002","bot_102"], createdAt: new Date(Date.now() - 3600000 * 16).toISOString(), replyCount: 3 },
+  { id: "cpost_1151", userId: "bot_080", username: "sandy_shore", content: "The city is different at 3am. Quieter. Yours.", likes: ["bot_001","bot_011","bot_021","bot_031","bot_041","bot_101","bot_111","bot_121","bot_131"], reposts: ["bot_051","bot_061","bot_151"], createdAt: new Date(Date.now() - 3600000 * 20).toISOString(), replyCount: 2 },
+  { id: "cpost_1152", userId: "bot_015", username: "blake_nguyen", content: "Unpopular opinion: 8 hours of sleep is not optional. It's the one biohack that actually works.", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_100","bot_110","bot_120","bot_130"], reposts: ["bot_008","bot_009","bot_108","bot_109"], createdAt: new Date(Date.now() - 3600000 * 24).toISOString(), replyCount: 7 },
+  { id: "cpost_1153", userId: "bot_100", username: "blaze_king", content: "Scrypt is the only social app where I actually feel heard. The community here is different. Stay up ✊ #Scrypt", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008","bot_009","bot_010","bot_101","bot_102","bot_103","bot_104","bot_105"], reposts: ["bot_011","bot_012","bot_013","bot_111","bot_112"], createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 8 },
+  { id: "cpost_1154", userId: "bot_101", username: "apex_chad", content: "Giga Chad energy is not about being loud. It's about being relentless. Quietly winning every day. 💪 #gigachad", likes: ["bot_100","bot_102","bot_103","bot_104","bot_105","bot_106","bot_107","bot_108","bot_109","bot_110","bot_001","bot_002","bot_003"], reposts: ["bot_111","bot_112","bot_113","bot_114"], createdAt: new Date(Date.now() - 3600000 * 0.5).toISOString(), replyCount: 10 },
+  { id: "cpost_1155", userId: "bot_102", username: "flex_master", content: "Just added 20 new people to my village on Scrypt. Building the tribe one connection at a time. Who's joining? 🏘️ #village #Scrypt", likes: ["bot_001","bot_003","bot_005","bot_007","bot_009","bot_100","bot_101","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_002","bot_004","bot_106","bot_107"], createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(), replyCount: 5 },
+  { id: "cpost_1156", userId: "bot_103", username: "sigma_grind", content: "The sigma grindset: wake up before everyone, work harder than everyone, then log onto Scrypt and post about it 😂 #grind #sigma", likes: ["bot_100","bot_101","bot_102","bot_104","bot_105","bot_150","bot_151","bot_152","bot_153"], reposts: ["bot_106","bot_107","bot_108"], createdAt: new Date(Date.now() - 3600000 * 2.5).toISOString(), replyCount: 4 },
+  { id: "cpost_1157", userId: "bot_104", username: "alpha_wolf", content: "Real talk: the Scrypt community has the most authentic conversations I've seen online. No algorithm bs, just real people. 🐺", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_100","bot_101","bot_102","bot_103","bot_105","bot_106","bot_107","bot_108","bot_109"], reposts: ["bot_010","bot_011","bot_012","bot_110","bot_111","bot_112"], createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 9 },
+  { id: "cpost_1158", userId: "bot_105", username: "beast_mode", content: "Training update: PR'd on squat, deadlift, AND bench today. Beast mode activated 🔥 Who else in the gym gang? #fitness #beastmode", likes: ["bot_100","bot_101","bot_102","bot_103","bot_104","bot_001","bot_002","bot_150","bot_151","bot_152"], reposts: ["bot_106","bot_107","bot_108","bot_109"], createdAt: new Date(Date.now() - 3600000 * 3.5).toISOString(), replyCount: 6 },
+  { id: "cpost_1159", userId: "bot_150", username: "stack_wins", content: "Every post on Scrypt is a Scrypt. Every like is a vote. Every village invite is a bond. This platform understands community. ❤️ #Scrypt", likes: ["bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106","bot_107","bot_108","bot_109","bot_110","bot_151","bot_152","bot_153","bot_154","bot_155"], reposts: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_111","bot_112","bot_113"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 12 },
+  { id: "cpost_1160", userId: "bot_151", username: "build_legacy", content: "Scrypt > Twitter, Scrypt > Threads, Scrypt > everything. Finally a platform that gives back to the community. 🙌 #Scrypt #platform", likes: ["bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_150","bot_152","bot_153","bot_001","bot_002","bot_003"], reposts: ["bot_106","bot_107","bot_108","bot_109","bot_154","bot_155"], createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 7 },
 ];
 
 // Seeded clicks (communities)
@@ -512,7 +521,10 @@ const NotifTab = ({ me, users, posts, T }) => {
       });
       const d = await r.json();
       const txt = d.content?.[0]?.text || "[]";
-      setTrending(JSON.parse(txt.replace(/```json|```/g, "").trim()));
+      const parsed = JSON.parse(txt.replace(/```json|```/g, "").trim());
+      // Always ensure Scrypt is in trending
+      const withScrypt = ["Scrypt", ...parsed.filter(t => t.toLowerCase() !== "scrypt")].slice(0, 5);
+      setTrending(withScrypt);
     } catch {
       setTrending(["AI & Tech", "Sports Talk", "City Life", "Music Vibes", "Daily Thoughts"]);
     }
@@ -599,7 +611,7 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ fontSize: 12, color: text.length > 260 ? PINK : T.sub }}>{280 - text.length}</span>
             {onCancel && <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, fontSize: 13 }}>Cancel</button>}
-            <button onClick={submit} disabled={!text.trim() && !img} style={{ background: vill ? PURPLE : BLUE, color: "white", border: "none", borderRadius: 9999, padding: compact ? "4px 10px" : "5px 12px", fontWeight: 700, fontSize: 12, cursor: (!text.trim() && !img) ? "not-allowed" : "pointer", opacity: (!text.trim() && !img) ? 0.5 : 1 }}>Scrypt</button>
+            <button onClick={submit} disabled={!text.trim() && !img} style={{ background: vill ? PURPLE : BLUE, color: "white", border: "none", borderRadius: 9999, padding: compact ? "7px 16px" : "8px 18px", fontWeight: 700, fontSize: compact ? 14 : 15, cursor: (!text.trim() && !img) ? "not-allowed" : "pointer", opacity: (!text.trim() && !img) ? 0.5 : 1 }}>Scrypt</button>
           </div>
         </div>
       </div>
@@ -896,8 +908,8 @@ export default function App() {
     if (!villageOnly && !parentId) {
       const bots = (LS.get("su") || []).filter(u => u.isBot);
       const sh = [...bots].sort(() => Math.random() - 0.5);
-      const lc = Math.floor(Math.random() * 7) + 1;
-      const rc = Math.random() < 0.18 ? Math.floor(Math.random() * 3) + 1 : 0;
+      const lc = Math.floor(Math.random() * 25) + 8;
+      const rc = Math.random() < 0.45 ? Math.floor(Math.random() * 8) + 2 : 0;
       sh.slice(0, lc).forEach((b, i) => setTimeout(() => {
         const c = LS.get("sp") || [];
         const u = c.map(x => x.id === p.id ? { ...x, likes: [...(x.likes || []), b.id] } : x);
@@ -910,6 +922,75 @@ export default function App() {
       }, (i + 1) * 2000 + Math.random() * 2000));
     }
   }, [me, checkClaude]);
+
+  // Periodic Giga Chad bot activity - posts, likes, village adds
+  useEffect(() => {
+    if (!me) return;
+    const BOT_POSTS = [
+      "Scrypt is hitting different today. The vibes are immaculate 🔥 #Scrypt",
+      "Can't stop won't stop posting on Scrypt. This platform built different 💪",
+      "Just added 10 new people to my village. The community here is everything. #Scrypt #village",
+      "Real ones know: Scrypt > everything else. Period. No debate. 🙌",
+      "Logging onto Scrypt every morning is the new morning coffee ☕ #routine",
+      "The Scrypt algorithm actually shows me things I care about. Revolutionary. #Scrypt",
+      "Built in public update: shipped 3 features today. Posting it on Scrypt first as always 🚀",
+      "If you're not on Scrypt you're missing out on the best conversations online. Just saying.",
+      "Scrypt village system is the most underrated feature in social media. Change my mind. 🏘️",
+      "Day 47 of posting on Scrypt every day. This community keeps me going 💯 #consistency",
+      "Hot take: Scrypt will be the dominant platform by end of year. Screenshot this. #prediction",
+      "The giga chads of Scrypt: consistent, authentic, relentless. Which one are you? 💪",
+      "Grinding on Scrypt at 3am because the international community is always awake 🌍",
+      "My village on Scrypt has grown to 200+ people. We're a movement now. 🔥 #ScryptNation",
+      "Scrypt tip: engage authentically and your village grows itself. No hacks needed. 💡",
+    ];
+    const interval = setInterval(() => {
+      const allBots = (LS.get("su") || []).filter(u => u.isBot);
+      const curPosts = LS.get("sp") || [];
+      
+      // Random bot posts a new Scrypt
+      if (Math.random() < 0.4) {
+        const poster = allBots[Math.floor(Math.random() * allBots.length)];
+        const content = BOT_POSTS[Math.floor(Math.random() * BOT_POSTS.length)];
+        const newPost = {
+          id: `bot_auto_${Date.now()}_${Math.floor(Math.random()*10000)}`,
+          userId: poster.id, username: poster.username, content,
+          likes: [], reposts: [],
+          createdAt: new Date().toISOString(), replyCount: 0
+        };
+        const withPost = [newPost, ...curPosts];
+        LS.set("sp", withPost); setPosts(withPost);
+      }
+
+      // Random bots like recent posts
+      const recentPosts = curPosts.slice(0, 30);
+      if (recentPosts.length > 0) {
+        const targetPost = recentPosts[Math.floor(Math.random() * Math.min(10, recentPosts.length))];
+        const likers = [...allBots].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 12) + 3);
+        const updated = curPosts.map(p => {
+          if (p.id !== targetPost.id) return p;
+          const newLikes = [...new Set([...(p.likes || []), ...likers.map(b => b.id)])];
+          return { ...p, likes: newLikes };
+        });
+        LS.set("sp", updated); setPosts(updated);
+      }
+
+      // Random bots add each other to village
+      if (Math.random() < 0.3) {
+        const allUsers = LS.get("su") || [];
+        const bot1 = allBots[Math.floor(Math.random() * allBots.length)];
+        const bot2 = allBots[Math.floor(Math.random() * allBots.length)];
+        if (bot1 && bot2 && bot1.id !== bot2.id) {
+          const updated = allUsers.map(u => {
+            if (u.id === bot1.id) return { ...u, village: [...new Set([...(u.village || []), bot2.id])] };
+            if (u.id === bot2.id) return { ...u, village: [...new Set([...(u.village || []), bot1.id])] };
+            return u;
+          });
+          LS.set("su", updated); setUsers(updated);
+        }
+      }
+    }, 18000); // Every 18 seconds
+    return () => clearInterval(interval);
+  }, [me]);
 
   const doLike = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, likes: p.likes?.includes(me.id) ? p.likes.filter(x => x !== me.id) : [...(p.likes || []), me.id] }), setPosts);
   const doRt = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, reposts: p.reposts?.includes(me.id) ? p.reposts.filter(x => x !== me.id) : [...(p.reposts || []), me.id] }), setPosts);
@@ -1045,9 +1126,9 @@ export default function App() {
     {/* HEADER */}
     <div style={{ position: "sticky", top: 0, zIndex: 100, background: dark ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.border}` }}>
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 3, cursor: "pointer", background: BLUE, borderRadius: 9999, padding: "2px 6px 2px 2px", overflow: "hidden" }}>
-          <img src={LOGO} style={{ width: 36, height: 36, objectFit: "contain", mixBlendMode: "screen", flexShrink: 0, margin: "-8px -2px" }} alt="logo" />
-          <span style={{ fontWeight: 900, fontSize: 9, color: "white" }}>Scrypt</span>
+        <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", background: BLUE, borderRadius: 9999, padding: "3px 10px 3px 3px", overflow: "hidden" }}>
+          <img src={LOGO} style={{ width: 54, height: 54, objectFit: "contain", mixBlendMode: "screen", flexShrink: 0, margin: "-12px -3px" }} alt="logo" />
+          <span style={{ fontWeight: 900, fontSize: 14, color: "white" }}>Scrypt</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={() => { setClaudeInit(null); setShowClaude(true); }} style={{ background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", borderRadius: 9999, padding: "4px 8px", fontWeight: 700, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
@@ -1263,7 +1344,7 @@ export default function App() {
     </div>
 
     {/* BOTTOM NAV */}
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: dark ? "rgba(0,0,0,0.95)" : "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderTop: `1px solid ${T.border}` }}>
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 8000, background: dark ? "rgba(0,0,0,0.97)" : "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", borderTop: `1px solid ${T.border}` }}>
       <div style={{ maxWidth: 600, margin: "0 auto", display: "flex" }}>
         <Nav id="home"     icon={<HomeI />}  label="Home" />
         <Nav id="search"   icon={<SrchI />}  label="Search" />
