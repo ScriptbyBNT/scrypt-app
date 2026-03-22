@@ -261,10 +261,10 @@ const MINERVA_USER = {
 
 const CLAUDE_USER = {
   id: "claude_account",
-  username: "Claude",
+  username: "Ted",
   password: "claude2024!",
-  avatar: mkSpecialAvatar("#CC785C", "C", "🤖"),
-  bio: "I'm Claude, made by Anthropic. @mention me in any Scrypt and I'll reply. Ask me anything! ✨",
+  avatar: mkSpecialAvatar("#8B4513", "T", "🧸"),
+  bio: "I'm Ted, your AI on Scrypt. mention me with @ted in any post and I'll reply. Ask me anything! 🧸",
   isBot: true,
   isSpecial: true,
   verified: true,
@@ -802,7 +802,7 @@ const ClaudeChat = ({ T, onClose, init }) => {
     const text = (txt || input).trim();
     if (!text || busy) return;
     if (!getKey()) {
-      setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "⚙️ No API key set yet! Go to **Settings → Claude AI Key** and paste your Anthropic API key (get one free at console.anthropic.com). Once saved, I'll be ready to chat!" }]);
+      setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "⚙️ No API key set yet! Go to **Settings → AI Key** and paste your Anthropic API key (get one free at console.anthropic.com). Once saved, I'll be ready to chat!" }]);
       setInput("");
       return;
     }
@@ -810,7 +810,7 @@ const ClaudeChat = ({ T, onClose, init }) => {
     setMsgs(next); setInput(""); setBusy(true);
     try {
       const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Claude, an AI assistant integrated into Scrypt — a Twitter-like social platform. Be helpful, concise, and friendly. Keep responses brief unless asked for detail.", messages: api });
+      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Ted, an AI assistant integrated into Scrypt — a Twitter-like social platform. Be helpful, concise, and friendly. Keep responses brief unless asked for detail.", messages: api });
       const d = await r.json();
       setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
     } catch {
@@ -824,7 +824,7 @@ const ClaudeChat = ({ T, onClose, init }) => {
     <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, height: "75vh", display: "flex", flexDirection: "column", border: `1px solid ${T.border}` }}>
       <div style={{ padding: "13px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={20} /></div>
-        <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Claude AI</div><div style={{ fontSize: 12, color: T.sub }}>Powered by Anthropic</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Ted AI</div><div style={{ fontSize: 12, color: T.sub }}>Powered by Anthropic</div></div>
         <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><XI /></button>
       </div>
       <div style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -841,7 +841,7 @@ const ClaudeChat = ({ T, onClose, init }) => {
         <div ref={endRef} />
       </div>
       <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()} placeholder="Ask Claude anything..." style={{ flex: 1, background: T.input, border: "none", borderRadius: 9999, padding: "10px 16px", color: T.text, fontSize: 14, outline: "none" }} />
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()} placeholder="Ask Ted anything..." style={{ flex: 1, background: T.input, border: "none", borderRadius: 9999, padding: "10px 16px", color: T.text, fontSize: 14, outline: "none" }} />
         <button onClick={() => send()} disabled={!input.trim() || busy} style={{ background: BLUE, color: "white", border: "none", borderRadius: "50%", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: input.trim() && !busy ? "pointer" : "not-allowed", opacity: input.trim() && !busy ? 1 : 0.5 }}><SendI /></button>
       </div>
       <style>{`@keyframes dot0{from{transform:translateY(0)}to{transform:translateY(-5px)}} @keyframes dot1{from{transform:translateY(0)}to{transform:translateY(-5px)}} @keyframes dot2{from{transform:translateY(0)}to{transform:translateY(-5px)}}`}</style>
@@ -1088,13 +1088,13 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {/* Special bot profile banners */}
         {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
-          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by Claude AI. Follow for daily doses of the unexpected.</div>
+          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by Ted AI. Follow for daily doses of the unexpected.</div>
           <div style={{ fontSize: 11, color: BLUE, marginTop: 5, fontWeight: 600 }}>Posts every 6h · Science, Space, History & more</div>
         </div>}
         {user.id === "bot_minerva" && <div style={{ background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Fascinating historical facts and daily "This Day in History" posts. Because knowing your past is the key to understanding the present.</div>
-          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by Claude AI</div>
+          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by Ted AI</div>
         </div>}
         {user.id === "bot_news" && <div style={{ background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div>
@@ -1104,7 +1104,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {user.id === "bot_abandonware" && <div style={{ background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Hot takes, reviews and news from across the entertainment world. Video games, blockbusters, prestige TV — we cover it all.</div>
-          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by Claude AI</div>
+          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by Ted AI</div>
         </div>}
         {user.bio && <div style={{ fontSize: 14, color: T.text, marginBottom: 10 }}>{user.bio}</div>}
         <div style={{ display: "flex", gap: 18, marginBottom: 12 }}>
@@ -1704,7 +1704,7 @@ const HomeTrending = ({ posts, users, T, onThread, onUser }) => {
 
   if (topPosts.length === 0) return null;
 
-  const SPECIAL_COLORS = { bot_scryptbot: BLUE, bot_minerva: "#7c3aed", bot_news: "#e11d48", bot_abandonware: "#0f766e", claude_account: "#CC785C" };
+  const SPECIAL_COLORS = { bot_scryptbot: BLUE, bot_minerva: "#7c3aed", bot_news: "#e11d48", bot_abandonware: "#0f766e", claude_account: "#8B4513" };
 
   return <div style={{ borderBottom: `1px solid ${T.border}` }}>
     <div style={{ padding: "11px 16px 6px", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1787,7 +1787,12 @@ export default function App() {
     meta.content = color;
     document.body.style.backgroundColor = color;
     LS.set("dark", dark ? "1" : "0");
-    if (me?.id) DB.updateUser(me.id, userToRow({ ...me, dark: dark ? 1 : 0 })).catch(() => {});
+    if (me?.id) {
+      const row = userToRow({ ...me, dark: dark ? 1 : 0 });
+      const { info_fields, ...coreRow } = row;
+      DB.updateUser(me.id, coreRow).catch(() => {});
+      if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {});
+    }
   }, [dark]);
 
   useEffect(() => {
@@ -1903,10 +1908,14 @@ export default function App() {
           const local = dbUsers.find(x => x.id === sessionUid);
           if (local) { setMe({ ...local, village: Array.isArray(local.village) ? local.village : [] }); setDbLoading(false); setPg("app"); return; }
         } catch {
+          // DB error — don't log out, use locally loaded users
           const local = dbUsers.find(x => x.id === sessionUid);
           if (local) { setMe({ ...local, village: Array.isArray(local.village) ? local.village : [] }); setDbLoading(false); setPg("app"); return; }
         }
+        // Truly not found anywhere — clear session
         localStorage.removeItem("session_uid");
+        setDbLoading(false);
+        setPg("login");
       }
       setDbLoading(false);
       setPg("login");
@@ -1928,15 +1937,14 @@ export default function App() {
   const sv = (k, v, s) => { if (k.startsWith("gchat") || k.startsWith("apiKey")) LS.set(k, v); s(v); };
 
   const checkClaude = useCallback(async (txt, parentPostId) => {
-    if (!/@claude\b/i.test(txt)) return;
-    const q = txt.replace(/@claude\b/i, "").trim();
+    if (!/@ted\b/i.test(txt)) return;
+    const q = txt.replace(/@ted\b/i, "").trim();
     if (!getKey()) {
-      // No key — post a helpful reply
       const noKeyReply = {
         id: `claude_reply_${Date.now()}`,
         userId: "claude_account",
-        username: "Claude",
-        content: "👋 Hi! I'd love to reply but I need an API key to think. Head to **Settings → Claude AI Key** and paste your Anthropic key — then @mention me again! 🤖",
+        username: "Ted",
+        content: "👋 Hi! I'd love to reply but I need an API key to think. Head to **Settings → AI Key** and paste your key — then mention me with @ted again! 🤖",
         parentId: parentPostId,
         likes: [], reposts: [],
         createdAt: new Date().toISOString(),
@@ -1952,15 +1960,17 @@ export default function App() {
       const r = await claudeFetch({
         model: "claude-sonnet-4-6",
         max_tokens: 220,
-        system: "You are Claude, a witty AI on Scrypt — a social platform like Twitter. Someone just @mentioned you in a post. Reply naturally like a real user would: conversational, warm, occasionally funny, never robotic. Keep it under 240 characters — this is a social post not an essay. No hashtags unless they're genuinely funny. Sound human.",
+        system: "You are Ted, a witty AI on Scrypt — a social platform like Twitter. Someone just @mentioned you in a post. Reply naturally like a real user would: conversational, warm, occasionally funny, never robotic. Keep it under 240 characters — this is a social post not an essay. No hashtags unless they're genuinely funny. Sound human.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
       });
+      if (!r.ok) return; // API error — fail silently, no fake notification
       const d = await r.json();
-      const reply = d.content?.[0]?.text || "Thanks for the mention! 👋";
+      const reply = d.content?.[0]?.text?.trim();
+      if (!reply) return; // Empty reply — don't post anything
       const claudePost = {
         id: `claude_reply_${Date.now()}`,
         userId: "claude_account",
-        username: "Claude",
+        username: "Ted",
         content: reply,
         parentId: parentPostId,
         likes: [], reposts: [],
@@ -1971,9 +1981,9 @@ export default function App() {
       const cur2 = posts;
       const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
       const claudePosts = [claudePost, ...withReply]; setPosts(claudePosts); (async () => { try { await DB.insertPost(postToRow(claudePost)); } catch {} })();
-      notify("Claude replied to your Scrypt! 🤖");
+      notify("Ted replied to your Scrypt! 🤖");
     } catch {
-      // fail silently
+      // fail silently — no fake notification
     }
   }, []);
 
@@ -2777,7 +2787,12 @@ export default function App() {
     const updated = { ...me, ...fields };
     setMe(updated);
     setUsers(prev => prev.map(u => u.id === me.id ? updated : u));
-    DB.updateUser(me.id, userToRow(updated)).catch(e => console.error("saveMe", e));
+    const row = userToRow(updated);
+    // Split: send core columns first (always exist), then info_fields separately
+    const { info_fields, ...coreRow } = row;
+    DB.updateUser(me.id, coreRow).catch(e => console.error("saveMe core", e));
+    // info_fields saves wallpaper/profileSong/infoCards/dark — best effort
+    if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {});
   };
 
   const doWallpaper = wp => {
@@ -2803,6 +2818,7 @@ export default function App() {
     if (sf.mood !== undefined) upd.mood = sf.mood || null;
     if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
     if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
+    // Profile song — save to Supabase via saveMe
     if (sf.profileSong !== undefined) {
       LS.set(`psong_${me.id}`, sf.profileSong ? { song: sf.profileSong, name: sf.profileSongName } : null);
       upd.hasProfileSong = !!sf.profileSong;
@@ -3346,7 +3362,7 @@ export default function App() {
 
           {/* ── CLAUDE API KEY ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✨ Claude AI Key</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✨ AI Key</div>
             <div style={{ fontSize: 12, color: T.sub, marginBottom: 10, lineHeight: 1.6 }}>
               Enter your <strong style={{ color: T.text }}>Anthropic API key</strong> to enable Claude chat, content moderation, and trending topics. Get one free at <span style={{ color: BLUE }}>console.anthropic.com</span>
             </div>
@@ -3357,8 +3373,8 @@ export default function App() {
               placeholder="sk-ant-..."
               style={{ ...inp13, fontFamily: "monospace", marginBottom: 8 }}
             />
-            {apiKey ? <div style={{ fontSize: 11, color: "#00BA7C", display: "flex", alignItems: "center", gap: 5 }}>✓ API key saved — Claude is active</div>
-              : <div style={{ fontSize: 11, color: T.sub }}>No key set — Claude features will be disabled</div>}
+            {apiKey ? <div style={{ fontSize: 11, color: "#00BA7C", display: "flex", alignItems: "center", gap: 5 }}>✓ API key saved — Ted is active</div>
+              : <div style={{ fontSize: 11, color: T.sub }}>No key set — AI features will be disabled</div>}
           </div>
         </div>;
       })()}
