@@ -3629,8 +3629,7 @@ export default function App() {
 
           <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
         </div>
-      </div>
-    </div>
+      </div>; })()}
 
     {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
     {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => {
