@@ -1436,16 +1436,14 @@ export default function App() {
       LS.set("sc", SC); setClicks(SC);
       LS.set("dv", V);
     } else {
-      // Ensure special bots are always present even after version already ran
+      // Always sync special bot data from source-of-truth constants (fixes stale usernames/bios)
       const cur = LS.get("su") || [];
-      let updated = false;
-      let next = [...cur];
-      if (!next.find(u => u.id === "bot_scryptbot")) { next.push(SCRYPTBOT_USER); updated = true; }
-      if (!next.find(u => u.id === "bot_minerva")) { next.push(MINERVA_USER); updated = true; }
-      if (!next.find(u => u.id === "bot_news")) { next.push(NEWS_USER); updated = true; }
-      if (!next.find(u => u.id === "bot_abandonware")) { next.push(ABANDONWARE_USER); updated = true; }
-      if (!next.find(u => u.id === "claude_account")) { next.push(CLAUDE_USER); updated = true; }
-      if (updated) { LS.set("su", next); setUsers(next); }
+      const specialIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"];
+      const specialBots = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, ABANDONWARE_USER, CLAUDE_USER];
+      // Strip out stale special bot entries, then add fresh ones
+      const nonSpecial = cur.filter(u => !specialIds.includes(u.id));
+      const next = [...nonSpecial, ...specialBots];
+      LS.set("su", next); setUsers(next);
     }
   }, []);
 
