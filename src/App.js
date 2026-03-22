@@ -2873,149 +2873,96 @@ export default function App() {
   };
   const doSave = useCallback((sfSnapshot, meSnapshot) => {
     setSerr("");
-
-    // ── 1. Collect simple field changes ────────────────────────────────────────
-    const simpleUpd = {};  // goes straight to DB
-    const stateUpd  = {};  // applied to React state only (base64 blobs)
-
+    const upd = {};
     if (sfSnapshot.u && sfSnapshot.u.trim().toLowerCase() !== meSnapshot.username.toLowerCase()) {
       const t = sfSnapshot.u.trim().toLowerCase();
       if (t.length < 3) { setSerr("Min 3 characters."); return; }
       if (users.find(u => u.username.toLowerCase() === t && u.id !== meSnapshot.id)) { setSerr("Username taken."); return; }
-      simpleUpd.username = t;
+      upd.username = t;
     }
     if (sfSnapshot.pw) {
       if (sfSnapshot.pw.length < 6) { setSerr("Password min 6 chars."); return; }
       if (sfSnapshot.pw !== sfSnapshot.pw2) { setSerr("Passwords don't match."); return; }
-      simpleUpd.password = sfSnapshot.pw;
+      upd.password = sfSnapshot.pw;
     }
-    if (sfSnapshot.bio !== undefined && sfSnapshot.bio !== "") simpleUpd.bio = sfSnapshot.bio;
-    if (sfSnapshot.mood !== undefined) simpleUpd.mood = sfSnapshot.mood;
-    if (sfSnapshot.accentColor !== undefined) simpleUpd.accentColor = sfSnapshot.accentColor;
-    if (sfSnapshot.featuredPostId !== undefined) simpleUpd.featuredPostId = sfSnapshot.featuredPostId;
-    if (sfSnapshot.profileSongLabel !== undefined) simpleUpd.profileSongLabel = sfSnapshot.profileSongLabel;
+    if (sfSnapshot.bio !== undefined && sfSnapshot.bio !== "") upd.bio = sfSnapshot.bio;
+    if (sfSnapshot.mood !== undefined) upd.mood = sfSnapshot.mood;
+    if (sfSnapshot.accentColor !== undefined) upd.accentColor = sfSnapshot.accentColor;
+    if (sfSnapshot.featuredPostId !== undefined) upd.featuredPostId = sfSnapshot.featuredPostId;
+    if (sfSnapshot.profileSongLabel !== undefined) upd.profileSongLabel = sfSnapshot.profileSongLabel;
+    // Info card text fields — go to Supabase via info_fields
     INFO_FIELDS.forEach(f => {
-      if (sfSnapshot[f.key] !== undefined) simpleUpd[f.key] = sfSnapshot[f.key];
+      if (sfSnapshot[f.key] !== undefined) upd[f.key] = sfSnapshot[f.key];
     });
-
-    const hasSong  = sfSnapshot.profileSong !== undefined;
-    const hasPhoto = INFO_FIELDS.some(f => sfSnapshot[f.photoKey] !== undefined);
-    if (Object.keys(simpleUpd).length === 0 && !hasSong && !hasPhoto) return;
-
-    // ── 2. Apply simple updates to state immediately ────────────────────────────
-    setMe(p => ({ ...p, ...simpleUpd }));
-    setUsers(prev => prev.map(u => u.id === meSnapshot.id ? { ...u, ...simpleUpd } : u));
+    if (Object.keys(upd).length === 0 &&
+        sfSnapshot.profileSong === undefined &&
+        !INFO_FIELDS.some(f => sfSnapshot[f.photoKey] !== undefined)) return;
+    // Apply text/metadata updates immediately
+    const updatedUsers = users.map(u => u.id === meSnapshot.id ? { ...u, ...upd } : u);
+    setUsers(updatedUsers);
+    setMe(p => ({ ...p, ...upd }));
     notify("Saving...");
-
-    // ── 3. Async: upload media, then PATCH DB ───────────────────────────────────
     (async () => {
-      const mediaStateUpd = {}; // base64 blobs — state only, never DB
-      const mediaDbUpd    = {}; // URLs or nulls — DB safe
-
-      // Profile song
-      if (hasSong) {
+      const mediaUpd = {};
+      // Upload profile song to Supabase Storage if changed
+      if (sfSnapshot.profileSong !== undefined) {
         if (sfSnapshot.profileSong) {
-          const isUrl = sfSnapshot.profileSong.startsWith("http");
-          if (isUrl) {
-            mediaDbUpd.hasProfileSong = true;
-            mediaDbUpd.profileSongName = sfSnapshot.profileSongName || null;
-            mediaDbUpd.profileSong = sfSnapshot.profileSong;
-          } else {
-            // Always save to IDB first — instant, reliable
-            await IDB.set(`psong_${meSnapshot.id}`, sfSnapshot.profileSong);
-            mediaStateUpd.profileSong = sfSnapshot.profileSong;
-            mediaDbUpd.hasProfileSong = true;
-            mediaDbUpd.profileSongName = sfSnapshot.profileSongName || null;
-            // Try Supabase Storage upload — if it works, store URL in DB
+          const isUrl = typeof sfSnapshot.profileSong === "string" && sfSnapshot.profileSong.startsWith("http");
+          if (!isUrl) {
             const url = await STORAGE.upload("audio", `${meSnapshot.id}/profile_song`, sfSnapshot.profileSong);
             if (url) {
-              mediaDbUpd.profileSong = url;
-              mediaStateUpd.profileSong = url;
+              mediaUpd.hasProfileSong = true;
+              mediaUpd.profileSongName = sfSnapshot.profileSongName || null;
+              mediaUpd.profileSong = url;
             }
-            // If no URL, DB gets hasProfileSong=true + name, IDB has the blob — works on this device
+            // If upload failed (no bucket yet), store base64 in IDB as fallback so it still works locally
+            if (!url) {
+              IDB.set(`psong_${meSnapshot.id}`, sfSnapshot.profileSong);
+              mediaUpd.hasProfileSong = true;
+              mediaUpd.profileSongName = sfSnapshot.profileSongName || null;
+              mediaUpd.profileSong = sfSnapshot.profileSong;
+            }
           }
         } else {
           STORAGE.remove("audio", `${meSnapshot.id}/profile_song`);
           IDB.del(`psong_${meSnapshot.id}`);
-          mediaDbUpd.hasProfileSong  = false;
-          mediaDbUpd.profileSongName = null;
-          mediaDbUpd.profileSong     = null;
-          mediaStateUpd.profileSong  = null;
+          mediaUpd.hasProfileSong = false;
+          mediaUpd.profileSongName = null;
+          mediaUpd.profileSong = null;
         }
       }
-
-      // Info card photos
+      // Upload info card photos to Supabase Storage if changed
       for (const f of INFO_FIELDS) {
         if (sfSnapshot[f.photoKey] !== undefined) {
           if (sfSnapshot[f.photoKey]) {
-            const isUrl = sfSnapshot[f.photoKey].startsWith("http");
-            if (isUrl) {
-              mediaDbUpd[f.photoKey] = sfSnapshot[f.photoKey];
-            } else {
-              await IDB.set(`icard_${meSnapshot.id}_${f.photoKey}`, sfSnapshot[f.photoKey]);
-              mediaStateUpd[f.photoKey] = sfSnapshot[f.photoKey];
+            const isUrl = typeof sfSnapshot[f.photoKey] === "string" && sfSnapshot[f.photoKey].startsWith("http");
+            if (!isUrl) {
               const url = await STORAGE.upload("media", `${meSnapshot.id}/${f.photoKey}`, sfSnapshot[f.photoKey]);
               if (url) {
-                mediaDbUpd[f.photoKey] = url;
-                mediaStateUpd[f.photoKey] = url;
+                mediaUpd[f.photoKey] = url;
+              } else {
+                // Fallback: store base64 in IDB
+                IDB.set(`icard_${meSnapshot.id}_${f.photoKey}`, sfSnapshot[f.photoKey]);
+                mediaUpd[f.photoKey] = sfSnapshot[f.photoKey];
               }
-              // No URL → IDB has it, works on this device
             }
           } else {
             STORAGE.remove("media", `${meSnapshot.id}/${f.photoKey}`);
             IDB.del(`icard_${meSnapshot.id}_${f.photoKey}`);
-            mediaDbUpd[f.photoKey]   = null;
-            mediaStateUpd[f.photoKey] = null;
+            mediaUpd[f.photoKey] = null;
           }
         }
       }
-
-      // ── 4. Build the DB patch — NEVER include raw base64 ───────────────────
-      const allStateUpd = { ...simpleUpd, ...mediaStateUpd };
-      const updatedMe   = { ...meSnapshot, ...allStateUpd, ...mediaDbUpd };
-
-      // Build info_fields JSON from the full updated user — text + safe URLs only
-      const infoFields = {};
-      INFO_TEXT_KEYS.forEach(k => { if (updatedMe[k]) infoFields[k] = updatedMe[k]; });
-      INFO_PHOTO_KEYS.forEach(k => {
-        const v = mediaDbUpd.hasOwnProperty(k) ? mediaDbUpd[k] : (meSnapshot[k] || null);
-        if (v && v.startsWith("http")) infoFields[k] = v; // only URLs, never base64
-      });
-      if (updatedMe.profileSongLabel) infoFields.profileSongLabel = updatedMe.profileSongLabel;
-      if (mediaDbUpd.profileSong && mediaDbUpd.profileSong.startsWith("http")) {
-        infoFields.profileSong = mediaDbUpd.profileSong;
-      } else if (meSnapshot.profileSong && meSnapshot.profileSong.startsWith("http")) {
-        infoFields.profileSong = meSnapshot.profileSong; // preserve existing URL
-      }
-
-      const dbPatch = {
-        ...( simpleUpd.username    !== undefined ? { username: simpleUpd.username }       : {} ),
-        ...( simpleUpd.password    !== undefined ? { password: simpleUpd.password }       : {} ),
-        ...( simpleUpd.bio         !== undefined ? { bio: simpleUpd.bio }                 : {} ),
-        ...( simpleUpd.mood        !== undefined ? { mood: simpleUpd.mood }               : {} ),
-        ...( simpleUpd.accentColor !== undefined ? { accent_color: simpleUpd.accentColor }: {} ),
-        ...( simpleUpd.featuredPostId !== undefined ? { featured_post_id: simpleUpd.featuredPostId } : {} ),
-        has_profile_song: updatedMe.hasProfileSong || false,
-        profile_song_name: updatedMe.profileSongName || null,
-        info_fields: Object.keys(infoFields).length > 0 ? JSON.stringify(infoFields) : null,
-      };
-
-      try {
-        await DB.updateUser(meSnapshot.id, dbPatch);
-        // Update state with any URL upgrades from storage
-        setMe(p => ({ ...p, ...allStateUpd, ...mediaDbUpd }));
-        setUsers(prev => prev.map(u => u.id === meSnapshot.id ? { ...u, ...allStateUpd, ...mediaDbUpd } : u));
-        refreshIdbCache(meSnapshot.id);
-        notify("Saved ✓");
-      } catch(e) {
-        console.error("profile save failed", e);
-        setMe(p => ({ ...p, ...allStateUpd }));
-        setUsers(prev => prev.map(u => u.id === meSnapshot.id ? { ...u, ...allStateUpd } : u));
-        refreshIdbCache(meSnapshot.id);
-        notify("Saved locally ✓");
-      }
+      // Merge all updates and write to DB in one shot
+      const finalUpd = { ...upd, ...mediaUpd };
+      const updatedMe = { ...meSnapshot, ...finalUpd };
+      const finalUsers = users.map(u => u.id === meSnapshot.id ? updatedMe : u);
+      setUsers(finalUsers);
+      setMe(updatedMe);
+      try { await DB.updateUser(meSnapshot.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); }
+      notify("Saved ✓");
     })();
-  }, [users, refreshIdbCache]);
+  }, [users]);
 
   // Auto-save settings after 800ms of inactivity
   useEffect(() => {
@@ -3030,18 +2977,19 @@ export default function App() {
 
   // Media cache for IDB fallback (when Supabase Storage buckets aren't set up yet)
   const [idbCache, setIdbCache] = useState({});
-  const refreshIdbCache = useCallback(async (uid) => {
-    if (!uid) return;
-    const cache = {};
-    for (const f of INFO_FIELDS) {
-      const v = await IDB.get(`icard_${uid}_${f.photoKey}`);
-      if (v) cache[`icard_${uid}_${f.photoKey}`] = v;
-    }
-    const song = await IDB.get(`psong_${uid}`);
-    if (song) cache[`psong_${uid}`] = song;
-    setIdbCache(cache);
-  }, []);
-  useEffect(() => { refreshIdbCache(me?.id); }, [me?.id]);
+  useEffect(() => {
+    if (!me?.id) return;
+    (async () => {
+      const cache = {};
+      for (const f of INFO_FIELDS) {
+        const v = await IDB.get(`icard_${me.id}_${f.photoKey}`);
+        if (v) cache[`icard_${me.id}_${f.photoKey}`] = v;
+      }
+      const song = await IDB.get(`psong_${me.id}`);
+      if (song) cache[`psong_${me.id}`] = song;
+      setIdbCache(cache);
+    })();
+  }, [me?.id]);
 
   const resolvePhoto = useCallback((user, photoKey) => {
     const val = user[photoKey];
