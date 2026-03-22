@@ -3023,7 +3023,8 @@ export default function App() {
         }
       }
 
-      // Save profile fields to localStorage (guaranteed to persist across reloads)
+      // Save ALL profile fields to localStorage — including base64 photos
+      // Photos are 200px/0.72q = ~8-12KB each, perfectly fine for localStorage
       const profileData = {
         bio: upd.bio,
         mood: upd.mood,
@@ -3038,11 +3039,9 @@ export default function App() {
         infoBook: upd.infoBook,
         infoGame: upd.infoGame,
       };
-      // Only store URLs in localStorage for photos/song (base64 goes to IDB)
-      INFO_PHOTO_KEYS.forEach(pk => {
-        if (upd[pk] && upd[pk].startsWith("http")) profileData[pk] = upd[pk];
-      });
-      if (upd.profileSong && upd.profileSong.startsWith("http")) profileData.profileSong = upd.profileSong;
+      // Store photos (base64 or URL) directly in localStorage
+      INFO_PHOTO_KEYS.forEach(pk => { if (upd[pk]) profileData[pk] = upd[pk]; });
+      if (upd.profileSong) profileData.profileSong = upd.profileSong;
       LS.set(`profile_${meSnapshot.id}`, profileData);
 
       // Also try to save to DB (best effort — some columns may not exist)
