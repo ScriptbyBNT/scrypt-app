@@ -1681,11 +1681,11 @@ export default function App() {
   const avRef2 = useRef();
   const cImgRef = useRef();
 
-  // Reset settings form whenever the logged-in account changes OR tab changes
+  // Reset settings form whenever the logged-in account changes
   useEffect(() => {
     setSf({ u: "", pw: "", pw2: "", bio: "" });
     setSerr("");
-  }, [me?.id, tab]);
+  }, [me?.id]);
 
   // Sync browser chrome color with dark/light mode
   useEffect(() => {
@@ -1771,19 +1771,19 @@ export default function App() {
 
       // Restore session after data is loaded
       if (sessionUid) {
-        // Always load from DB first (preserves custom avatar/bio for special accounts too)
-        try {
-          const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
-          const u = rows && rows[0] ? rowToUser(rows[0]) : null;
-          if (u) { setMe({ ...u, village: u.village || [] }); setPg("app"); return; }
-        } catch {}
-        // Fallback to hardcoded special account if DB fetch fails
+        // Special accounts
         const special = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
         if (special) {
           setMe({ ...special, village: special.village || [] });
           setPg("app");
           return;
         }
+        // Regular user from DB
+        try {
+          const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
+          const u = rows && rows[0] ? rowToUser(rows[0]) : null;
+          if (u) { setMe({ ...u, village: u.village || [] }); setPg("app"); return; }
+        } catch {}
         // Session invalid — clear it
         LS.set("session_uid", null);
         setPg("login");
@@ -2168,26 +2168,30 @@ export default function App() {
 
     const clickIds = Object.keys(CLICK_POSTS);
 
+    const SPECIAL_BOT_IDS = new Set(["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"]);
+
     const interval = setInterval(() => {
-      const allBots = (users).filter(u => u.isBot);
+      // Only use the 200 giga chad bots — never special accounts
+      const allBots = (users).filter(u => u.isBot && !SPECIAL_BOT_IDS.has(u.id));
       const curPosts = posts;
       const now = Date.now();
 
       // 35% chance: a bot posts to a random click with realistic entertainment content
       if (Math.random() < 0.35) {
         const targetClickId = clickIds[Math.floor(Math.random() * clickIds.length)];
-        const clickMembers = getClickBotMembers(targetClickId);
+        const clickMembers = getClickBotMembers(targetClickId).filter(u => !SPECIAL_BOT_IDS.has(u.id));
         const poster = clickMembers.length > 0
           ? clickMembers[Math.floor(Math.random() * clickMembers.length)]
           : allBots[Math.floor(Math.random() * allBots.length)];
+        if (!poster) { /* no bots available */ } else {
         const pool = CLICK_POSTS[targetClickId] || HOME_BOT_POSTS;
         // Pick content that hasn't been posted recently (no duplicates in last 40 posts)
         const recentContents = new Set(curPosts.slice(0, 40).map(p => p.content));
         const freshPool = pool.filter(c => !recentContents.has(c));
         const postContent = (freshPool.length > 0 ? freshPool : pool)[Math.floor(Math.random() * (freshPool.length > 0 ? freshPool : pool).length)];
-        // Also skip if this exact bot already posted recently
-        const posterRecentPost = curPosts.slice(0, 20).find(p => p.userId === poster.id && !p.parentId);
-        if (posterRecentPost) { /* skip this turn */ } else {
+        // Skip only if THIS bot posted in the last 5 posts (not 20 — too aggressive)
+        const posterRecentPost = curPosts.slice(0, 5).find(p => p.userId === poster.id && !p.parentId);
+        if (!posterRecentPost) {
         const newPost = {
           id: `bauto_${now}_${Math.floor(Math.random() * 99999)}`,
           userId: poster.id, username: poster.username, content: postContent,
@@ -2206,13 +2210,15 @@ export default function App() {
           }, (i + 1) * (3000 + Math.random() * 8000));
         });
         } // end poster dedup check
+        } // end poster null check
       }
 
       // 25% chance: a bot posts to home feed
       if (Math.random() < 0.25) {
         const poster = allBots[Math.floor(Math.random() * allBots.length)];
-        // Skip if this bot posted recently on home feed
-        const posterRecentHome = curPosts.slice(0, 20).find(p => p.userId === poster.id && !p.parentId && !p.clickId);
+        if (!poster) { /* no bots */ } else {
+        // Skip only if this bot is in the last 5 home posts
+        const posterRecentHome = curPosts.slice(0, 5).find(p => p.userId === poster.id && !p.parentId && !p.clickId);
         if (posterRecentHome) { /* skip */ } else {
         const homePool = HOME_BOT_POSTS;
         const recentHomeContents = new Set(curPosts.slice(0, 30).map(p => p.content));
@@ -2236,6 +2242,7 @@ export default function App() {
           }, (i + 1) * (4000 + Math.random() * 12000));
         });
         } // end home poster dedup check
+        } // end home poster null check
       }
 
       // Always: stagger-add likes to recent posts based on sentiment
@@ -2259,7 +2266,7 @@ export default function App() {
         const userPosts = curPosts.filter(p => !p.parentId && p.userId === me.id);
         if (userPosts.length > 0) {
           const targetPost = userPosts[Math.floor(Math.random() * Math.min(3, userPosts.length))];
-          const commenter = allBots[Math.floor(Math.random() * allBots.length)];
+          const commenter = allBots.filter(b => !SPECIAL_BOT_IDS.has(b.id))[Math.floor(Math.random() * allBots.filter(b => !SPECIAL_BOT_IDS.has(b.id)).length)];
           const commenterBio = commenter.bio || "just vibing";
           // Fire-and-forget async reply after a short random delay
           setTimeout(async () => {
@@ -2377,9 +2384,7 @@ export default function App() {
         DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
-    // Only post on login if no recent scryptbot post in last 2 hours
-    const recentScryptPost = posts.find(p => p.userId === "bot_scryptbot" && (Date.now() - new Date(p.createdAt).getTime()) < 2 * 60 * 60 * 1000);
-    if (!recentScryptPost) postFact();
+    postFact(); // Post once immediately on login
     const interval = setInterval(postFact, 6 * 60 * 60 * 1000); // Then every 6h
     return () => clearInterval(interval);
   }, [me]);
@@ -2450,11 +2455,9 @@ export default function App() {
       } catch { /* fail silently */ }
     };
 
-    // Only post on login if no recent Minerva post in last 4 hours
-    const recentMinerva = posts.find(p => p.userId === "bot_minerva" && (Date.now() - new Date(p.createdAt).getTime()) < 4 * 60 * 60 * 1000);
-    if (!recentMinerva) postHistoryFact();
-    const recentTdih = posts.find(p => p.id?.startsWith("minerva_tdih") && (Date.now() - new Date(p.createdAt).getTime()) < 20 * 60 * 60 * 1000);
-    if (!recentTdih) setTimeout(postThisDayInHistory, 8000);
+    // Post on login
+    postHistoryFact();
+    setTimeout(postThisDayInHistory, 8000); // stagger slightly
     const histInterval = setInterval(postHistoryFact, 12 * 60 * 60 * 1000); // 12h
     const tdihInterval = setInterval(postThisDayInHistory, 24 * 60 * 60 * 1000); // 24h
     return () => { clearInterval(histInterval); clearInterval(tdihInterval); };
@@ -2511,9 +2514,8 @@ export default function App() {
       } catch { /* fail silently */ }
     };
 
-    // Only post on login if no recent news post in last 1 hour
-    const recentNews = posts.find(p => p.userId === "bot_news" && (Date.now() - new Date(p.createdAt).getTime()) < 60 * 60 * 1000);
-    if (!recentNews) setTimeout(postNews, 15000);
+    // Post once on login, then every 3 hours
+    setTimeout(postNews, 15000); // 15s delay so it doesn't clash with other bots
     const newsInterval = setInterval(postNews, 3 * 60 * 60 * 1000); // 3h
     return () => clearInterval(newsInterval);
   }, [me]);
@@ -3169,19 +3171,14 @@ export default function App() {
 
           <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
-          {/* ── CHANGE PASSWORD (optional, collapsed by default) ── */}
+          {/* ── CHANGE PASSWORD (optional) ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
-            <div onClick={() => setSf(p => ({ ...p, _showPw: !p._showPw }))} style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: sf._showPw ? 4 : 0, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span>🔒 Change Password</span>
-              <span style={{ fontSize: 12, color: T.sub, fontWeight: 400 }}>{sf._showPw ? "▲ hide" : "▼ expand"}</span>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🔒 Change Password</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Leave blank to keep your current password</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password (optional)" style={inp13} />
+              <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
             </div>
-            {sf._showPw && <>
-              <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Leave blank to keep your current password</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password (optional)" style={inp13} />
-                <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
-              </div>
-            </>}
           </div>
 
           {/* ── CLAUDE API KEY ── */}
