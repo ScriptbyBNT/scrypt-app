@@ -90,7 +90,7 @@ const DB = {
   getUsers: () => sbFetch("users?select=*&order=created_at.asc&limit=1000"),
   getUserByUsername: (username) => sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=*`),
   upsertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
-  updateUser: (id, data) => sbFetch(`users?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateUser: (id, data) => sbFetch(`users?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data), prefer: "return=minimal", headers: { "Prefer": "return=minimal" } }),
   insertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user) }),
 
   // POSTS
@@ -182,37 +182,40 @@ const rowToPost = r => {
 
 const rowToUser = r => {
   if (!r) return null;
-  // info_fields is our flexible JSON column — holds most profile data
+  // info_fields holds flexible data: info cards, song URL, photo URLs, song label
   const info = r.info_fields ? tryParse(r.info_fields, {}) : {};
   return {
+    // Core identity — always from dedicated columns
     id: r.id,
     username: r.username,
     password: r.password,
     avatar: r.avatar,
-    // info_fields takes priority for fields we now store there
-    bio: info.bio || r.bio || null,
     isBot: r.is_bot ?? r.isBot ?? false,
     isSpecial: r.is_special ?? r.isSpecial ?? false,
     verified: r.verified ?? false,
     village: tryParse(r.village, []),
     joinedAt: r.joined_at || r.joinedAt || r.created_at,
-    mood: info.mood || r.mood || null,
-    accentColor: info.accentColor || r.accent_color || r.accentColor || null,
-    featuredPostId: info.featuredPostId !== undefined ? info.featuredPostId : (r.featured_post_id || r.featuredPostId || null),
-    hasProfileSong: info.hasProfileSong ?? r.has_profile_song ?? r.hasProfileSong ?? false,
-    profileSongName: info.profileSongName || r.profile_song_name || r.profileSongName || null,
+    wallpaper: r.wallpaper ? tryParse(r.wallpaper, null) : null,
+    // Profile fields — dedicated columns first, info_fields fallback
+    bio: r.bio || null,
+    mood: r.mood || null,
+    accentColor: r.accent_color || null,
+    featuredPostId: r.featured_post_id || null,
+    hasProfileSong: r.has_profile_song ?? false,
+    profileSongName: r.profile_song_name || null,
+    // Extended fields — only in info_fields
     profileSong: info.profileSong || null,
     profileSongLabel: info.profileSongLabel || null,
-    wallpaper: r.wallpaper ? tryParse(r.wallpaper, null) : null,
-    // Spread remaining info fields (infoMovie, infoBook, photo URLs etc)
-    ...info,
-    // But don't let info_fields override the core identity fields above
-    id: r.id,
-    username: r.username,
-    password: r.password,
-    isBot: r.is_bot ?? r.isBot ?? false,
-    isSpecial: r.is_special ?? r.isSpecial ?? false,
-    verified: r.verified ?? false,
+    infoMovie: info.infoMovie || null,
+    infoArtist: info.infoArtist || null,
+    infoShow: info.infoShow || null,
+    infoBook: info.infoBook || null,
+    infoGame: info.infoGame || null,
+    infoMoviePhoto: info.infoMoviePhoto || null,
+    infoArtistPhoto: info.infoArtistPhoto || null,
+    infoShowPhoto: info.infoShowPhoto || null,
+    infoBookPhoto: info.infoBookPhoto || null,
+    infoGamePhoto: info.infoGamePhoto || null,
   };
 };
 
@@ -2975,31 +2978,30 @@ export default function App() {
         }
       }
 
-      // Build info_fields — pack everything that isn't a top-level DB column
-      const infoFields = {};
-      INFO_TEXT_KEYS.forEach(k => { if (upd[k]) infoFields[k] = upd[k]; });
-      INFO_PHOTO_KEYS.forEach(k => {
-        if (upd[k] && upd[k].startsWith("http")) infoFields[k] = upd[k];
-      });
-      if (upd.profileSongLabel) infoFields.profileSongLabel = upd.profileSongLabel;
-      if (upd.profileSong && upd.profileSong.startsWith("http")) infoFields.profileSong = upd.profileSong;
-      if (upd.mood) infoFields.mood = upd.mood;
-      if (upd.accentColor) infoFields.accentColor = upd.accentColor;
-      if (upd.featuredPostId !== undefined) infoFields.featuredPostId = upd.featuredPostId;
-      infoFields.hasProfileSong = upd.hasProfileSong || false;
-      infoFields.profileSongName = upd.profileSongName || null;
-      infoFields.bio = upd.bio || null;
+      // Write to DEDICATED columns — only columns that exist in the original schema
+      // Extra data (info cards, song label, photo URLs) goes into info_fields as JSON
+      const infoExtra = {};
+      INFO_TEXT_KEYS.forEach(k => { if (upd[k]) infoExtra[k] = upd[k]; });
+      INFO_PHOTO_KEYS.forEach(k => { if (upd[k]) infoExtra[k] = upd[k]; });
+      if (upd.profileSongLabel) infoExtra.profileSongLabel = upd.profileSongLabel;
+      // Only store song URL in info_fields (not base64)
+      if (upd.profileSong && upd.profileSong.startsWith("http")) infoExtra.profileSong = upd.profileSong;
 
-      // Single PATCH — just username, password, and info_fields
+      // Build patch using known-good column names
       const dbPatch = {
-        info_fields: JSON.stringify(infoFields),
+        bio: upd.bio || null,
+        mood: upd.mood || null,
+        accent_color: upd.accentColor || null,
+        featured_post_id: upd.featuredPostId || null,
+        has_profile_song: upd.hasProfileSong || false,
+        profile_song_name: upd.profileSongName || null,
+        info_fields: JSON.stringify(infoExtra),
       };
       if (upd.username !== meSnapshot.username) dbPatch.username = upd.username;
       if (upd.password !== meSnapshot.password) dbPatch.password = upd.password;
 
-      console.log("[doSave] patching DB with:", JSON.stringify(dbPatch).slice(0, 200));
       const result = await DB.updateUser(meSnapshot.id, dbPatch);
-      console.log("[doSave] DB result:", result);
+      console.log("[doSave] DB patch sent. Result:", result === null ? "FAILED (null)" : "OK");
 
       // Update state with final upd (may have storage URLs now)
       setMe({ ...upd });
