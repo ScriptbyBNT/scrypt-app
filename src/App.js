@@ -620,27 +620,27 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
   const inputBg = dark ? "#2C2C2E" : "#EFEFEF";
   const textColor = dark ? "#F5F5F5" : "#1C1C1E";
   const subColor = dark ? "#8E8E93" : "#6B7280";
-  const s = { width: "100%", background: T.input, border: "none", borderRadius: 14, padding: "16px 18px", color: T.text, fontSize: 16, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
-  return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+  const s = { width: "100%", background: inputBg, border: "none", borderRadius: 14, padding: "16px 18px", color: textColor, fontSize: 16, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
+  return <div style={{ minHeight: "100vh", background: bgColor, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
     <div style={{ maxWidth: 400, width: "100%" }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: BLUE, padding: "12px 24px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", marginBottom: 16, overflow: "hidden" }}>
-          <img src={LOGO} style={{ width: 72, height: 72, objectFit: "contain", flexShrink: 0 }} alt="Scrypt logo" />
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: BLUE, padding: "16px 36px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", marginBottom: 16 }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 8v14h16V8L12 2z" fill="white" stroke="white" strokeWidth="0.5"/><path d="M8 22V12h8v10" fill="rgba(255,255,255,0.3)" stroke="white" strokeWidth="0.8"/><path d="M2 9l10-7 10 7" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           <span style={{ fontWeight: 800, fontSize: 26, color: "white", letterSpacing: "-0.5px" }}>Scrypt</span>
         </div>
-        <p style={{ margin: 0, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
+        <p style={{ margin: 0, color: subColor, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
       </div>
-      <div style={{ background: T.card, borderRadius: 20, padding: "28px 24px", boxShadow: dark ? "0 4px 32px rgba(0,0,0,0.5)" : "0 2px 16px rgba(0,0,0,0.08)" }}>
+      <div style={{ background: cardBg, borderRadius: 20, padding: "28px 24px", boxShadow: dark ? "0 4px 32px rgba(0,0,0,0.5)" : "0 2px 16px rgba(0,0,0,0.08)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <input value={u} onChange={e => setU(e.target.value)} placeholder="Username" style={s} onKeyDown={e => e.key === "Enter" && go()} />
           <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} onKeyDown={e => e.key === "Enter" && go()} />
           {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8 }}>{err}</div>}
           <button onClick={go} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "16px", fontWeight: 700, fontSize: 16, cursor: "pointer", marginTop: 4, fontFamily: "inherit" }}>Sign In</button>
-          <button onClick={onSignup} style={{ background: T.card, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit" }}>Create account</button>
+          <button onClick={onSignup} style={{ background: cardBg, color: textColor, border: `1.5px solid ${dark ? "#3A3A3C" : "#D1D5DB"}`, borderRadius: 9999, padding: "15px", fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit" }}>Create account</button>
         </div>
       </div>
       <div style={{ textAlign: "center", marginTop: 20 }}>
-        <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontFamily: "inherit" }}>{dark ? <SunI /> : <MoonI />} {dark ? "Light mode" : "Dark mode"}</button>
+        <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: subColor, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontFamily: "inherit" }}><MoonI /> Dark mode</button>
       </div>
     </div>
   </div>;
@@ -987,7 +987,7 @@ export default function App() {
     <div style={{ position: "sticky", top: 0, zIndex: 100, background: dark ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.border}` }}>
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <img src={LOGO} style={{ width: 48, height: 28, objectFit: "contain" }} alt="logo" />
+          <img src={LOGO} style={{ width: 72, height: 42, objectFit: "contain" }} alt="logo" />
           <span style={{ fontWeight: 900, fontSize: 20, color: BLUE }}>Scrypt</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1113,7 +1113,7 @@ export default function App() {
       </div>}
 
       {!thread && tab === "dms" && dmUser && <DMView me={me} other={dmUser} users={users} T={T} onBack={() => setDmUser(null)} onCall={() => setVoiceCall({ participants: [me.id, dmUser.id] })} />}
-      {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} />}}
+      {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} />}
 
       {!thread && tab === "profile" && <div>
         <div style={{ height: 96, background: `linear-gradient(135deg,${BLUE},${PURPLE})`, position: "relative", overflow: "hidden", flexShrink: 0 }}>
