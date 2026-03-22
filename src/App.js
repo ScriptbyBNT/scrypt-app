@@ -2756,48 +2756,58 @@ export default function App() {
     DB.updateUser(me.id, { wallpaper: wp }).catch(() => {});
     notify("Wallpaper updated! 🖼️");
   };
-  const doSave = () => {
+  const doSave = useCallback((sfSnapshot, meSnapshot) => {
     setSerr("");
     const upd = {};
-    if (sf.u && sf.u.trim().toLowerCase() !== me.username.toLowerCase()) {
-      const t = sf.u.trim().toLowerCase();
+    if (sfSnapshot.u && sfSnapshot.u.trim().toLowerCase() !== meSnapshot.username.toLowerCase()) {
+      const t = sfSnapshot.u.trim().toLowerCase();
       if (t.length < 3) { setSerr("Min 3 characters."); return; }
-      if (users.find(u => u.username.toLowerCase() === t && u.id !== me.id)) { setSerr("Username taken."); return; }
+      if (users.find(u => u.username.toLowerCase() === t && u.id !== meSnapshot.id)) { setSerr("Username taken."); return; }
       upd.username = t;
     }
-    if (sf.pw) {
-      if (sf.pw.length < 6) { setSerr("Password min 6."); return; }
-      if (sf.pw !== sf.pw2) { setSerr("Passwords don't match."); return; }
-      upd.password = sf.pw;
+    if (sfSnapshot.pw) {
+      if (sfSnapshot.pw.length < 6) { setSerr("Password min 6 chars."); return; }
+      if (sfSnapshot.pw !== sfSnapshot.pw2) { setSerr("Passwords don't match."); return; }
+      upd.password = sfSnapshot.pw;
     }
-    if (sf.bio !== undefined && sf.bio !== "") upd.bio = sf.bio;
-    if (sf.mood !== undefined) upd.mood = sf.mood;
-    if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
-    if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
+    if (sfSnapshot.bio !== undefined && sfSnapshot.bio !== "") upd.bio = sfSnapshot.bio;
+    if (sfSnapshot.mood !== undefined) upd.mood = sfSnapshot.mood;
+    if (sfSnapshot.accentColor !== undefined) upd.accentColor = sfSnapshot.accentColor;
+    if (sfSnapshot.featuredPostId !== undefined) upd.featuredPostId = sfSnapshot.featuredPostId;
     // Profile song — stored separately to avoid bloating users array
-    if (sf.profileSong !== undefined) {
-      LS.set(`psong_${me.id}`, { song: sf.profileSong, name: sf.profileSongName });
-      upd.hasProfileSong = !!sf.profileSong;
-      upd.profileSongName = sf.profileSongName || null;
+    if (sfSnapshot.profileSong !== undefined) {
+      LS.set(`psong_${meSnapshot.id}`, sfSnapshot.profileSong ? { song: sfSnapshot.profileSong, name: sfSnapshot.profileSongName } : null);
+      upd.hasProfileSong = !!sfSnapshot.profileSong;
+      upd.profileSongName = sfSnapshot.profileSongName || null;
+      upd.profileSong = sfSnapshot.profileSong || null;
     }
     // Info card text fields
     INFO_FIELDS.forEach(f => {
-      if (sf[f.key] !== undefined) upd[f.key] = sf[f.key];
-      // Info card photos — stored separately per card to avoid freezing users array
-      if (sf[f.photoKey] !== undefined) {
-        LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
-        upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
+      if (sfSnapshot[f.key] !== undefined) upd[f.key] = sfSnapshot[f.key];
+      if (sfSnapshot[f.photoKey] !== undefined) {
+        LS.set(`icard_${meSnapshot.id}_${f.photoKey}`, sfSnapshot[f.photoKey] || null);
+        upd[f.photoKey] = sfSnapshot[f.photoKey] ? `__local__${f.photoKey}` : null;
       }
     });
-    const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
+    if (Object.keys(upd).length === 0) return;
+    const updatedUsers = users.map(u => u.id === meSnapshot.id ? { ...u, ...upd } : u);
     setUsers(updatedUsers);
     setMe(p => ({ ...p, ...upd }));
-    // Save to Supabase
-    const updatedMe = { ...me, ...upd };
-    (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
-    setSf({ u: "", pw: "", pw2: "", bio: "" });
-    notify("Profile saved! ✓");
-  };
+    const updatedMe = { ...meSnapshot, ...upd };
+    (async () => { try { await DB.updateUser(meSnapshot.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
+    notify("Saved ✓");
+  }, [users]);
+
+  // Auto-save settings after 800ms of inactivity
+  useEffect(() => {
+    if (!me) return;
+    const hasChanges = sf.u || sf.bio || sf.mood !== undefined || sf.accentColor !== undefined ||
+      sf.featuredPostId !== undefined || sf.profileSong !== undefined ||
+      INFO_FIELDS.some(f => sf[f.key] !== undefined || sf[f.photoKey] !== undefined);
+    if (!hasChanges) return;
+    const timer = setTimeout(() => doSave(sf, me), 800);
+    return () => clearTimeout(timer);
+  }, [sf]);
 
   // Helper: resolve a stored photo key to actual base64
   const resolvePhoto = (user, photoKey) => {
@@ -3301,7 +3311,6 @@ export default function App() {
           </div>
 
           {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
-          <button onClick={doSave} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 800, cursor: "pointer", fontSize: 12, marginBottom: 8 }}>Save Changes</button>
 
 
 
@@ -3314,6 +3323,7 @@ export default function App() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password (optional)" style={inp13} />
               <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
+              {sf.pw && <button onClick={() => doSave(sf, me)} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px 14px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Update Password</button>}
             </div>
           </div>
 
