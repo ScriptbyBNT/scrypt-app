@@ -921,7 +921,7 @@ export default function App() {
   return <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Segoe UI',sans-serif", color: T.text }}>
     {toast && <div style={{ position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.bg, padding: "10px 20px", borderRadius: 9999, fontSize: 14, fontWeight: 600, zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
     {voiceCall && <VoiceCall me={me} participants={voiceCall.participants} users={users} T={T} onEnd={() => { setVoiceCall(null); notify("Call ended"); }} />}
-    {showClaude && <ClaudeChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={claudeInit} />}}
+    {showClaude && <ClaudeChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={claudeInit} />}
     {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} T={T} posts={posts} />}
     {showPP && <PicPicker onPick={doPickDef} onClose={() => setShowPP(false)} T={T} />}
 
@@ -981,9 +981,9 @@ export default function App() {
     {/* HEADER */}
     <div style={{ position: "sticky", top: 0, zIndex: 100, background: dark ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.border}` }}>
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <img src={LOGO} style={{ width: 48, height: 28, objectFit: "contain" }} alt="logo" />
-          <span style={{ fontWeight: 900, fontSize: 20, color: BLUE }}>Scrypt</span>
+        <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", background: BLUE, borderRadius: 9999, padding: "8px 18px", overflow: "hidden" }}>
+          <img src={LOGO} style={{ width: 36, height: 36, objectFit: "contain", mixBlendMode: "screen", flexShrink: 0 }} alt="logo" />
+          <span style={{ fontWeight: 900, fontSize: 18, color: "white" }}>Scrypt</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={() => { setClaudeInit(null); setShowClaude(true); }} style={{ background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", borderRadius: 9999, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1108,7 +1108,7 @@ export default function App() {
       </div>}
 
       {!thread && tab === "dms" && dmUser && <DMView me={me} other={dmUser} users={users} T={T} onBack={() => setDmUser(null)} onCall={() => setVoiceCall({ participants: [me.id, dmUser.id] })} />}
-      {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} />}}
+      {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} />}
 
       {!thread && tab === "profile" && <div>
         <div style={{ height: 96, background: `linear-gradient(135deg,${BLUE},${PURPLE})`, position: "relative", overflow: "hidden", flexShrink: 0 }}>
