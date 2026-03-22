@@ -804,7 +804,7 @@ const BannerCropModal = ({ src, onSave, onClose, T }) => {
     const ratio = EW / W;
     const { offsetX, offsetY, scale } = stateRef.current;
     ctx.drawImage(imgRef.current, offsetX * ratio, offsetY * ratio, imgRef.current.naturalWidth * scale * ratio, imgRef.current.naturalHeight * scale * ratio);
-    onSave(out.toDataURL("image/jpeg", 0.88));
+    onSave(out.toDataURL("image/jpeg", 0.72));
   };
 
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, padding: 16 }}>
@@ -1087,7 +1087,7 @@ const ImageCropModal = ({ src, onSave, onClose, T }) => {
   };
 
   const save = () => {
-    const EXPORT = 400;
+    const EXPORT = 200;
     const out = document.createElement("canvas");
     out.width = EXPORT; out.height = EXPORT;
     const ctx = out.getContext("2d");
@@ -1095,7 +1095,7 @@ const ImageCropModal = ({ src, onSave, onClose, T }) => {
     const ratio = EXPORT / SIZE;
     const img = imgRef.current;
     ctx.drawImage(img, offsetX * ratio, offsetY * ratio, img.naturalWidth * scale * ratio, img.naturalHeight * scale * ratio);
-    onSave(out.toDataURL("image/jpeg", 0.88));
+    onSave(out.toDataURL("image/jpeg", 0.72));
   };
 
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, padding: 16 }}>
@@ -3003,15 +3003,19 @@ export default function App() {
         }
       }
 
-      // Handle photos
+      // Handle photos — store in IDB for local display + try Storage for cross-device URL
       for (const f of INFO_FIELDS) {
         if (sfSnapshot[f.photoKey] !== undefined) {
           if (sfSnapshot[f.photoKey] && !sfSnapshot[f.photoKey].startsWith("http")) {
+            // Save to IDB (always works, local)
             await IDB.set(`icard_${meSnapshot.id}_${f.photoKey}`, sfSnapshot[f.photoKey]);
             upd[f.photoKey] = sfSnapshot[f.photoKey];
+            // Try Storage upload for cross-device URL
             const url = await STORAGE.upload("media", `${meSnapshot.id}/${f.photoKey}`, sfSnapshot[f.photoKey]);
-            if (url) upd[f.photoKey] = url;
-          } else if (!sfSnapshot[f.photoKey]) {
+            upd[f.photoKey] = url || sfSnapshot[f.photoKey]; // keep base64 if no URL
+          } else if (sfSnapshot[f.photoKey] && sfSnapshot[f.photoKey].startsWith("http")) {
+            upd[f.photoKey] = sfSnapshot[f.photoKey];
+          } else {
             IDB.del(`icard_${meSnapshot.id}_${f.photoKey}`);
             STORAGE.remove("media", `${meSnapshot.id}/${f.photoKey}`);
             upd[f.photoKey] = null;
@@ -3051,9 +3055,23 @@ export default function App() {
           row.info_fields = JSON.stringify(f);
         } catch(e) {}
       }
-      // Update village column with new profile data + village members
-      const savedP = LS.get(`profile_${meSnapshot.id}`) || {};
-      const villageRow = { v: upd.village || [], p: savedP };
+      // Build full profile extras object including photos
+      const fullProfileExtras = {};
+      if (upd.mood) fullProfileExtras.mood = upd.mood;
+      if (upd.accentColor) fullProfileExtras.accentColor = upd.accentColor;
+      if (upd.featuredPostId) fullProfileExtras.featuredPostId = upd.featuredPostId;
+      if (upd.hasProfileSong) fullProfileExtras.hasProfileSong = upd.hasProfileSong;
+      if (upd.profileSongName) fullProfileExtras.profileSongName = upd.profileSongName;
+      if (upd.profileSongLabel) fullProfileExtras.profileSongLabel = upd.profileSongLabel;
+      if (upd.profileSong && upd.profileSong.startsWith("http")) fullProfileExtras.profileSong = upd.profileSong;
+      INFO_TEXT_KEYS.forEach(k => { if (upd[k]) fullProfileExtras[k] = upd[k]; });
+      INFO_PHOTO_KEYS.forEach(k => { if (upd[k] && upd[k].startsWith("http")) fullProfileExtras[k] = upd[k]; });
+      // Update localStorage with latest (includes base64 photos)
+      const fullLocalProfile = { ...fullProfileExtras };
+      INFO_PHOTO_KEYS.forEach(k => { if (upd[k]) fullLocalProfile[k] = upd[k]; });
+      LS.set(`profile_${meSnapshot.id}`, fullLocalProfile);
+      // Save to DB (only URLs, no base64 — keeps village column small)
+      const villageRow = { v: upd.village || [], p: fullProfileExtras };
       DB.updateUser(meSnapshot.id, {
         bio: upd.bio || null,
         avatar: upd.avatar || null,
