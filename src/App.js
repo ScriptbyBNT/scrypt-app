@@ -400,41 +400,48 @@ const ACCENT_COLORS = [
 const getAccent = (user) => ACCENT_COLORS.find(a => a.id === user?.accentColor) || ACCENT_COLORS[0];
 
 // ── PROFILE SONG PLAYER ────────────────────────────────────────────────────────
-const ProfileSongPlayer = ({ user, accent }) => {
+const ProfileSongPlayer = ({ songSrc, songName, accent }) => {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
-  if (!user.profileSong) return null;
+  if (!songSrc) return null;
   const toggle = () => {
     if (!audioRef.current) return;
     if (playing) { audioRef.current.pause(); setPlaying(false); }
-    else { audioRef.current.play(); setPlaying(true); }
+    else { audioRef.current.currentTime = 0; audioRef.current.play(); setPlaying(true); }
   };
   return <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: `${accent.color}18`, borderRadius: 10, border: `1px solid ${accent.color}40`, marginBottom: 10 }}>
-    <audio ref={audioRef} src={user.profileSong} onEnded={() => setPlaying(false)} />
+    <audio ref={audioRef} src={songSrc} onEnded={() => setPlaying(false)} />
     <button onClick={toggle} style={{ background: accent.color, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "white", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{playing ? "⏸" : "▶"}</button>
     <div style={{ flex: 1, overflow: "hidden" }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: accent.color }}>🎵 Profile Song</div>
-      <div style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.profileSongName || "Custom clip"}</div>
+      <div style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{songName || "Custom clip"}</div>
     </div>
   </div>;
 };
 
 // ── PROFILE INFO CARDS ─────────────────────────────────────────────────────────
 const INFO_FIELDS = [
-  { key: "infoMovie",  icon: "🎬", label: "Fav Movie" },
-  { key: "infoArtist", icon: "🎵", label: "Top Artist" },
-  { key: "infoShow",   icon: "📺", label: "Watching" },
-  { key: "infoBook",   icon: "📖", label: "Reading" },
-  { key: "infoGame",   icon: "🎮", label: "Playing" },
+  { key: "infoMovie",  photoKey: "infoMoviePhoto",  icon: "🎬", label: "Fav Movie" },
+  { key: "infoArtist", photoKey: "infoArtistPhoto", icon: "🎵", label: "Top Artist" },
+  { key: "infoShow",   photoKey: "infoShowPhoto",   icon: "📺", label: "Watching" },
+  { key: "infoBook",   photoKey: "infoBookPhoto",   icon: "📖", label: "Reading" },
+  { key: "infoGame",   photoKey: "infoGamePhoto",   icon: "🎮", label: "Playing" },
 ];
-const ProfileInfoCards = ({ user, accent }) => {
+const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
   const filled = INFO_FIELDS.filter(f => user[f.key]);
   if (!filled.length) return null;
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
-    {filled.map(f => <div key={f.key} style={{ background: `${accent.color}12`, border: `1px solid ${accent.color}30`, borderRadius: 10, padding: "7px 10px" }}>
-      <div style={{ fontSize: 10, color: accent.color, fontWeight: 700, marginBottom: 2 }}>{f.icon} {f.label}</div>
-      <div style={{ fontSize: 13, color: "#ccc", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user[f.key]}</div>
-    </div>)}
+  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+    {filled.map(f => {
+      const photo = resolvePhoto ? resolvePhoto(user, f.photoKey) : user[f.photoKey];
+      return <div key={f.key} style={{ background: `${accent.color}12`, border: `1px solid ${accent.color}30`, borderRadius: 12, overflow: "hidden" }}>
+        {photo && <img src={photo} alt={user[f.key]} style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />}
+        {!photo && <div style={{ width: "100%", height: 56, background: `${accent.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{f.icon}</div>}
+        <div style={{ padding: "6px 9px" }}>
+          <div style={{ fontSize: 10, color: accent.color, fontWeight: 700, marginBottom: 2 }}>{f.icon} {f.label}</div>
+          <div style={{ fontSize: 12, color: "#ccc", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user[f.key]}</div>
+        </div>
+      </div>;
+    })}
   </div>;
 };
 
@@ -476,7 +483,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
       </div>
       <div style={{ padding: "12px 16px 16px" }}>
         {/* Profile song player */}
-        <ProfileSongPlayer user={user} accent={accent} />
+        {(() => { const s = LS.get(`psong_${user.id}`) || (user.profileSong ? {song:user.profileSong,name:user.profileSongName} : null); return s ? <ProfileSongPlayer songSrc={s.song} songName={s.name} accent={accent} /> : null; })()}
         {user.bio && <div style={{ fontSize: 14, color: T.text, marginBottom: 10 }}>{user.bio}</div>}
         <div style={{ display: "flex", gap: 18, marginBottom: 12 }}>
           <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.length}</strong> Scrypts</span>
@@ -484,7 +491,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
           <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.reduce((s, p) => s + (p.likes?.length || 0), 0)}</strong> Likes</span>
         </div>
         {/* Info cards */}
-        <ProfileInfoCards user={user} accent={accent} />
+        <ProfileInfoCards user={user} accent={accent} resolvePhoto={(u,k) => { const v=u[k]; if(!v) return null; if(v.startsWith("__local__")) return LS.get(`icard_${u.id}_${v.replace("__local__","")}`); return v; }} />
         {/* Featured post */}
         {featured && <div style={{ marginBottom: 12, padding: "10px 12px", border: `1.5px solid ${accent.color}`, borderRadius: 12, background: `${accent.color}08` }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: accent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
@@ -1473,13 +1480,42 @@ export default function App() {
     if (sf.mood !== undefined) upd.mood = sf.mood;
     if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
     if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
-    if (sf.profileSong !== undefined) upd.profileSong = sf.profileSong;
-    if (sf.profileSongName !== undefined) upd.profileSongName = sf.profileSongName;
-    INFO_FIELDS.forEach(f => { if (sf[f.key] !== undefined) upd[f.key] = sf[f.key]; });
-    sv("su", users.map(u => u.id === me.id ? { ...u, ...upd } : u), setUsers);
+    // Profile song — stored separately to avoid bloating users array
+    if (sf.profileSong !== undefined) {
+      LS.set(`psong_${me.id}`, { song: sf.profileSong, name: sf.profileSongName });
+      upd.hasProfileSong = !!sf.profileSong;
+      upd.profileSongName = sf.profileSongName || null;
+    }
+    // Info card text fields
+    INFO_FIELDS.forEach(f => {
+      if (sf[f.key] !== undefined) upd[f.key] = sf[f.key];
+      // Info card photos — stored separately per card to avoid freezing users array
+      if (sf[f.photoKey] !== undefined) {
+        LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
+        upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
+      }
+    });
+    const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
+    LS.set("su", updatedUsers);
+    setUsers(updatedUsers);
     setMe(p => ({ ...p, ...upd }));
     setSf({ u: "", pw: "", pw2: "", bio: "" });
     notify("Profile saved! ✓");
+  };
+
+  // Helper: resolve a stored photo key to actual base64
+  const resolvePhoto = (user, photoKey) => {
+    const val = user[photoKey];
+    if (!val) return null;
+    if (val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
+    return val; // legacy direct base64
+  };
+
+  // Helper: resolve profile song
+  const resolveProfileSong = (user) => {
+    if (!user.hasProfileSong && !user.profileSong) return null;
+    const stored = LS.get(`psong_${user.id}`);
+    return stored ? { song: stored.song, name: stored.name } : (user.profileSong ? { song: user.profileSong, name: user.profileSongName } : null);
   };
 
   if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: u.village || [] }); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
@@ -1723,8 +1759,8 @@ export default function App() {
                 <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: myAccent.color }}>{mutuals.length}</strong> Mutuals</span>
               </div>
             </div>
-            {me.profileSong && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer user={me} accent={myAccent} /></div>}
-            {INFO_FIELDS.some(f => me[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} /></div>}
+            {(me.hasProfileSong || me.profileSong) && (() => { const s = resolveProfileSong(me); return s ? <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer songSrc={s.song} songName={s.name} accent={myAccent} /></div> : null; })()}
+            {INFO_FIELDS.some(f => me[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={me} accent={myAccent} resolvePhoto={resolvePhoto} /></div>}
             {feat && <div style={{ margin: "10px 16px", padding: "10px 12px", border: `1.5px solid ${myAccent.color}`, borderRadius: 12, background: `${myAccent.color}08` }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: myAccent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
               <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(feat.content)}</p>
@@ -1796,12 +1832,35 @@ export default function App() {
 
           {/* ── PROFILE INFO CARDS ── */}
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 10 }}>🃏 Profile Info Cards</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {INFO_FIELDS.map(f => <div key={f.key}>
-                <label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 3 }}>{f.icon} {f.label.toUpperCase()}</label>
-                <input value={sf[f.key] ?? (me[f.key] || "")} onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))} placeholder={`Your ${f.label.toLowerCase()}...`} style={inp13} />
-              </div>)}
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🃏 Profile Info Cards</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 12 }}>Add a title and optional cover photo for each card</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {INFO_FIELDS.map(f => {
+                const currentPhoto = sf[f.photoKey] !== undefined ? sf[f.photoKey] : resolvePhoto(me, f.photoKey);
+                return <div key={f.key} style={{ background: T.input, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}` }}>
+                  {/* Photo strip */}
+                  <div style={{ position: "relative", height: 72, background: currentPhoto ? "transparent" : `${myAccent.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {currentPhoto
+                      ? <img src={currentPhoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <span style={{ fontSize: 28 }}>{f.icon}</span>}
+                    <label style={{ position: "absolute", bottom: 6, right: 6, background: "rgba(0,0,0,0.6)", color: "white", borderRadius: 7, padding: "3px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
+                      {currentPhoto ? "📷 Change" : "📷 Add photo"}
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                        const file = e.target.files[0]; if (!file) return;
+                        const r = new FileReader();
+                        r.onload = x => setSf(p => ({ ...p, [f.photoKey]: x.target.result }));
+                        r.readAsDataURL(file);
+                      }} />
+                    </label>
+                    {currentPhoto && <button onClick={() => setSf(p => ({ ...p, [f.photoKey]: null }))} style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(200,0,0,0.7)", color: "white", border: "none", borderRadius: 7, padding: "3px 8px", fontSize: 10, cursor: "pointer" }}>✕ Remove</button>}
+                  </div>
+                  {/* Text input */}
+                  <div style={{ padding: "8px 10px" }}>
+                    <label style={{ fontSize: 10, color: myAccent.color, fontWeight: 700, display: "block", marginBottom: 4 }}>{f.icon} {f.label.toUpperCase()}</label>
+                    <input value={sf[f.key] ?? (me[f.key] || "")} onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))} placeholder={`Your ${f.label.toLowerCase()}...`} style={{ ...inp13, padding: "7px 10px" }} />
+                  </div>
+                </div>;
+              })}
             </div>
           </div>
 
@@ -1823,7 +1882,7 @@ export default function App() {
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🎵 Profile Song</div>
             <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Upload a short audio clip (up to ~10 sec) that plays on your profile</div>
-            {me.profileSong && <div style={{ marginBottom: 8 }}><ProfileSongPlayer user={me} accent={myAccent} /></div>}
+            {(me.hasProfileSong || me.profileSong || sf.profileSong) && (() => { const preview = sf.profileSong; const s = preview ? {song:preview,name:sf.profileSongName} : resolveProfileSong(me); return s ? <div style={{ marginBottom: 8 }}><ProfileSongPlayer songSrc={s.song} songName={s.name} accent={myAccent} /></div> : null; })()}
             <label style={{ display: "inline-block", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
               🎵 {me.profileSong ? "Change Song" : "Upload Song"}
               <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
