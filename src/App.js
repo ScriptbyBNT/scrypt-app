@@ -1412,14 +1412,10 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
   const go = async () => {
     setErr("");
     // Special accounts can log in — but only via direct username/password, not shown publicly
-    // Special account — check DB first for custom avatar/bio, fall back to hardcoded
+    // Always use hardcoded special account data to prevent regular users hijacking these usernames
     const specialMatch = SPECIAL_ACCOUNTS.find(x => x.username === u.trim() && x.password === pw);
     if (specialMatch) {
-      try {
-        const rows = await DB.getUserByUsername(specialMatch.username);
-        const dbVersion = rows && rows[0] ? rowToUser(rows[0]) : null;
-        onLogin(dbVersion || specialMatch);
-      } catch { onLogin(specialMatch); }
+      onLogin(specialMatch);
       return;
     }
     try {
@@ -1753,6 +1749,13 @@ export default function App() {
         setUsers([...humanUsers, ...allBots]);
         LS.set("dv", V);
       } else {
+        // Even if DB has bots, re-seed clicks if the clicks table is empty
+        if (dbClicks.length === 0) {
+          for (const c of SC) {
+            try { await DB.insertClick(clickToRow(c)); } catch(e) { console.error("seed click", c.id, e); }
+          }
+          dbClicks = SC.slice();
+        }
         // DB has data — use it, preserving any custom bot profiles set via the app
         const nonSpecial = dbUsers.filter(u => !specialIds.includes(u.id));
         const resolvedSpecial = await Promise.all(specialBots.map(async (b) => {
