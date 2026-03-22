@@ -620,8 +620,8 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
     <div style={{ maxWidth: 420, width: "100%" }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 14, background: BLUE, padding: "14px 32px", borderRadius: 9999, boxShadow: "0 8px 32px rgba(29,155,240,0.35)" }}>
-          <img src={LOGO} style={{ width: 72, height: 40, objectFit: "contain" }} alt="logo" />
-          <span style={{ fontWeight: 900, fontSize: 32, color: "white", letterSpacing: -0.5 }}>Scrypt</span>
+          <img src={LOGO} style={{ width: 120, height: 68, objectFit: "contain" }} alt="logo" />
+          <span style={{ fontWeight: 900, fontSize: 38, color: "white", letterSpacing: -1, fontFamily: "Georgia, serif" }}>Scrypt</span>
         </div>
         <p style={{ marginTop: 12, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
       </div>
@@ -682,7 +682,7 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
     <div style={{ maxWidth: 380, width: "100%" }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BLUE, padding: "10px 18px", borderRadius: 16 }}>
-          <img src={LOGO} style={{ width: 72, height: 40, objectFit: "contain" }} alt="logo" />
+          <img src={LOGO} style={{ width: 120, height: 68, objectFit: "contain" }} alt="logo" />
           <span style={{ fontWeight: 900, fontSize: 28, color: "white" }}>Scrypt</span>
         </div>
       </div>
@@ -982,7 +982,7 @@ export default function App() {
     <div style={{ position: "sticky", top: 0, zIndex: 100, background: dark ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.border}` }}>
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <img src={LOGO} style={{ width: 36, height: 20, objectFit: "contain" }} alt="logo" />
+          <img src={LOGO} style={{ width: 48, height: 28, objectFit: "contain" }} alt="logo" />
           <span style={{ fontWeight: 900, fontSize: 20, color: BLUE }}>Scrypt</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
