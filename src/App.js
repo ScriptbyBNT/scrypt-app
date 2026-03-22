@@ -88,6 +88,7 @@ const rowToPost = r => {
 const rowToUser = r => {
   if (!r) return null;
   const village = tryParse(r.village, []);
+  const extra = tryParse(r.info_fields, {});
   return {
     id: r.id,
     username: r.username,
@@ -103,11 +104,16 @@ const rowToUser = r => {
     accentColor: r.accent_color || r.accentColor || null,
     featuredPostId: r.featured_post_id || r.featuredPostId || null,
     hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
-    profileSongName: r.profile_song_name || r.profileSongName || null,
-    profileSong: r.profile_song || null,
-    wallpaper: tryParse(r.wallpaper, null),
-    dark: r.dark ?? null,
-    ...(r.info_fields ? tryParse(r.info_fields, {}) : {}),
+    profileSongName: r.profile_song_name || r.profileSongName || extra.profileSongName || null,
+    // Extra fields stored in info_fields JSON
+    wallpaper: extra.wallpaper || null,
+    profileSong: extra.profileSong || null,
+    infoMovie: extra.infoMovie || null,
+    infoArtist: extra.infoArtist || null,
+    infoShow: extra.infoShow || null,
+    infoBook: extra.infoBook || null,
+    infoGame: extra.infoGame || null,
+    dark: extra.dark !== undefined ? extra.dark : null,
   };
 };
 
@@ -142,33 +148,39 @@ const postToRow = p => ({
   pinned: p.pinned || false,
 });
 
-const userToRow = u => ({
-  id: u.id,
-  username: u.username,
-  password: u.password,
-  avatar: u.avatar || null,
-  bio: u.bio || null,
-  is_bot: u.isBot || false,
-  is_special: u.isSpecial || false,
-  verified: u.verified || false,
-  village: JSON.stringify(Array.isArray(u.village) ? u.village : []),
-  joined_at: u.joinedAt || new Date().toISOString(),
-  mood: u.mood || null,
-  accent_color: u.accentColor || null,
-  featured_post_id: u.featuredPostId || null,
-  has_profile_song: u.hasProfileSong || false,
-  profile_song_name: u.profileSongName || null,
-  profile_song: u.profileSong || null,
-  wallpaper: u.wallpaper ? JSON.stringify(u.wallpaper) : null,
-  dark: u.dark !== undefined ? (u.dark ? 1 : 0) : null,
-  info_fields: JSON.stringify({
+const userToRow = u => {
+  // Only include columns that exist in the base Supabase schema
+  // Extra fields (wallpaper, profileSong, info cards) are stored in info_fields JSON
+  const extra = {
+    wallpaper: u.wallpaper || null,
+    profileSong: u.profileSong || null,
+    profileSongName: u.profileSongName || null,
     infoMovie: u.infoMovie || null,
     infoArtist: u.infoArtist || null,
     infoShow: u.infoShow || null,
     infoBook: u.infoBook || null,
     infoGame: u.infoGame || null,
-  }),
-});
+    dark: u.dark !== undefined ? u.dark : null,
+  };
+  return {
+    id: u.id,
+    username: u.username,
+    password: u.password,
+    avatar: u.avatar || null,
+    bio: u.bio || null,
+    is_bot: u.isBot || false,
+    is_special: u.isSpecial || false,
+    verified: u.verified || false,
+    village: JSON.stringify(Array.isArray(u.village) ? u.village : []),
+    joined_at: u.joinedAt || new Date().toISOString(),
+    mood: u.mood || null,
+    accent_color: u.accentColor || null,
+    featured_post_id: u.featuredPostId || null,
+    has_profile_song: u.hasProfileSong || false,
+    profile_song_name: u.profileSongName || null,
+    info_fields: JSON.stringify(extra),
+  };
+};
 
 const clickToRow = c => ({
   id: c.id,
@@ -1582,7 +1594,13 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
   const confirm = async () => {
     const t = u.trim().toLowerCase();
     const nu = { id: Date.now().toString(), username: t, password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
-    await DB.insertUser(userToRow(nu));
+    try {
+      const result = await DB.insertUser(userToRow(nu));
+      if (!result) {
+        // Insert failed — try without info_fields in case column doesn't exist yet
+        await DB.insertUser({ id: nu.id, username: nu.username, password: nu.password, avatar: nu.avatar || null, bio: nu.bio || null, is_bot: false, is_special: false, verified: false, village: "[]", joined_at: nu.joinedAt, mood: null, accent_color: null, featured_post_id: null, has_profile_song: false, profile_song_name: null });
+      }
+    } catch(e) { console.error("signup insert failed", e); }
     onDone(nu);
   };
   const doAv = e => {
@@ -1779,10 +1797,7 @@ export default function App() {
     meta.content = color;
     document.body.style.backgroundColor = color;
     LS.set("dark", dark ? "1" : "0");
-    // Save to Supabase so it persists across devices
-    if (me?.id) {
-      DB.updateUser(me.id, { dark: dark ? 1 : 0 }).catch(() => {});
-    }
+    if (me?.id) DB.updateUser(me.id, userToRow({ ...me, dark: dark ? 1 : 0 })).catch(() => {});
   }, [dark]);
 
   useEffect(() => {
@@ -1873,34 +1888,53 @@ export default function App() {
             const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
             const dbVersion = rows && rows[0] ? rowToUser(rows[0]) : null;
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-            // Merge: use DB data for mutable fields (avatar, bio, wallpaper), hardcoded for fixed fields (id, username, password, isSpecial, verified)
             if (dbVersion && hardcoded) {
-              setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: dbVersion.village || hardcoded.village || [] });
+              setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: Array.isArray(dbVersion.village) ? dbVersion.village : (hardcoded.village || []) });
             } else if (hardcoded) {
-              setMe({ ...hardcoded, village: hardcoded.village || [] });
+              setMe({ ...hardcoded, village: Array.isArray(hardcoded.village) ? hardcoded.village : [] });
             }
           } catch {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-            if (hardcoded) setMe({ ...hardcoded, village: hardcoded.village || [] });
+            if (hardcoded) setMe({ ...hardcoded, village: Array.isArray(hardcoded.village) ? hardcoded.village : [] });
           }
+          setDbLoading(false);
           setPg("app");
           return;
         }
-        // Regular user from DB
+        // Regular user — try DB, but NEVER log out on error (just use cached users list)
         try {
           const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
           const u = rows && rows[0] ? rowToUser(rows[0]) : null;
           if (u) {
-            setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] });
-            // Restore dark mode preference from DB if available
             if (u.dark !== null && u.dark !== undefined) setDark(!!u.dark);
-            setPg("app"); return;
+            setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] });
+            setDbLoading(false);
+            setPg("app");
+            return;
           }
-        } catch {}
-        // Session invalid — clear it
+          // User not found in DB at all — check if they're in the local users list
+          const localUser = dbUsers.find(x => x.id === sessionUid);
+          if (localUser) {
+            setMe({ ...localUser, village: Array.isArray(localUser.village) ? localUser.village : [] });
+            setDbLoading(false);
+            setPg("app");
+            return;
+          }
+        } catch {
+          // DB error — don't log out, use cached data if possible
+          const localUser = dbUsers.find(x => x.id === sessionUid);
+          if (localUser) {
+            setMe({ ...localUser, village: Array.isArray(localUser.village) ? localUser.village : [] });
+            setDbLoading(false);
+            setPg("app");
+            return;
+          }
+        }
+        // Only clear session if user truly doesn't exist anywhere
         localStorage.removeItem("session_uid");
-        setPg("login");
       }
+      setDbLoading(false);
+      setPg("login");
     };
     initDB();
   }, []);
@@ -2788,27 +2822,22 @@ export default function App() {
     if (sf.mood !== undefined) upd.mood = sf.mood || null;
     if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
     if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
-    // Profile song — stored separately to avoid bloating users array
     if (sf.profileSong !== undefined) {
       LS.set(`psong_${me.id}`, sf.profileSong ? { song: sf.profileSong, name: sf.profileSongName } : null);
       upd.hasProfileSong = !!sf.profileSong;
       upd.profileSongName = sf.profileSongName || null;
       upd.profileSong = sf.profileSong || null;
     }
-    // Info card text fields
     INFO_FIELDS.forEach(f => {
       if (sf[f.key] !== undefined) upd[f.key] = sf[f.key] || null;
-      // Info card photos — stored separately per card to avoid freezing users array
       if (sf[f.photoKey] !== undefined) {
         LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
         upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
       }
     });
-    const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
-    setUsers(updatedUsers);
-    setMe(p => ({ ...p, ...upd }));
-    // Save to Supabase
     const updatedMe = { ...me, ...upd };
+    setUsers(users.map(u => u.id === me.id ? updatedMe : u));
+    setMe(updatedMe);
     (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
     setSf({ u: "", pw: "", pw2: "", bio: undefined });
     notify("Profile saved! ✓");
