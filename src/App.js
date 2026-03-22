@@ -1755,7 +1755,7 @@ export default function App() {
   useEffect(() => {
     setSf({ u: "", pw: "", pw2: "", bio: "" });
     setSerr("");
-  }, [me?.id]);
+  }, [me?.id, me?.username]);
 
   // Sync browser chrome color with dark/light mode
   useEffect(() => {
