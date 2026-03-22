@@ -170,41 +170,16 @@ function tryParse(v, fallback) {
   if (typeof v !== "string") return v;
   try { return JSON.parse(v); } catch { return fallback; }
 }
-// API key stored globally so all bot accounts can use it
 const getKey = () => { try { return localStorage.getItem("sharedApiKey") || JSON.parse(localStorage.getItem("apiKey")) || ""; } catch { return ""; } };
 const setSharedKey = (k) => { try { localStorage.setItem("sharedApiKey", k); } catch {} };
-// Groq-compatible fetch — works with gsk_... keys, falls back to Anthropic for sk-ant-... keys
 const claudeFetch = (body) => {
   const key = getKey();
-  if (!key) return Promise.resolve({ json: () => Promise.resolve({}) });
+  if (!key) return Promise.resolve({ ok: true, json: () => Promise.resolve({ content: [{ type: "text", text: "" }] }) });
   if (key.startsWith("gsk_")) {
-    // Groq API — remap model name to llama
-    const groqBody = {
-      model: "llama3-70b-8192",
-      max_tokens: body.max_tokens || 500,
-      messages: body.system
-        ? [{ role: "system", content: body.system }, ...(body.messages || [])]
-        : (body.messages || []),
-    };
-    return fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-      body: JSON.stringify(groqBody)
-    }).then(r => ({
-      json: async () => {
-        const d = await r.json();
-        // Remap Groq response shape to Anthropic shape
-        const text = d.choices?.[0]?.message?.content || "";
-        return { content: [{ type: "text", text }] };
-      }
-    }));
+    const groqBody = { model: "llama3-70b-8192", max_tokens: body.max_tokens || 500, messages: body.system ? [{ role: "system", content: body.system }, ...(body.messages || [])] : (body.messages || []) };
+    return fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key }, body: JSON.stringify(groqBody) }).then(r => ({ ok: r.ok, json: async () => { const d = await r.json(); return { content: [{ type: "text", text: d.choices?.[0]?.message?.content || "" }] }; } }));
   }
-  // Anthropic API
-  return fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body)
-  });
+  return fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify(body) });
 };
 
 const BAD = ["fuck","shit","bitch","asshole","dick","pussy","cunt","bastard","crap","piss","cock","damn","hell","wtf","ass"];
@@ -1771,7 +1746,7 @@ export default function App() {
   const [cImg, setCImg] = useState(null);
   const [cropSrc, setCropSrc] = useState(null);
   const [cropKey, setCropKey] = useState(null);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("sharedApiKey") || LS.get("apiKey") || "");
+  const [apiKey, setApiKey] = useState(() => LS.get("apiKey") || "");
   const avRef = useRef();
   const avRef2 = useRef();
   const cImgRef = useRef();
@@ -1793,12 +1768,7 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
-    // Safety net: if initDB hangs for 12s, force to login screen
-    const safetyTimer = setTimeout(() => {
-      setDbLoading(false);
-      setPg(prev => prev === "loading" ? "login" : prev);
-    }, 12000);
-
+    const safetyTimer = setTimeout(() => { setDbLoading(false); setPg(p => p === "loading" ? "login" : p); }, 12000);
     const initDB = async () => {
       setDbLoading(true);
       // Restore session
@@ -1888,17 +1858,13 @@ export default function App() {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
             // Merge: use DB data for mutable fields (avatar, bio, wallpaper), hardcoded for fixed fields (id, username, password, isSpecial, verified)
             if (dbVersion && hardcoded) {
-              const _ls = LS.get("profile_" + sessionUid);
-              const base = { ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: dbVersion.village || hardcoded.village || [] };
-              setMe(_ls ? { ...base, ..._ls } : base);
+              setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: dbVersion.village || hardcoded.village || [] });
             } else if (hardcoded) {
-              const _ls = LS.get("profile_" + sessionUid);
-              const base = { ...hardcoded, village: hardcoded.village || [] };
-              setMe(_ls ? { ...base, ..._ls } : base);
+              setMe({ ...hardcoded, village: hardcoded.village || [] });
             }
           } catch {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-            if (hardcoded) { const _ls = LS.get("profile_" + sessionUid); const base = { ...hardcoded, village: hardcoded.village || [] }; setMe(_ls ? { ...base, ..._ls } : base); }
+            if (hardcoded) setMe({ ...hardcoded, village: hardcoded.village || [] });
           }
           setPg("app");
           return;
@@ -1914,10 +1880,7 @@ export default function App() {
         setPg("login");
       }
     };
-    initDB().catch(() => {
-      setDbLoading(false);
-      setPg("login");
-    }).finally(() => clearTimeout(safetyTimer));
+    initDB().catch(() => { setDbLoading(false); setPg("login"); }).finally(() => clearTimeout(safetyTimer));
   }, []);
 
   const T = {
@@ -2821,11 +2784,10 @@ export default function App() {
     const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
     setUsers(updatedUsers);
     setMe(p => ({ ...p, ...upd }));
-    // Save markers + text fields to localStorage so they survive reload
-    const lsKey = "profile_" + me.id;
-    const lsSaved = LS.get(lsKey) || {};
-    Object.keys(upd).forEach(k => { lsSaved[k] = upd[k]; });
-    LS.set(lsKey, lsSaved);
+    // Save to localStorage
+    const _lsp = LS.get("profile_" + me.id) || {};
+    Object.keys(upd).forEach(k => { _lsp[k] = upd[k]; });
+    LS.set("profile_" + me.id, _lsp);
     // Save to Supabase
     const updatedMe = { ...me, ...upd };
     (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
