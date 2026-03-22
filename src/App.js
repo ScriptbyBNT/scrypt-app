@@ -606,79 +606,96 @@ const ReportModal = ({ post, onClose, T }) => {
 // ── WALLPAPER PICKER ─────────────────────────────────────────────────────────
 const BannerCropModal = ({ src, onSave, onClose, T }) => {
   const canvasRef = useRef();
-  const [drag, setDrag] = useState(false);
-  const [start, setStart] = useState({ x: 0, y: 0 });
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [scale, setScale] = useState(1);
   const imgRef = useRef(new window.Image());
-  const W = 340; const H = 113; // 3:1 ratio
+  const W = Math.min(window.innerWidth - 32, 360);
+  const H = Math.round(W / 3);
+  const stateRef = useRef({ dragging: false, lastX: 0, lastY: 0, offsetX: 0, offsetY: 0, scale: 1, pinchDist: null });
 
   useEffect(() => {
     const img = imgRef.current;
+    img.crossOrigin = "anonymous";
     img.onload = () => {
-      // Auto-fit: scale to fill width
-      const fitScale = W / img.naturalWidth;
-      setScale(fitScale);
-      setOffset({ x: 0, y: -(img.naturalHeight * fitScale - H) / 2 });
-      draw({ x: 0, y: -(img.naturalHeight * fitScale - H) / 2 }, fitScale);
+      const fit = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+      stateRef.current.scale = fit;
+      stateRef.current.offsetX = (W - img.naturalWidth * fit) / 2;
+      stateRef.current.offsetY = (H - img.naturalHeight * fit) / 2;
+      redraw();
     };
     img.src = src;
   }, [src]);
 
-  const draw = (off, sc) => {
+  const redraw = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const img = imgRef.current;
+    const { offsetX, offsetY, scale } = stateRef.current;
     const dpr = window.devicePixelRatio || 1;
+    const img = imgRef.current;
     canvas.width = W * dpr; canvas.height = H * dpr;
     canvas.style.width = W + "px"; canvas.style.height = H + "px";
+    const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
-    ctx.drawImage(img, off.x, off.y, img.naturalWidth * sc, img.naturalHeight * sc);
+    ctx.drawImage(img, offsetX, offsetY, img.naturalWidth * scale, img.naturalHeight * scale);
   };
 
-  const onMouseDown = e => { setDrag(true); setStart({ x: e.clientX - offset.x, y: e.clientY - offset.y }); };
-  const onMouseMove = e => {
-    if (!drag) return;
-    const newOff = { x: e.clientX - start.x, y: e.clientY - start.y };
-    setOffset(newOff); draw(newOff, scale);
+  const dist = (t1, t2) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+  const onTouchStart = e => {
+    e.preventDefault();
+    const s = stateRef.current;
+    if (e.touches.length === 1) { s.dragging = true; s.lastX = e.touches[0].clientX; s.lastY = e.touches[0].clientY; s.pinchDist = null; }
+    else if (e.touches.length === 2) { s.dragging = false; s.pinchDist = dist(e.touches[0], e.touches[1]); }
   };
-  const onMouseUp = () => setDrag(false);
-  const onTouchStart = e => { const t = e.touches[0]; setDrag(true); setStart({ x: t.clientX - offset.x, y: t.clientY - offset.y }); };
   const onTouchMove = e => {
-    if (!drag) return;
-    const t = e.touches[0];
-    const newOff = { x: t.clientX - start.x, y: t.clientY - start.y };
-    setOffset(newOff); draw(newOff, scale);
+    e.preventDefault();
+    const s = stateRef.current;
+    if (e.touches.length === 2 && s.pinchDist !== null) {
+      const nd = dist(e.touches[0], e.touches[1]);
+      s.scale = Math.max(0.1, Math.min(6, s.scale * (nd / s.pinchDist)));
+      s.pinchDist = nd;
+    } else if (e.touches.length === 1 && s.dragging) {
+      s.offsetX += e.touches[0].clientX - s.lastX;
+      s.offsetY += e.touches[0].clientY - s.lastY;
+      s.lastX = e.touches[0].clientX; s.lastY = e.touches[0].clientY;
+    }
+    redraw();
   };
-  const changeScale = v => { const s = Math.max(0.1, Math.min(4, v)); setScale(s); draw(offset, s); };
+  const onTouchEnd = e => { e.preventDefault(); stateRef.current.dragging = false; stateRef.current.pinchDist = null; };
+  const onMouseDown = e => { const s = stateRef.current; s.dragging = true; s.lastX = e.clientX; s.lastY = e.clientY; };
+  const onMouseMove = e => { const s = stateRef.current; if (!s.dragging) return; s.offsetX += e.clientX - s.lastX; s.offsetY += e.clientY - s.lastY; s.lastX = e.clientX; s.lastY = e.clientY; redraw(); };
+  const onMouseUp = () => { stateRef.current.dragging = false; };
+  const changeScale = v => { stateRef.current.scale = parseFloat(v); redraw(); };
+
   const save = () => {
-    const out = document.createElement("canvas");
     const EW = 1200; const EH = 400;
+    const out = document.createElement("canvas");
     out.width = EW; out.height = EH;
     const ctx = out.getContext("2d");
     const ratio = EW / W;
-    ctx.drawImage(imgRef.current, offset.x * ratio, offset.y * ratio, imgRef.current.naturalWidth * scale * ratio, imgRef.current.naturalHeight * scale * ratio);
+    const { offsetX, offsetY, scale } = stateRef.current;
+    ctx.drawImage(imgRef.current, offsetX * ratio, offsetY * ratio, imgRef.current.naturalWidth * scale * ratio, imgRef.current.naturalHeight * scale * ratio);
     onSave(out.toDataURL("image/jpeg", 0.88));
   };
 
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, padding: 16 }}>
     <div style={{ fontWeight: 700, fontSize: 16, color: "white" }}>Crop Banner</div>
-    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>Drag to reposition · Slide to zoom</div>
-    <div style={{ borderRadius: 10, overflow: "hidden", cursor: drag ? "grabbing" : "grab", userSelect: "none", border: "2px solid rgba(255,255,255,0.2)" }}
+    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>Drag to reposition · Pinch to zoom</div>
+    <div style={{ borderRadius: 10, overflow: "hidden", cursor: "grab", userSelect: "none", border: "2px solid rgba(255,255,255,0.2)", touchAction: "none" }}
       onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}>
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       <canvas ref={canvasRef} style={{ display: "block" }} />
     </div>
     <div style={{ display: "flex", alignItems: "center", gap: 10, width: W }}>
-      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>–</span>
-      <input type="range" min={0.1} max={4} step={0.01} value={scale} onChange={e => changeScale(parseFloat(e.target.value))} style={{ flex: 1, accentColor: BLUE }} />
-      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>+</span>
+      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>–</span>
+      <input type="range" min={0.1} max={6} step={0.01}
+        defaultValue={stateRef.current.scale}
+        onInput={e => changeScale(e.target.value)}
+        style={{ flex: 1, accentColor: BLUE }} />
+      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>+</span>
     </div>
     <div style={{ display: "flex", gap: 10 }}>
-      <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 9999, padding: "10px 22px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-      <button onClick={save} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "10px 26px", fontWeight: 700, cursor: "pointer" }}>Use Banner</button>
+      <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 9999, padding: "11px 24px", fontWeight: 600, cursor: "pointer", fontSize: 15 }}>Cancel</button>
+      <button onClick={save} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "11px 28px", fontWeight: 700, cursor: "pointer", fontSize: 15 }}>Use Banner</button>
     </div>
   </div>;
 };
@@ -853,81 +870,126 @@ const INFO_FIELDS = [
 // ── IMAGE CROP MODAL ──────────────────────────────────────────────────────────
 const ImageCropModal = ({ src, onSave, onClose, T }) => {
   const canvasRef = useRef();
-  const [drag, setDrag] = useState(false);
-  const [start, setStart] = useState({ x: 0, y: 0 });
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [scale, setScale] = useState(1);
   const imgRef = useRef(new window.Image());
-  const SIZE = 260; // crop square size in display px
+  const stateRef = useRef({ dragging: false, lastX: 0, lastY: 0, offsetX: 0, offsetY: 0, scale: 1, pinchDist: null });
+  const SIZE = Math.min(window.innerWidth - 32, 320);
 
   useEffect(() => {
     const img = imgRef.current;
-    img.onload = () => draw(offset, scale);
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      // Fit image to fill the crop square at scale 1
+      const fit = Math.max(SIZE / img.naturalWidth, SIZE / img.naturalHeight);
+      stateRef.current.scale = fit;
+      stateRef.current.offsetX = (SIZE - img.naturalWidth * fit) / 2;
+      stateRef.current.offsetY = (SIZE - img.naturalHeight * fit) / 2;
+      redraw();
+    };
     img.src = src;
   }, [src]);
 
-  const draw = (off, sc) => {
+  const redraw = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const img = imgRef.current;
+    const { offsetX, offsetY, scale } = stateRef.current;
     const dpr = window.devicePixelRatio || 1;
+    const img = imgRef.current;
     canvas.width = SIZE * dpr; canvas.height = SIZE * dpr;
     canvas.style.width = SIZE + "px"; canvas.style.height = SIZE + "px";
+    const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, SIZE, SIZE);
-    const iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
-    ctx.drawImage(img, off.x, off.y, iw, ih);
+    ctx.drawImage(img, offsetX, offsetY, img.naturalWidth * scale, img.naturalHeight * scale);
   };
 
-  const onMouseDown = e => { setDrag(true); setStart({ x: e.clientX - offset.x, y: e.clientY - offset.y }); };
-  const onMouseMove = e => {
-    if (!drag) return;
-    const newOff = { x: e.clientX - start.x, y: e.clientY - start.y };
-    setOffset(newOff); draw(newOff, scale);
+  const dist = (t1, t2) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+  const onTouchStart = e => {
+    e.preventDefault();
+    const s = stateRef.current;
+    if (e.touches.length === 1) {
+      s.dragging = true;
+      s.lastX = e.touches[0].clientX;
+      s.lastY = e.touches[0].clientY;
+      s.pinchDist = null;
+    } else if (e.touches.length === 2) {
+      s.dragging = false;
+      s.pinchDist = dist(e.touches[0], e.touches[1]);
+    }
   };
-  const onMouseUp = () => setDrag(false);
-  const onTouchStart = e => { const t = e.touches[0]; setDrag(true); setStart({ x: t.clientX - offset.x, y: t.clientY - offset.y }); };
   const onTouchMove = e => {
-    if (!drag) return;
-    const t = e.touches[0];
-    const newOff = { x: t.clientX - start.x, y: t.clientY - start.y };
-    setOffset(newOff); draw(newOff, scale);
+    e.preventDefault();
+    const s = stateRef.current;
+    if (e.touches.length === 2 && s.pinchDist !== null) {
+      const newDist = dist(e.touches[0], e.touches[1]);
+      const delta = newDist / s.pinchDist;
+      s.scale = Math.max(0.1, Math.min(6, s.scale * delta));
+      s.pinchDist = newDist;
+    } else if (e.touches.length === 1 && s.dragging) {
+      s.offsetX += e.touches[0].clientX - s.lastX;
+      s.offsetY += e.touches[0].clientY - s.lastY;
+      s.lastX = e.touches[0].clientX;
+      s.lastY = e.touches[0].clientY;
+    }
+    redraw();
+  };
+  const onTouchEnd = e => { e.preventDefault(); stateRef.current.dragging = false; stateRef.current.pinchDist = null; };
+
+  const onMouseDown = e => { const s = stateRef.current; s.dragging = true; s.lastX = e.clientX; s.lastY = e.clientY; };
+  const onMouseMove = e => {
+    const s = stateRef.current;
+    if (!s.dragging) return;
+    s.offsetX += e.clientX - s.lastX;
+    s.offsetY += e.clientY - s.lastY;
+    s.lastX = e.clientX; s.lastY = e.clientY;
+    redraw();
+  };
+  const onMouseUp = () => { stateRef.current.dragging = false; };
+  const onWheel = e => {
+    e.preventDefault();
+    const s = stateRef.current;
+    s.scale = Math.max(0.1, Math.min(6, s.scale * (e.deltaY < 0 ? 1.1 : 0.9)));
+    redraw();
   };
 
-  const changeScale = v => { const s = Math.max(0.2, Math.min(3, v)); setScale(s); draw(offset, s); };
+  const changeScale = v => {
+    stateRef.current.scale = parseFloat(v);
+    redraw();
+  };
 
   const save = () => {
-    const canvas = canvasRef.current;
-    const out = document.createElement("canvas");
     const EXPORT = 400;
+    const out = document.createElement("canvas");
     out.width = EXPORT; out.height = EXPORT;
     const ctx = out.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    // re-draw at export size
-    const img = imgRef.current;
+    const { offsetX, offsetY, scale } = stateRef.current;
     const ratio = EXPORT / SIZE;
-    ctx.drawImage(img, offset.x * ratio / (window.devicePixelRatio||1) * dpr, offset.y * ratio / (window.devicePixelRatio||1) * dpr,
-      img.naturalWidth * scale * ratio, img.naturalHeight * scale * ratio);
+    const img = imgRef.current;
+    ctx.drawImage(img, offsetX * ratio, offsetY * ratio, img.naturalWidth * scale * ratio, img.naturalHeight * scale * ratio);
     onSave(out.toDataURL("image/jpeg", 0.88));
   };
 
-  return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 16 }}>
-    <div style={{ fontWeight: 700, fontSize: 16, color: "white" }}>Crop Image</div>
-    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>Drag to reposition · Pinch or slide to zoom</div>
-    <div style={{ borderRadius: 14, overflow: "hidden", cursor: drag ? "grabbing" : "grab", userSelect: "none", border: "2px solid rgba(255,255,255,0.2)" }}
+  return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, padding: 16 }}>
+    <div style={{ fontWeight: 700, fontSize: 16, color: "white" }}>Crop Photo</div>
+    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>Drag to reposition · Pinch to zoom</div>
+    <div
+      style={{ borderRadius: 14, overflow: "hidden", cursor: "grab", userSelect: "none", border: "2px solid rgba(255,255,255,0.25)", touchAction: "none" }}
       onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}>
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+      onWheel={onWheel}>
       <canvas ref={canvasRef} style={{ display: "block" }} />
     </div>
     <div style={{ display: "flex", alignItems: "center", gap: 10, width: SIZE }}>
-      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>–</span>
-      <input type="range" min={0.2} max={3} step={0.01} value={scale} onChange={e => changeScale(parseFloat(e.target.value))} style={{ flex: 1, accentColor: BLUE }} />
-      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>+</span>
+      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>–</span>
+      <input type="range" min={0.1} max={6} step={0.01}
+        defaultValue={stateRef.current.scale}
+        onInput={e => changeScale(e.target.value)}
+        style={{ flex: 1, accentColor: BLUE }} />
+      <span style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>+</span>
     </div>
     <div style={{ display: "flex", gap: 10 }}>
-      <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 9999, padding: "10px 22px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-      <button onClick={save} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "10px 26px", fontWeight: 700, cursor: "pointer" }}>Use Photo</button>
+      <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 9999, padding: "11px 24px", fontWeight: 600, cursor: "pointer", fontSize: 15 }}>Cancel</button>
+      <button onClick={save} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "11px 28px", fontWeight: 700, cursor: "pointer", fontSize: 15 }}>Use Photo</button>
     </div>
   </div>;
 };
@@ -1777,10 +1839,23 @@ export default function App() {
 
       // Restore session after data is loaded
       if (sessionUid) {
-        // Special accounts
-        const special = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-        if (special) {
-          setMe({ ...special, village: special.village || [] });
+        // Special accounts — load from DB (preserves custom avatar/bio), fall back to hardcoded
+        const isSpecialId = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"].includes(sessionUid);
+        if (isSpecialId) {
+          try {
+            const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
+            const dbVersion = rows && rows[0] ? rowToUser(rows[0]) : null;
+            const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
+            // Merge: use DB data for mutable fields (avatar, bio, wallpaper), hardcoded for fixed fields (id, username, password, isSpecial, verified)
+            if (dbVersion && hardcoded) {
+              setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: dbVersion.village || hardcoded.village || [] });
+            } else if (hardcoded) {
+              setMe({ ...hardcoded, village: hardcoded.village || [] });
+            }
+          } catch {
+            const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
+            if (hardcoded) setMe({ ...hardcoded, village: hardcoded.village || [] });
+          }
           setPg("app");
           return;
         }
@@ -2873,7 +2948,7 @@ export default function App() {
             <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{myV.includes(u.id) ? "In Village" : "+ Village"}</button>
           </div>)}
           {/* Special accounts matching */}
-          {[SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER].filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
+          {["bot_scryptbot","bot_minerva","bot_news","claude_account"].map(id => users.find(u => u.id === id)).filter(Boolean).filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
             <Av user={u} sz={44} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
@@ -2889,7 +2964,7 @@ export default function App() {
         </> : <>
           {/* Discover — Official Accounts */}
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL SCRYPT ACCOUNTS</div>
-          {[CLAUDE_USER, SCRYPTBOT_USER, MINERVA_USER, NEWS_USER].map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+          {["claude_account","bot_scryptbot","bot_minerva","bot_news"].map(id => users.find(u => u.id === id)).filter(Boolean).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
             <Av user={u} sz={48} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
