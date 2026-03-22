@@ -2,10 +2,174 @@ import { useState, useRef, useCallback, useEffect } from "react";
 
 const BLUE = "#1D9BF0", PURPLE = "#7c3aed", PINK = "#F91880";
 
+// ── LOCAL STORAGE (kept only for large/binary data + session) ─────────────────
 const LS = {
   get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+
+// ── SUPABASE CLIENT ────────────────────────────────────────────────────────────
+const SUPA_URL = "https://wzrxrgybdwoawhaleuah.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6cnhyZ3liZHdvYXdoYWxldWFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTQwNzYsImV4cCI6MjA4ODg5MDA3Nn0.tkFdz7v-r5M21_WeiP7PI0Ipe3XdfHnvwZ1p7CRRUqc";
+
+const sbFetch = async (path, options = {}) => {
+  const url = `${SUPA_URL}/rest/v1/${path}`;
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "apikey": SUPA_KEY,
+      "Authorization": `Bearer ${SUPA_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": options.prefer || "return=representation",
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => res.statusText);
+    console.error("Supabase error:", path, res.status, err);
+    return null;
+  }
+  const text = await res.text();
+  if (!text) return [];
+  try { return JSON.parse(text); } catch { return []; }
+};
+
+// DB helpers
+const DB = {
+  // USERS
+  getUsers: () => sbFetch("users?select=*&order=created_at.asc&limit=1000"),
+  getUserByUsername: (username) => sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=*`),
+  upsertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
+  updateUser: (id, data) => sbFetch(`users?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
+  insertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user) }),
+
+  // POSTS
+  getPosts: () => sbFetch("posts?select=*&order=created_at.desc&limit=500"),
+  insertPost: (post) => sbFetch("posts", { method: "POST", body: JSON.stringify(post) }),
+  updatePost: (id, data) => sbFetch(`posts?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deletePost: (id) => sbFetch(`posts?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }),
+
+  // CLICKS
+  getClicks: () => sbFetch("clicks?select=*&order=created_at.asc&limit=200"),
+  insertClick: (click) => sbFetch("clicks", { method: "POST", body: JSON.stringify(click) }),
+  updateClick: (id, data) => sbFetch(`clicks?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  // REPORTS
+  insertReport: (report) => sbFetch("reports", { method: "POST", body: JSON.stringify(report), prefer: "return=minimal" }),
+
+  // DMs — stored as rows with conversation_key + messages JSON
+  getDMs: (key) => sbFetch(`dms?conversation_key=eq.${encodeURIComponent(key)}&select=*`),
+  upsertDMs: (key, messages) => sbFetch("dms", { method: "POST", body: JSON.stringify({ conversation_key: key, messages: JSON.stringify(messages) }), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
+};
+
+// Convert DB row → app object (posts/clicks come back with snake_case from DB → map to camelCase arrays)
+const rowToPost = r => {
+  if (!r) return null;
+  return {
+    id: r.id,
+    userId: r.user_id || r.userId,
+    username: r.username,
+    content: r.content,
+    likes: tryParse(r.likes, []),
+    reposts: tryParse(r.reposts, []),
+    createdAt: r.created_at || r.createdAt,
+    replyCount: r.reply_count ?? r.replyCount ?? 0,
+    replyTo: r.reply_to || r.replyTo || null,
+    clickId: r.click_id || r.clickId || null,
+    isRepost: r.is_repost || r.isRepost || false,
+    reposterId: r.reposter_id || r.reposterId || null,
+    reposterUsername: r.reposter_username || r.reposterUsername || null,
+    repostedAt: r.reposted_at || r.repostedAt || null,
+    editedAt: r.edited_at || r.editedAt || null,
+    pinned: r.pinned || false,
+  };
+};
+
+const rowToUser = r => {
+  if (!r) return null;
+  return {
+    id: r.id,
+    username: r.username,
+    password: r.password,
+    avatar: r.avatar,
+    bio: r.bio,
+    isBot: r.is_bot ?? r.isBot ?? false,
+    isSpecial: r.is_special ?? r.isSpecial ?? false,
+    verified: r.verified ?? false,
+    village: tryParse(r.village, []),
+    joinedAt: r.joined_at || r.joinedAt || r.created_at,
+    mood: r.mood || null,
+    accentColor: r.accent_color || r.accentColor || null,
+    featuredPostId: r.featured_post_id || r.featuredPostId || null,
+    hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
+    profileSongName: r.profile_song_name || r.profileSongName || null,
+    ...(r.info_fields ? tryParse(r.info_fields, {}) : {}),
+  };
+};
+
+const rowToClick = r => {
+  if (!r) return null;
+  return {
+    id: r.id,
+    name: r.name,
+    image: r.image,
+    members: tryParse(r.members, []),
+    ownerId: r.owner_id || r.ownerId,
+    createdAt: r.created_at || r.createdAt,
+  };
+};
+
+const postToRow = p => ({
+  id: p.id,
+  user_id: p.userId,
+  username: p.username,
+  content: p.content,
+  likes: JSON.stringify(p.likes || []),
+  reposts: JSON.stringify(p.reposts || []),
+  created_at: p.createdAt,
+  reply_count: p.replyCount ?? 0,
+  reply_to: p.replyTo || null,
+  click_id: p.clickId || null,
+  is_repost: p.isRepost || false,
+  reposter_id: p.reposterId || null,
+  reposter_username: p.reposterUsername || null,
+  reposted_at: p.repostedAt || null,
+  edited_at: p.editedAt || null,
+  pinned: p.pinned || false,
+});
+
+const userToRow = u => ({
+  id: u.id,
+  username: u.username,
+  password: u.password,
+  avatar: u.avatar || null,
+  bio: u.bio || null,
+  is_bot: u.isBot || false,
+  is_special: u.isSpecial || false,
+  verified: u.verified || false,
+  village: JSON.stringify(u.village || []),
+  joined_at: u.joinedAt || new Date().toISOString(),
+  mood: u.mood || null,
+  accent_color: u.accentColor || null,
+  featured_post_id: u.featuredPostId || null,
+  has_profile_song: u.hasProfileSong || false,
+  profile_song_name: u.profileSongName || null,
+});
+
+const clickToRow = c => ({
+  id: c.id,
+  name: c.name,
+  image: c.image || null,
+  members: JSON.stringify(c.members || []),
+  owner_id: c.ownerId,
+  created_at: c.createdAt,
+});
+
+function tryParse(v, fallback) {
+  if (v === null || v === undefined) return fallback;
+  if (typeof v !== "string") return v;
+  try { return JSON.parse(v); } catch { return fallback; }
+}
 const getKey = () => { try { return JSON.parse(localStorage.getItem("apiKey")) || ""; } catch { return ""; } };
 const claudeFetch = (body) => fetch("https://api.anthropic.com/v1/messages", {
   method: "POST",
@@ -410,11 +574,9 @@ const ReportModal = ({ post, onClose, T }) => {
   const [reason, setReason] = useState("");
   const [done, setDone] = useState(false);
   const reasons = ["Spam or misleading", "Harassment or hate speech", "Violent or dangerous content", "Misinformation", "Copyright violation", "Other"];
-  const submit = () => {
+  const submit = async () => {
     if (!reason) return;
-    const reports = LS.get("reports") || [];
-    reports.push({ postId: post.id, reason, ts: new Date().toISOString() });
-    LS.set("reports", reports);
+    await DB.insertReport({ post_id: post.id, reason, ts: new Date().toISOString() });
     setDone(true);
   };
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -805,15 +967,21 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
 // ── DM VIEW (1-on-1) ─────────────────────────────────────────────────────────
 const DMView = ({ me, other, users, T, onBack, onCall }) => {
   const key = `dm_${[me.id, other.id].sort().join("_")}`;
-  const [msgs, setMsgs] = useState(() => LS.get(key) || []);
+  const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
   const endRef = useRef();
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
-  const send = () => {
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
+  useEffect(() => {
+    DB.getDMs(key).then(rows => {
+      if (rows && rows[0]) { try { setMsgs(JSON.parse(rows[0].messages) || []); } catch {} }
+    });
+  }, [key]);
+  const send = async () => {
     if (!input.trim()) return;
     const m = { id: Date.now().toString(), from: me.id, text: input, ts: new Date().toISOString() };
     const next = [...msgs, m];
-    setMsgs(next); LS.set(key, next); setInput("");
+    setMsgs(next); setInput("");
+    await DB.upsertDMs(key, next);
   };
   return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
     <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
@@ -1161,16 +1329,18 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
   const [u, setU] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
-  const go = () => {
+  const go = async () => {
     setErr("");
-    // Check special accounts first (always available, passwords hardcoded)
     const special = SPECIAL_ACCOUNTS.find(x => x.username === u.trim() && x.password === pw);
     if (special) { onLogin(special); return; }
-    // Then check regular localStorage accounts
-    const all = LS.get("su") || [];
-    const f = all.find(x => x.username === u.trim() && x.password === pw);
-    if (!f) { setErr("Invalid username or password."); return; }
-    onLogin(f);
+    try {
+      const rows = await DB.getUserByUsername(u.trim());
+      const f = rows && rows[0] ? rowToUser(rows[0]) : null;
+      if (!f || f.password !== pw) { setErr("Invalid username or password."); return; }
+      onLogin(f);
+    } catch (e) {
+      setErr("Login failed. Please try again.");
+    }
   };
 
 
@@ -1225,21 +1395,21 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
   const [showPP, setShowPP] = useState(false);
   const fRef = useRef();
 
-  const go = () => {
+  const go = async () => {
     setErr("");
     const t = u.trim();
-    const all = LS.get("su") || [];
     if (t.length < 3) { setErr("Username must be at least 3 characters."); return; }
+    const rows = await DB.getUserByUsername(t);
+    const all = rows ? rows.map(rowToUser) : [];
     if (all.find(x => x.username === t)) { setErr("Username already taken."); return; }
     if (pw.length < 6) { setErr("Password must be at least 6 characters."); return; }
     if (pw !== pw2) { setErr("Passwords don't match."); return; }
     if (!ageConfirmed) { setErr("You must confirm you are old enough to join Scrypt."); return; }
     setTerms(true);
   };
-  const confirm = () => {
-    const all = LS.get("su") || [];
+  const confirm = async () => {
     const nu = { id: Date.now().toString(), username: u.trim(), password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
-    LS.set("su", [...all, nu]);
+    await DB.insertUser(userToRow(nu));
     onDone(nu);
   };
   const doAv = e => {
@@ -1382,12 +1552,13 @@ const HomeTrending = ({ posts, users, T }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function App() {
   const [dark, setDark] = useState(false);
-  const [pg, setPg] = useState("login");
+  const [pg, setPg] = useState(() => LS.get("session_uid") ? "loading" : "login");
   const [tab, setTab] = useState("home");
   const [me, setMe] = useState(null);
-  const [users, setUsers] = useState(() => LS.get("su") || []);
-  const [posts, setPosts] = useState(() => LS.get("sp") || []);
-  const [clicks, setClicks] = useState(() => LS.get("sc") || []);
+  const [users, setUsers] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [clicks, setClicks] = useState([]);
+  const [dbLoading, setDbLoading] = useState(true);
   const [thread, setThread] = useState(null);
   const [openClick, setOpenClick] = useState(null);
   const [openUser, setOpenUser] = useState(null);
@@ -1427,24 +1598,95 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
-    const V = "v23";
-    if (LS.get("dv") !== V) {
-      const h = (LS.get("su") || []).filter(u => !u.isBot);
-      const m = [...h, ...SU, SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER, ABANDONWARE_USER];
-      LS.set("su", m); setUsers(m);
-      LS.set("sp", SP); setPosts(SP);
-      LS.set("sc", SC); setClicks(SC);
-      LS.set("dv", V);
-    } else {
-      // Always sync special bot data from source-of-truth constants (fixes stale usernames/bios)
-      const cur = LS.get("su") || [];
+    const initDB = async () => {
+      setDbLoading(true);
+      // Restore session
+      const sessionUid = LS.get("session_uid");
+      const V = "v23";
       const specialIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"];
       const specialBots = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, ABANDONWARE_USER, CLAUDE_USER];
-      // Strip out stale special bot entries, then add fresh ones
-      const nonSpecial = cur.filter(u => !specialIds.includes(u.id));
-      const next = [...nonSpecial, ...specialBots];
-      LS.set("su", next); setUsers(next);
-    }
+
+      // Load users from Supabase
+      let dbUsers = [];
+      try {
+        const rows = await DB.getUsers();
+        dbUsers = rows ? rows.map(rowToUser) : [];
+      } catch(e) { console.error("Failed to load users", e); }
+
+      // Load posts from Supabase
+      let dbPosts = [];
+      try {
+        const rows = await DB.getPosts();
+        dbPosts = rows ? rows.map(rowToPost) : [];
+      } catch(e) { console.error("Failed to load posts", e); }
+
+      // Load clicks from Supabase
+      let dbClicks = [];
+      try {
+        const rows = await DB.getClicks();
+        dbClicks = rows ? rows.map(rowToClick) : [];
+      } catch(e) { console.error("Failed to load clicks", e); }
+
+      if (LS.get("dv") !== V) {
+        // First-time seed: upsert all bots + special accounts + seed posts + seed clicks
+        const allBots = [...SU, ...specialBots];
+        // Upsert users in chunks
+        for (const u of allBots) {
+          try { await DB.upsertUser(userToRow(u)); } catch(e) { console.error("upsert user", u.id, e); }
+        }
+        // Seed posts if none exist
+        if (dbPosts.length === 0) {
+          for (const p of SP) {
+            try { await DB.insertPost(postToRow(p)); } catch(e) { console.error("seed post", p.id, e); }
+          }
+          dbPosts = SP.slice();
+        }
+        // Seed clicks if none exist
+        if (dbClicks.length === 0) {
+          for (const c of SC) {
+            try { await DB.insertClick(clickToRow(c)); } catch(e) { console.error("seed click", c.id, e); }
+          }
+          dbClicks = SC.slice();
+        }
+        // Merge existing human users that may be in the DB already
+        const humanUsers = dbUsers.filter(u => !u.isBot && !specialIds.includes(u.id));
+        const merged = [...humanUsers, ...allBots];
+        setUsers(merged);
+        LS.set("dv", V);
+      } else {
+        // Always refresh special bots
+        const nonSpecial = dbUsers.filter(u => !specialIds.includes(u.id));
+        for (const b of specialBots) {
+          try { await DB.upsertUser(userToRow(b)); } catch(e) {}
+        }
+        setUsers([...nonSpecial, ...specialBots]);
+      }
+
+      setPosts(dbPosts);
+      setClicks(dbClicks);
+      setDbLoading(false);
+
+      // Restore session after data is loaded
+      if (sessionUid) {
+        // Special accounts
+        const special = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
+        if (special) {
+          setMe({ ...special, village: special.village || [] });
+          setPg("app");
+          return;
+        }
+        // Regular user from DB
+        try {
+          const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
+          const u = rows && rows[0] ? rowToUser(rows[0]) : null;
+          if (u) { setMe({ ...u, village: u.village || [] }); setPg("app"); return; }
+        } catch {}
+        // Session invalid — clear it
+        LS.set("session_uid", null);
+        setPg("login");
+      }
+    };
+    initDB();
   }, []);
 
   const T = {
@@ -1457,7 +1699,8 @@ export default function App() {
   };
 
   const notify = m => { setToast(m); setTimeout(() => setToast(""), 3000); };
-  const sv = (k, v, s) => { LS.set(k, v); s(v); };
+  // sv: lightweight state setter (localStorage kept only for gchat, apiKey, etc.)
+  const sv = (k, v, s) => { if (k.startsWith("gchat") || k.startsWith("apiKey")) LS.set(k, v); s(v); };
 
   const checkClaude = useCallback(async (txt, parentPostId) => {
     if (!/@claude\b/i.test(txt)) return;
@@ -1475,9 +1718,9 @@ export default function App() {
         replyCount: 0,
         isClaudeReply: true
       };
-      const cur2 = LS.get("sp") || [];
+      const cur2 = posts;
       const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
-      sv("sp", [noKeyReply, ...withReply], setPosts);
+      const noKeyPosts = [noKeyReply, ...withReply]; setPosts(noKeyPosts); (async () => { try { await DB.insertPost(postToRow(noKeyReply)); } catch {} })();
       return;
     }
     try {
@@ -1500,9 +1743,9 @@ export default function App() {
         replyCount: 0,
         isClaudeReply: true
       };
-      const cur2 = LS.get("sp") || [];
+      const cur2 = posts;
       const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
-      sv("sp", [claudePost, ...withReply], setPosts);
+      const claudePosts = [claudePost, ...withReply]; setPosts(claudePosts); (async () => { try { await DB.insertPost(postToRow(claudePost)); } catch {} })();
       notify("Claude replied to your Scrypt! 🤖");
     } catch {
       // fail silently
@@ -1510,7 +1753,7 @@ export default function App() {
   }, []);
 
   const doPost = useCallback(({ content, image, clickId, parentId, villageOnly }) => {
-    const cur = LS.get("sp") || [];
+    const cur = posts;
     const p = {
       id: Date.now().toString(),
       userId: me.id, username: me.username, content, image, clickId, parentId, villageOnly,
@@ -1519,7 +1762,16 @@ export default function App() {
       replyCount: 0
     };
     const upd = parentId ? cur.map(x => x.id === parentId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur;
-    sv("sp", [p, ...upd], setPosts);
+    const newPosts = [p, ...upd];
+    setPosts(newPosts);
+    // Save to Supabase
+    (async () => {
+      try { await DB.insertPost(postToRow(p)); } catch(e) { console.error("doPost insert", e); }
+      if (parentId) {
+        const parent = upd.find(x => x.id === parentId);
+        if (parent) try { await DB.updatePost(parentId, { reply_count: parent.replyCount }); } catch {}
+      }
+    })();
     notify(villageOnly ? "Posted to Village! 🔒" : parentId ? "Reply posted!" : "Scrypt posted!");
     checkClaude(content, p.id);
     if (!villageOnly && !parentId) {
@@ -1531,11 +1783,11 @@ export default function App() {
       const baseLikes = 5 + score * 2;
       const lc = Math.min(baseLikes + Math.floor(Math.random() * 12), 35);
       const rc = Math.random() < (0.2 + score * 0.04) ? Math.floor(Math.random() * 6) + 1 : 0;
-      const bots = (LS.get("su") || []).filter(u => u.isBot);
+      const bots = (users).filter(u => u.isBot);
       // If posted in a click, prefer click members to respond
       let pool = [...bots].sort(() => Math.random() - 0.5);
       if (clickId) {
-        const allClicks = LS.get("sc") || [];
+        const allClicks = clicks;
         const click = allClicks.find(c => c.id === clickId);
         if (click) {
           const members = bots.filter(b => click.members.includes(b.id));
@@ -1544,15 +1796,21 @@ export default function App() {
       }
       // Stagger likes realistically over 5s–4min
       pool.slice(0, lc).forEach((b, i) => setTimeout(() => {
-        const c = LS.get("sp") || [];
-        const u = c.map(x => x.id === p.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
-        LS.set("sp", u); setPosts(u);
+        setPosts(prev => {
+          const updated = prev.map(x => x.id === p.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
+          const target = updated.find(x => x.id === p.id);
+          if (target) DB.updatePost(p.id, { likes: JSON.stringify(target.likes) }).catch(() => {});
+          return updated;
+        });
       }, (i + 1) * (3000 + Math.random() * 8000)));
       // Stagger reposts 30s–6min
       pool.slice(lc, lc + rc).forEach((b, i) => setTimeout(() => {
-        const c = LS.get("sp") || [];
-        const u = c.map(x => x.id === p.id ? { ...x, reposts: [...new Set([...(x.reposts || []), b.id])] } : x);
-        LS.set("sp", u); setPosts(u);
+        setPosts(prev => {
+          const updated = prev.map(x => x.id === p.id ? { ...x, reposts: [...new Set([...(x.reposts || []), b.id])] } : x);
+          const target = updated.find(x => x.id === p.id);
+          if (target) DB.updatePost(p.id, { reposts: JSON.stringify(target.reposts) }).catch(() => {});
+          return updated;
+        });
       }, 30000 + (i + 1) * (15000 + Math.random() * 20000)));
     }
   }, [me, checkClaude]);
@@ -1795,18 +2053,18 @@ export default function App() {
     ];
 
     const getClickBotMembers = (clickId) => {
-      const allClicks = LS.get("sc") || [];
+      const allClicks = clicks;
       const click = allClicks.find(c => c.id === clickId);
       if (!click) return [];
-      const allUsers = LS.get("su") || [];
+      const allUsers = users;
       return allUsers.filter(u => u.isBot && click.members.includes(u.id));
     };
 
     const clickIds = Object.keys(CLICK_POSTS);
 
     const interval = setInterval(() => {
-      const allBots = (LS.get("su") || []).filter(u => u.isBot);
-      const curPosts = LS.get("sp") || [];
+      const allBots = (users).filter(u => u.isBot);
+      const curPosts = posts;
       const now = Date.now();
 
       // 35% chance: a bot posts to a random click with realistic entertainment content
@@ -1834,13 +2092,11 @@ export default function App() {
         // Other click members stagger-like it over 5–30 seconds
         const postBots = [...clickMembers].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 8) + 3);
         const withPost = [newPost, ...curPosts];
-        LS.set("sp", withPost); setPosts(withPost);
+        setPosts(withPost); (async () => { const row = postToRow(withPost[0]); try { await DB.insertPost(row); } catch {} })();
         postBots.forEach((b, i) => {
           if (b.id === poster.id) return;
           setTimeout(() => {
-            const c2 = LS.get("sp") || [];
-            const u2 = c2.map(x => x.id === newPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
-            LS.set("sp", u2); setPosts(u2);
+            setPosts(prev => { const u2 = prev.map(x => x.id === newPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x); const t = u2.find(x => x.id === newPost.id); if (t) DB.updatePost(newPost.id, { likes: JSON.stringify(t.likes) }).catch(() => {}); return u2; });
           }, (i + 1) * (3000 + Math.random() * 8000));
         });
         } // end poster dedup check
@@ -1863,16 +2119,14 @@ export default function App() {
           createdAt: new Date().toISOString(), replyCount: 0
         };
         const withPost = [newPost, ...curPosts];
-        LS.set("sp", withPost); setPosts(withPost);
+        setPosts(withPost); (async () => { const row = postToRow(withPost[0]); try { await DB.insertPost(row); } catch {} })();
         // Stagger likes over 10–60 seconds based on positivity
         const score = sentimentScore(content);
         const likerCount = Math.min(score + Math.floor(Math.random() * 5), 25);
         const likers = [...allBots].filter(b => b.id !== poster.id).sort(() => Math.random() - 0.5).slice(0, likerCount);
         likers.forEach((b, i) => {
           setTimeout(() => {
-            const c2 = LS.get("sp") || [];
-            const u2 = c2.map(x => x.id === newPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
-            LS.set("sp", u2); setPosts(u2);
+            setPosts(prev => { const u2 = prev.map(x => x.id === newPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x); const t = u2.find(x => x.id === newPost.id); if (t) DB.updatePost(newPost.id, { likes: JSON.stringify(t.likes) }).catch(() => {}); return u2; });
           }, (i + 1) * (4000 + Math.random() * 12000));
         });
         } // end home poster dedup check
@@ -1889,9 +2143,7 @@ export default function App() {
         const likers = eligible.sort(() => Math.random() - 0.5).slice(0, likerCount);
         likers.forEach((b, i) => {
           setTimeout(() => {
-            const c2 = LS.get("sp") || [];
-            const u2 = c2.map(x => x.id === targetPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
-            LS.set("sp", u2); setPosts(u2);
+            setPosts(prev => { const u2 = prev.map(x => x.id === targetPost.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x); const t = u2.find(x => x.id === targetPost.id); if (t) DB.updatePost(targetPost.id, { likes: JSON.stringify(t.likes) }).catch(() => {}); return u2; });
           }, (i + 1) * (2500 + Math.random() * 7000));
         });
       }
@@ -1915,7 +2167,6 @@ export default function App() {
               const d = await r.json();
               const comment = d.content?.[0]?.text?.trim();
               if (!comment || comment.length < 5) return;
-              const c2 = LS.get("sp") || [];
               const reply = {
                 id: `breply_${Date.now()}_${Math.floor(Math.random() * 99999)}`,
                 userId: commenter.id, username: commenter.username,
@@ -1923,9 +2174,14 @@ export default function App() {
                 likes: [], reposts: [],
                 createdAt: new Date().toISOString(), replyCount: 0
               };
-              const withReply = c2.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x);
-              const final = [reply, ...withReply];
-              LS.set("sp", final); setPosts(final);
+              setPosts(prev => {
+                const withReply = prev.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x);
+                return [reply, ...withReply];
+              });
+              (async () => {
+                try { await DB.insertPost(postToRow(reply)); } catch {}
+                try { await DB.updatePost(targetPost.id, { reply_count: (targetPost.replyCount || 0) + 1 }); } catch {}
+              })();
             } catch { /* fail silently */ }
           }, 5000 + Math.random() * 20000);
         }
@@ -1944,9 +2200,7 @@ export default function App() {
           const boosters = eligible.sort(() => Math.random() - 0.5).slice(0, boostCount);
           boosters.forEach((b, i) => {
             setTimeout(() => {
-              const c2 = LS.get("sp") || [];
-              const u2 = c2.map(x => x.id === targetSpecial.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x);
-              LS.set("sp", u2); setPosts(u2);
+              setPosts(prev => { const u2 = prev.map(x => x.id === targetSpecial.id ? { ...x, likes: [...new Set([...(x.likes || []), b.id])] } : x); const t = u2.find(x => x.id === targetSpecial.id); if (t) DB.updatePost(targetSpecial.id, { likes: JSON.stringify(t.likes) }).catch(() => {}); return u2; });
             }, (i + 1) * (1500 + Math.random() * 4000));
           });
         }
@@ -1958,9 +2212,7 @@ export default function App() {
           const reposters = eligible2.sort(() => Math.random() - 0.5).slice(0, repostCount);
           reposters.forEach((b, i) => {
             setTimeout(() => {
-              const c2 = LS.get("sp") || [];
-              const u2 = c2.map(x => x.id === targetSpecial.id ? { ...x, reposts: [...new Set([...(x.reposts || []), b.id])] } : x);
-              LS.set("sp", u2); setPosts(u2);
+              setPosts(prev => { const u2 = prev.map(x => x.id === targetSpecial.id ? { ...x, reposts: [...new Set([...(x.reposts || []), b.id])] } : x); const t = u2.find(x => x.id === targetSpecial.id); if (t) DB.updatePost(targetSpecial.id, { reposts: JSON.stringify(t.reposts) }).catch(() => {}); return u2; });
             }, (i + 1) * (2000 + Math.random() * 5000));
           });
         }
@@ -1968,7 +2220,7 @@ export default function App() {
 
       // 15% chance: bots add each other to village
       if (Math.random() < 0.15) {
-        const allUsers = LS.get("su") || [];
+        const allUsers = users;
         const bot1 = allBots[Math.floor(Math.random() * allBots.length)];
         const bot2 = allBots[Math.floor(Math.random() * allBots.length)];
         if (bot1 && bot2 && bot1.id !== bot2.id) {
@@ -1977,7 +2229,7 @@ export default function App() {
             if (u.id === bot2.id) return { ...u, village: [...new Set([...(u.village || []), bot1.id])] };
             return u;
           });
-          LS.set("su", updated); setUsers(updated);
+          setUsers(updated); (async () => { for (const u of updated.filter(x => !x.isBot).slice(0,3)) { try { await DB.updateUser(u.id, userToRow(u)); } catch {} } })();
         }
       }
     }, 15000); // Every 15 seconds
@@ -2010,13 +2262,13 @@ export default function App() {
           createdAt: new Date().toISOString(),
           replyCount: 0
         };
-        const cur = LS.get("sp") || [];
         // Bot community reacts with likes
-        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
         const likers = allBots.sort(() => Math.random() - 0.5).slice(0, 8 + Math.floor(Math.random() * 18));
         newPost.likes = likers.map(b => b.id);
         if (Math.random() > 0.4) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 5)).map(b => b.id);
-        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+        setPosts(prev => [newPost, ...prev]);
+        DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
     postFact(); // Post once immediately on login
@@ -2050,11 +2302,11 @@ export default function App() {
           createdAt: new Date().toISOString(),
           replyCount: 0
         };
-        const cur = LS.get("sp") || [];
-        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
         newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 6 + Math.floor(Math.random() * 14)).map(b => b.id);
         if (Math.random() > 0.5) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * 4)).map(b => b.id);
-        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+        setPosts(prev => [newPost, ...prev]);
+        DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
 
@@ -2082,11 +2334,11 @@ export default function App() {
           createdAt: new Date().toISOString(),
           replyCount: 0
         };
-        const cur = LS.get("sp") || [];
-        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
         newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 20)).map(b => b.id);
         newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 7)).map(b => b.id);
-        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+        setPosts(prev => [newPost, ...prev]);
+        DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
 
@@ -2143,11 +2395,11 @@ export default function App() {
           createdAt: new Date().toISOString(),
           replyCount: 0
         };
-        const cur = LS.get("sp") || [];
-        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
         newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 12 + Math.floor(Math.random() * 20)).map(b => b.id);
         if (Math.random() > 0.3) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 8)).map(b => b.id);
-        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+        setPosts(prev => [newPost, ...prev]);
+        DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
 
@@ -2193,11 +2445,11 @@ export default function App() {
           createdAt: new Date().toISOString(),
           replyCount: 0
         };
-        const cur = LS.get("sp") || [];
-        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
         newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 18)).map(b => b.id);
         if (Math.random() > 0.4) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 6)).map(b => b.id);
-        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+        setPosts(prev => [newPost, ...prev]);
+        DB.insertPost(postToRow(newPost)).catch(() => {});
       } catch { /* fail silently */ }
     };
 
@@ -2207,16 +2459,32 @@ export default function App() {
   }, [me]);
 
 
-  const doLike = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, likes: p.likes?.includes(me.id) ? p.likes.filter(x => x !== me.id) : [...(p.likes || []), me.id] }), setPosts);
-  const doRt = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, reposts: p.reposts?.includes(me.id) ? p.reposts.filter(x => x !== me.id) : [...(p.reposts || []), me.id] }), setPosts);
-  const doJoin = id => sv("sc", clicks.map(c => c.id !== id ? c : { ...c, members: c.members?.includes(me.id) ? c.members.filter(x => x !== me.id) : [...(c.members || []), me.id] }), setClicks);
+  const doLike = id => {
+    const updated = posts.map(p => p.id !== id ? p : { ...p, likes: p.likes?.includes(me.id) ? p.likes.filter(x => x !== me.id) : [...(p.likes || []), me.id] });
+    setPosts(updated);
+    const target = updated.find(p => p.id === id);
+    if (target) DB.updatePost(id, { likes: JSON.stringify(target.likes) }).catch(() => {});
+  };
+  const doRt = id => {
+    const updated = posts.map(p => p.id !== id ? p : { ...p, reposts: p.reposts?.includes(me.id) ? p.reposts.filter(x => x !== me.id) : [...(p.reposts || []), me.id] });
+    setPosts(updated);
+    const target = updated.find(p => p.id === id);
+    if (target) DB.updatePost(id, { reposts: JSON.stringify(target.reposts) }).catch(() => {});
+  };
+  const doJoin = id => {
+    const updated = clicks.map(c => c.id !== id ? c : { ...c, members: c.members?.includes(me.id) ? c.members.filter(x => x !== me.id) : [...(c.members || []), me.id] });
+    setClicks(updated);
+    const target = updated.find(c => c.id === id);
+    if (target) DB.updateClick(id, { members: JSON.stringify(target.members) }).catch(() => {});
+  };
   const doVillage = uid => {
     const v = me.village || [];
     const has = v.includes(uid);
     const nv = has ? v.filter(x => x !== uid) : [...v, uid];
     const nu = users.map(u => u.id === me.id ? { ...u, village: nv } : u);
-    sv("su", nu, setUsers);
+    setUsers(nu);
     setMe(p => ({ ...p, village: nv }));
+    DB.updateUser(me.id, { village: JSON.stringify(nv) }).catch(() => {});
     notify(has ? "Removed from Village" : "Added to Village! 🏘️");
   };
   const doAvatar = e => {
@@ -2225,17 +2493,20 @@ export default function App() {
     const r = new FileReader();
     r.onload = x => {
       const nu = users.map(u => u.id === me.id ? { ...u, avatar: x.target.result } : u);
-      sv("su", nu, setUsers); setMe(p => ({ ...p, avatar: x.target.result }));
+      setUsers(nu); setMe(p => ({ ...p, avatar: x.target.result }));
+      DB.updateUser(me.id, { avatar: x.target.result }).catch(() => {});
     };
     r.readAsDataURL(f);
   };
   const doPickDef = url => {
     const nu = users.map(u => u.id === me.id ? { ...u, avatar: url } : u);
-    sv("su", nu, setUsers); setMe(p => ({ ...p, avatar: url })); setShowPP(false);
+    setUsers(nu); setMe(p => ({ ...p, avatar: url })); setShowPP(false);
+    DB.updateUser(me.id, { avatar: url }).catch(() => {});
   };
   const doWallpaper = wp => {
     const nu = users.map(u => u.id === me.id ? { ...u, wallpaper: wp } : u);
-    sv("su", nu, setUsers); setMe(p => ({ ...p, wallpaper: wp })); setShowWallpaper(false);
+    setUsers(nu); setMe(p => ({ ...p, wallpaper: wp })); setShowWallpaper(false);
+    DB.updateUser(me.id, { wallpaper: wp }).catch(() => {});
     notify("Wallpaper updated! 🖼️");
   };
   const doSave = () => {
@@ -2272,9 +2543,11 @@ export default function App() {
       }
     });
     const updatedUsers = users.map(u => u.id === me.id ? { ...u, ...upd } : u);
-    LS.set("su", updatedUsers);
     setUsers(updatedUsers);
     setMe(p => ({ ...p, ...upd }));
+    // Save to Supabase
+    const updatedMe = { ...me, ...upd };
+    (async () => { try { await DB.updateUser(me.id, userToRow(updatedMe)); } catch(e) { console.error("profile save", e); } })();
     setSf({ u: "", pw: "", pw2: "", bio: "" });
     notify("Profile saved! ✓");
   };
@@ -2294,8 +2567,15 @@ export default function App() {
     return stored ? { song: stored.song, name: stored.name } : (user.profileSong ? { song: user.profileSong, name: user.profileSongName } : null);
   };
 
-  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: u.village || [] }); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
-  if (pg === "signup") return <Signup onDone={u => { setMe(u); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "loading" || (pg === "app" && dbLoading)) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BLUE, padding: "14px 28px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", overflow: "hidden" }}>
+      <img src={LOGO} style={{ width: 60, height: 60, objectFit: "contain", margin: "-12px -6px" }} alt="Scrypt logo" />
+      <span style={{ fontWeight: 700, fontSize: 22, color: "white" }}>Scrypt</span>
+    </div>
+    <div style={{ color: T.sub, fontSize: 14 }}>Loading…</div>
+  </div>;
+  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: u.village || [] }); LS.set("session_uid", u.id); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "signup") return <Signup onDone={u => { setMe(u); LS.set("session_uid", u.id); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
   const myV = me?.village || [];
   const feed = posts.filter(p => !p.parentId && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId)))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -2346,7 +2626,9 @@ export default function App() {
           <input value={cName} onChange={e => setCName(e.target.value)} placeholder="Click name..." style={{ ...inp }} />
           <button onClick={() => {
             if (!cName.trim()) return;
-            sv("sc", [{ id: Date.now().toString(), name: cName.trim(), image: cImg, members: [me.id], ownerId: me.id, createdAt: new Date().toISOString() }, ...clicks], setClicks);
+            const newClick = { id: Date.now().toString(), name: cName.trim(), image: cImg, members: [me.id], ownerId: me.id, createdAt: new Date().toISOString() };
+            setClicks(prev => [newClick, ...prev]);
+            DB.insertClick(clickToRow(newClick)).catch(() => {});
             setCName(""); setCImg(null); setShowNewClick(false); notify("Click created! 🎉");
           }} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "7px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Create Click</button>
         </div>
@@ -2780,8 +3062,8 @@ export default function App() {
                   {isActive
                     ? <span style={{ fontSize: 11, color: accentCol, fontWeight: 700 }}>Active</span>
                     : <button onClick={() => {
-                        const all = LS.get("su") || [];
-                        if (!all.find(x => x.id === account.id)) LS.set("su", [...all, account]);
+                        const all = users;
+                        if (!all.find(x => x.id === account.id)) { setUsers(prev => [...prev, account]); (async () => { try { await DB.upsertUser(userToRow(account)); } catch {} })(); }
                         setMe(account); setSf({ u: "", pw: "", pw2: "", bio: "" }); setTab("home"); notify(`Switched to ${account.username} ✓`);
                       }} style={{ background: accentCol, color: "white", border: "none", borderRadius: 9999, padding: "6px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>Switch →</button>}
                 </div>;
@@ -2789,7 +3071,7 @@ export default function App() {
             </div>
           </div>
 
-          <button onClick={() => { setMe(null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
+          <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
           {/* ── CLAUDE API KEY ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
