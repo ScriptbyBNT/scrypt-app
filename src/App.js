@@ -981,8 +981,8 @@ export default function App() {
     {/* HEADER */}
     <div style={{ position: "sticky", top: 0, zIndex: 100, background: dark ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.border}` }}>
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", background: BLUE, borderRadius: 9999, padding: "8px 18px", overflow: "hidden" }}>
-          <img src={LOGO} style={{ width: 36, height: 36, objectFit: "contain", mixBlendMode: "screen", flexShrink: 0 }} alt="logo" />
+        <div onClick={() => setShowCompose(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", background: BLUE, borderRadius: 9999, padding: "4px 12px 4px 4px", overflow: "hidden" }}>
+          <img src={LOGO} style={{ width: 72, height: 72, objectFit: "contain", mixBlendMode: "screen", flexShrink: 0, margin: "-16px -4px" }} alt="logo" />
           <span style={{ fontWeight: 900, fontSize: 18, color: "white" }}>Scrypt</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
