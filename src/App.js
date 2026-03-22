@@ -2980,31 +2980,45 @@ export default function App() {
         <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, position: "sticky", top: 56, background: T.bg, zIndex: 10 }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people, posts, topics..." style={{ ...inp, borderRadius: 9999, paddingLeft: 16 }} autoFocus />
         </div>
-        {search.length >= 2 ? <>
-          {/* People results */}
-          {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase()) && !u.isBot).slice(0, 5).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
-            <Av user={u} sz={44} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}{u.verified && <span style={{ color: BLUE, fontSize: 13 }}>✓</span>}</div>
-              <div style={{ fontSize: 13, color: T.sub }}>{u.bio || `@${u.username.toLowerCase()}`}</div>
-            </div>
-            <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{myV.includes(u.id) ? "In Village" : "+ Village"}</button>
-          </div>)}
-          {/* Special accounts matching */}
-          {["bot_scryptbot","bot_minerva","bot_news","claude_account"].map(id => users.find(u => u.id === id)).filter(Boolean).filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
-            <Av user={u} sz={44} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
-              <div style={{ fontSize: 13, color: T.sub }}>{u.bio}</div>
-            </div>
-            <span style={{ fontSize: 11, color: BLUE, fontWeight: 600, background: `${BLUE}18`, borderRadius: 9999, padding: "3px 8px" }}>Official</span>
-          </div>)}
-          {/* Post results */}
-          {posts.filter(p => !p.parentId && p.content?.toLowerCase().includes(search.toLowerCase())).slice(0, 8).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
-          {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase())).length === 0 &&
-           posts.filter(p => p.content?.toLowerCase().includes(search.toLowerCase())).length === 0 &&
-            <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No results for "{search}"</p>}
-        </> : <>
+        {search.trim().length >= 1 ? (() => {
+          const q = search.trim().toLowerCase();
+          const matchUser = u => {
+            if (!u || !u.username) return false;
+            return u.username.toLowerCase().includes(q) || (u.bio || "").toLowerCase().includes(q);
+          };
+          const SPECIAL_IDS = ["bot_scryptbot","bot_minerva","bot_news","claude_account"];
+          const specialMatches = SPECIAL_IDS.map(id => users.find(u => u.id === id)).filter(Boolean).filter(matchUser);
+          const specialIdSet = new Set(SPECIAL_IDS);
+          const peopleMatches = users.filter(u => !u.isBot && !specialIdSet.has(u.id) && matchUser(u));
+          const postMatches = posts.filter(p => !p.parentId && p.content?.toLowerCase().includes(q));
+          const noResults = specialMatches.length === 0 && peopleMatches.length === 0 && postMatches.length === 0;
+          return <>
+            {/* Special / official accounts */}
+            {specialMatches.length > 0 && <div style={{ padding: "6px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL ACCOUNTS</div>}
+            {specialMatches.map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
+              <Av user={u} sz={44} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
+                <div style={{ fontSize: 13, color: T.sub }}>{u.bio}</div>
+              </div>
+              <span style={{ fontSize: 11, color: BLUE, fontWeight: 600, background: `${BLUE}18`, borderRadius: 9999, padding: "3px 8px" }}>Official</span>
+            </div>)}
+            {/* People results — no cap */}
+            {peopleMatches.length > 0 && <div style={{ padding: "6px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>PEOPLE</div>}
+            {peopleMatches.map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+              <Av user={u} sz={44} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}{u.verified && <span style={{ color: BLUE, fontSize: 13 }}>✓</span>}</div>
+                <div style={{ fontSize: 13, color: T.sub }}>{u.bio || `@${u.username.toLowerCase()}`}</div>
+              </div>
+              {u.id !== me.id && <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>{myV.includes(u.id) ? "In Village" : "+ Village"}</button>}
+            </div>)}
+            {/* Post results */}
+            {postMatches.length > 0 && <div style={{ padding: "6px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>POSTS</div>}
+            {postMatches.slice(0, 10).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
+            {noResults && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No results for "{search}"</p>}
+          </>;
+        })() : <>
           {/* Discover — Official Accounts */}
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL SCRYPT ACCOUNTS</div>
           {["claude_account","bot_scryptbot","bot_minerva","bot_news"].map(id => users.find(u => u.id === id)).filter(Boolean).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
@@ -3031,6 +3045,7 @@ export default function App() {
           </div>)}
         </>}
       </div>}
+
 
       {!thread && tab === "clicks" && <div>
         <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
