@@ -1712,45 +1712,42 @@ export default function App() {
         dbClicks = rows ? rows.map(rowToClick) : [];
       } catch(e) { console.error("Failed to load clicks", e); }
 
-      if (LS.get("dv") !== V) {
-        // First-time seed: upsert all bots + special accounts + seed posts + seed clicks
+      // Seed based on DB state, not localStorage flag — works even after clearing LS
+      const dbHasBots = dbUsers.some(u => u.isBot);
+      const needsSeed = !dbHasBots;
+
+      if (needsSeed) {
+        // DB is empty — seed everything
         const allBots = [...SU, ...specialBots];
-        // Insert bots only if they don't already exist in DB
         for (const u of allBots) {
-          if (!dbUsers.find(x => x.id === u.id)) {
-            try { await DB.upsertUser(userToRow(u)); } catch(e) { console.error("upsert user", u.id, e); }
-          }
+          try { await DB.upsertUser(userToRow(u)); } catch(e) { console.error("upsert user", u.id, e); }
         }
-        // Seed posts if none exist
         if (dbPosts.length === 0) {
           for (const p of SP) {
             try { await DB.insertPost(postToRow(p)); } catch(e) { console.error("seed post", p.id, e); }
           }
           dbPosts = SP.slice();
         }
-        // Seed clicks if none exist
         if (dbClicks.length === 0) {
           for (const c of SC) {
             try { await DB.insertClick(clickToRow(c)); } catch(e) { console.error("seed click", c.id, e); }
           }
           dbClicks = SC.slice();
         }
-        // Merge existing human users that may be in the DB already
         const humanUsers = dbUsers.filter(u => !u.isBot && !specialIds.includes(u.id));
-        const merged = [...humanUsers, ...allBots];
-        setUsers(merged);
+        setUsers([...humanUsers, ...allBots]);
         LS.set("dv", V);
       } else {
-        // Use DB versions of special bots if they exist (preserves custom avatar/bio set via the app)
-        // Only insert the hardcoded version if the bot doesn't exist in DB yet
+        // DB has data — use it, preserving any custom bot profiles set via the app
         const nonSpecial = dbUsers.filter(u => !specialIds.includes(u.id));
         const resolvedSpecial = await Promise.all(specialBots.map(async (b) => {
           const existing = dbUsers.find(u => u.id === b.id);
-          if (existing) return existing; // keep whatever is in DB (custom avatar/bio preserved)
+          if (existing) return existing; // keep DB version (custom avatar/bio preserved)
           try { await DB.upsertUser(userToRow(b)); } catch(e) {}
           return b;
         }));
         setUsers([...nonSpecial, ...resolvedSpecial]);
+        LS.set("dv", V);
       }
 
       setPosts(dbPosts);
