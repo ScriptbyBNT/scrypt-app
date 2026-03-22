@@ -264,7 +264,7 @@ const CLAUDE_USER = {
   username: "Ted",
   password: "claude2024!",
   avatar: mkSpecialAvatar("#8B4513", "T", "🧸"),
-  bio: "I'm Ted, your AI on Scrypt. mention me with @ted in any post and I'll reply. Ask me anything! 🧸",
+  bio: "I'm Ted 🧸, your AI on Scrypt. Mention me with @ted in any post and I'll reply. Ask me anything!",
   isBot: true,
   isSpecial: true,
   verified: true,
@@ -791,8 +791,8 @@ const Terms = ({ onAccept, T }) => <div style={{ position: "fixed", inset: 0, ba
 </div>;
 
 // ── CLAUDE CHAT ───────────────────────────────────────────────────────────────
-const ClaudeChat = ({ T, onClose, init }) => {
-  const [msgs, setMsgs] = useState([{ role: "assistant", content: "Hi! I'm Claude, your AI assistant on Scrypt. What's on your mind?" }]);
+const TedChat = ({ T, onClose, init }) => {
+  const [msgs, setMsgs] = useState([{ role: "assistant", content: "Hi! I'm Ted 🧸, your AI on Scrypt. What's on your mind?" }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef();
@@ -824,7 +824,7 @@ const ClaudeChat = ({ T, onClose, init }) => {
     <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, height: "75vh", display: "flex", flexDirection: "column", border: `1px solid ${T.border}` }}>
       <div style={{ padding: "13px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={20} /></div>
-        <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Ted AI</div><div style={{ fontSize: 12, color: T.sub }}>Powered by Anthropic</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Claude AI</div><div style={{ fontSize: 12, color: T.sub }}>Powered by Anthropic</div></div>
         <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><XI /></button>
       </div>
       <div style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1088,13 +1088,13 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {/* Special bot profile banners */}
         {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
-          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by Ted AI. Follow for daily doses of the unexpected.</div>
+          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by AI. Follow for daily doses of the unexpected.</div>
           <div style={{ fontSize: 11, color: BLUE, marginTop: 5, fontWeight: 600 }}>Posts every 6h · Science, Space, History & more</div>
         </div>}
         {user.id === "bot_minerva" && <div style={{ background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Fascinating historical facts and daily "This Day in History" posts. Because knowing your past is the key to understanding the present.</div>
-          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by Ted AI</div>
+          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by AI</div>
         </div>}
         {user.id === "bot_news" && <div style={{ background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div>
@@ -1104,7 +1104,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {user.id === "bot_abandonware" && <div style={{ background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Hot takes, reviews and news from across the entertainment world. Video games, blockbusters, prestige TV — we cover it all.</div>
-          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by Ted AI</div>
+          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by AI</div>
         </div>}
         {user.bio && <div style={{ fontSize: 14, color: T.text, marginBottom: 10 }}>{user.bio}</div>}
         <div style={{ display: "flex", gap: 18, marginBottom: 12 }}>
@@ -1748,8 +1748,8 @@ export default function App() {
   const [openClick, setOpenClick] = useState(null);
   const [openUser, setOpenUser] = useState(null);
   const [dmUser, setDmUser] = useState(null);
-  const [claudeInit, setClaudeInit] = useState(null);
-  const [showClaude, setShowClaude] = useState(false);
+  const [tedInit, setClaudeInit] = useState(null);
+  const [showTed, setShowClaude] = useState(false);
   const [groupChats, setGroupChats] = useState(() => LS.get("gchat") || []);
   const [activeGroup, setActiveGroup] = useState(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -1862,7 +1862,13 @@ export default function App() {
         const nonSpecial = dbUsers.filter(u => !specialIds.includes(u.id));
         const resolvedSpecial = await Promise.all(specialBots.map(async (b) => {
           const existing = dbUsers.find(u => u.id === b.id);
-          if (existing) return existing; // keep DB version (custom avatar/bio preserved)
+          if (existing) {
+            // Force-update Ted's avatar/username in case DB has stale data
+            if (b.id === "claude_account" && (existing.username !== b.username || existing.avatar !== b.avatar)) {
+              try { await DB.updateUser(b.id, { username: b.username, avatar: b.avatar, bio: b.bio }); } catch {}
+            }
+            return { ...existing, username: b.username, avatar: b.avatar }; // always use latest username/avatar
+          }
           try { await DB.upsertUser(userToRow(b)); } catch(e) {}
           return b;
         }));
@@ -1908,14 +1914,10 @@ export default function App() {
           const local = dbUsers.find(x => x.id === sessionUid);
           if (local) { setMe({ ...local, village: Array.isArray(local.village) ? local.village : [] }); setDbLoading(false); setPg("app"); return; }
         } catch {
-          // DB error — don't log out, use locally loaded users
           const local = dbUsers.find(x => x.id === sessionUid);
           if (local) { setMe({ ...local, village: Array.isArray(local.village) ? local.village : [] }); setDbLoading(false); setPg("app"); return; }
         }
-        // Truly not found anywhere — clear session
         localStorage.removeItem("session_uid");
-        setDbLoading(false);
-        setPg("login");
       }
       setDbLoading(false);
       setPg("login");
@@ -1940,11 +1942,12 @@ export default function App() {
     if (!/@ted\b/i.test(txt)) return;
     const q = txt.replace(/@ted\b/i, "").trim();
     if (!getKey()) {
+      // No key — post a helpful reply
       const noKeyReply = {
         id: `claude_reply_${Date.now()}`,
         userId: "claude_account",
         username: "Ted",
-        content: "👋 Hi! I'd love to reply but I need an API key to think. Head to **Settings → AI Key** and paste your key — then mention me with @ted again! 🤖",
+        content: "👋 Hi! I'd love to reply but I need an API key to think. Head to **Settings → AI Key** and paste your Anthropic key — then mention me with @ted again! 🧸",
         parentId: parentPostId,
         likes: [], reposts: [],
         createdAt: new Date().toISOString(),
@@ -1960,14 +1963,14 @@ export default function App() {
       const r = await claudeFetch({
         model: "claude-sonnet-4-6",
         max_tokens: 220,
-        system: "You are Ted, a witty AI on Scrypt — a social platform like Twitter. Someone just @mentioned you in a post. Reply naturally like a real user would: conversational, warm, occasionally funny, never robotic. Keep it under 240 characters — this is a social post not an essay. No hashtags unless they're genuinely funny. Sound human.",
+        system: "You are Ted 🧸, a warm and witty AI on Scrypt — a social platform like Twitter. Someone just @mentioned you. Reply naturally: conversational, friendly, occasionally playful. Keep it under 240 characters. No hashtags unless genuinely funny. Sound human.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
       });
-      if (!r.ok) return; // API error — fail silently, no fake notification
+      if (!r.ok) return;
       const d = await r.json();
       const reply = d.content?.[0]?.text?.trim();
-      if (!reply) return; // Empty reply — don't post anything
-      const claudePost = {
+      if (!reply) return;
+      const tedPost = {
         id: `claude_reply_${Date.now()}`,
         userId: "claude_account",
         username: "Ted",
@@ -1980,10 +1983,10 @@ export default function App() {
       };
       const cur2 = posts;
       const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
-      const claudePosts = [claudePost, ...withReply]; setPosts(claudePosts); (async () => { try { await DB.insertPost(postToRow(claudePost)); } catch {} })();
-      notify("Ted replied to your Scrypt! 🤖");
+      const tedPosts = [tedPost, ...withReply]; setPosts(tedPosts); (async () => { try { await DB.insertPost(postToRow(tedPost)); } catch {} })();
+      notify("Ted replied to your Scrypt! 🧸");
     } catch {
-      // fail silently — no fake notification
+      // fail silently
     }
   }, []);
 
@@ -2463,6 +2466,52 @@ export default function App() {
         }
       }
 
+      // 30% chance: bots reply to each other's posts and user posts (no API key needed)
+      if (Math.random() < 0.30) {
+        const BOT_REPLIES = [
+          "This is exactly the take I needed today 🔥", "100% agree, couldn't have said it better",
+          "Bro this goes hard 💪", "Facts. No cap.", "This right here 👆", "Real talk",
+          "Genuinely one of the best takes on here", "Screenshotting this", "W post fr",
+          "The people need to see this", "Say it louder for the people in the back 📢",
+          "I was literally just thinking about this", "Needed to hear this today, thanks 🙏",
+          "Underrated take tbh", "This is the way", "Built different mentality right here 💯",
+          "Not me nodding along to every word", "Okay you actually cooked here", "Clean 🧹",
+          "The accuracy is unreal", "This slaps", "Respect. Real one.", "All day every day 🔥",
+          "Dropped this like it was nothing wow", "Said what needed to be said",
+          "I feel this in my soul honestly", "Top tier scrypt ngl", "W take, no debates",
+        ];
+        // Target: recent bot posts and recent user posts
+        const replyablePosts = curPosts.filter(p => !p.parentId && p.userId !== me.id).slice(0, 20);
+        const userPosts2 = curPosts.filter(p => !p.parentId && p.userId === me.id).slice(0, 5);
+        const allReplyable = [...replyablePosts, ...userPosts2];
+        if (allReplyable.length > 0) {
+          const targetPost = allReplyable[Math.floor(Math.random() * allReplyable.length)];
+          const replierPool = allBots.filter(b => b.id !== targetPost.userId && !SPECIAL_BOT_IDS.has(b.id));
+          const replier = replierPool[Math.floor(Math.random() * replierPool.length)];
+          if (replier) {
+            // Check this replier hasn't already replied to this post
+            const alreadyReplied = curPosts.some(p => p.parentId === targetPost.id && p.userId === replier.id);
+            if (!alreadyReplied) {
+              const replyContent = BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)];
+              setTimeout(() => {
+                const reply = {
+                  id: `breply2_${Date.now()}_${Math.floor(Math.random() * 99999)}`,
+                  userId: replier.id, username: replier.username,
+                  content: replyContent, parentId: targetPost.id,
+                  likes: [], reposts: [],
+                  createdAt: new Date().toISOString(), replyCount: 0
+                };
+                setPosts(prev => {
+                  if (prev.some(p => p.parentId === targetPost.id && p.userId === replier.id)) return prev;
+                  return [reply, ...prev.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x)];
+                });
+                (async () => { try { await DB.insertPost(postToRow(reply)); } catch {} })();
+              }, 3000 + Math.random() * 12000);
+            }
+          }
+        }
+      }
+
       // 15% chance: bots add each other to village
       if (Math.random() < 0.15) {
         const allUsers = users;
@@ -2788,10 +2837,8 @@ export default function App() {
     setMe(updated);
     setUsers(prev => prev.map(u => u.id === me.id ? updated : u));
     const row = userToRow(updated);
-    // Split: send core columns first (always exist), then info_fields separately
     const { info_fields, ...coreRow } = row;
     DB.updateUser(me.id, coreRow).catch(e => console.error("saveMe core", e));
-    // info_fields saves wallpaper/profileSong/infoCards/dark — best effort
     if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {});
   };
 
@@ -2897,7 +2944,7 @@ export default function App() {
   return <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Segoe UI',sans-serif", color: T.text }}>
     {toast && <div style={{ position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.bg, padding: "10px 20px", borderRadius: 9999, fontSize: 14, fontWeight: 600, zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
     {voiceCall && <VoiceCall me={me} participants={voiceCall.participants} users={users} T={T} onEnd={() => { setVoiceCall(null); notify("Call ended"); }} />}
-    {showClaude && <ClaudeChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={claudeInit} />}
+    {showTed && <TedChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={tedInit} />}
     {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} />}
     {showPP && <PicPicker onPick={doPickDef} onClose={() => setShowPP(false)} T={T} />}
     {showWallpaper && <WallpaperPicker onPick={doWallpaper} onClose={() => setShowWallpaper(false)} T={T} />}
@@ -2969,7 +3016,7 @@ export default function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={() => { setClaudeInit(null); setShowClaude(true); }} style={{ background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", borderRadius: 9999, padding: "4px 8px", fontWeight: 700, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-            <SparkI /> Ask @Claude
+            <SparkI /> Ask @Ted
           </button>
           <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub }}>{dark ? <SunI /> : <MoonI />}</button>
           <div onClick={() => setOpenUser(me)} style={{ cursor: "pointer" }}><Av user={me} sz={32} /></div>
@@ -3374,7 +3421,7 @@ export default function App() {
               style={{ ...inp13, fontFamily: "monospace", marginBottom: 8 }}
             />
             {apiKey ? <div style={{ fontSize: 11, color: "#00BA7C", display: "flex", alignItems: "center", gap: 5 }}>✓ API key saved — Ted is active</div>
-              : <div style={{ fontSize: 11, color: T.sub }}>No key set — AI features will be disabled</div>}
+              : <div style={{ fontSize: 11, color: T.sub }}>No key set — Ted features disabled</div>}
           </div>
         </div>;
       })()}
