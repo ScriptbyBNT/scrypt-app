@@ -3502,7 +3502,7 @@ export default function App() {
         {mine.filter(p => !p.villageOnly).length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 16px", fontSize: 14 }}>No posts yet. Start Scrypting!</p>}
       </div>}
 
-      {!thread && tab === "settings" && (() => {
+      {(!thread && tab === "settings") && (() => {
         const myAccent = getAccent(me);
         const inp13 = { width: "100%", background: T.input, border: "none", borderRadius: 10, padding: "9px 12px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" };
         return <div style={{ padding: 16, paddingBottom: 90 }}>
@@ -3629,7 +3629,8 @@ export default function App() {
 
           <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
         </div>
-      </div>; })()}
+      </div>;
+    })()}
 
     {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
     {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => {
