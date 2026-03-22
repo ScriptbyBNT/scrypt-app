@@ -1715,10 +1715,7 @@ const HomeTrending = ({ posts, users, T, onThread, onUser }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function App() {
   const [dark, setDark] = useState(() => LS.get("dark") === "1");
-  const [pg, setPg] = useState(() => {
-    const sid = localStorage.getItem("session_uid");
-    return (sid && sid !== "null" && sid !== "undefined") ? "loading" : "login";
-  });
+  const [pg, setPg] = useState(() => LS.get("session_uid") ? "loading" : "login");
   const [tab, setTab] = useState("home");
   const [me, setMe] = useState(null);
   const [users, setUsers] = useState([]);
@@ -1771,21 +1768,10 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
-    // Safety net: if loading takes > 12 seconds, clear stale session and go to login
-    const safetyTimer = setTimeout(() => {
-      console.warn("initDB timeout — clearing session and going to login");
-      localStorage.removeItem("session_uid");
-      setDbLoading(false);
-      setPg("login");
-    }, 12000);
-
     const initDB = async () => {
       setDbLoading(true);
-      // Restore session — read directly from localStorage to avoid "null" string issue
-      const sessionUid = (() => {
-        const v = localStorage.getItem("session_uid");
-        return (v && v !== "null" && v !== "undefined") ? v : null;
-      })();
+      // Restore session
+      const sessionUid = LS.get("session_uid");
       const V = "v23";
       const specialIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"];
       const specialBots = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, ABANDONWARE_USER, CLAUDE_USER];
@@ -1889,23 +1875,11 @@ export default function App() {
           if (u) { setMe({ ...u, village: u.village || [] }); setPg("app"); return; }
         } catch {}
         // Session invalid — clear it
-        localStorage.removeItem("session_uid");
+        LS.set("session_uid", null);
         setPg("login");
-        return;
       }
-      // No session — go to login
-      setPg("login");
     };
-
-    initDB()
-      .then(() => clearTimeout(safetyTimer))
-      .catch(e => {
-        console.error("initDB crashed:", e);
-        clearTimeout(safetyTimer);
-        localStorage.removeItem("session_uid");
-        setDbLoading(false);
-        setPg("login");
-      });
+    initDB();
   }, []);
 
   const T = {
@@ -2838,8 +2812,8 @@ export default function App() {
     </div>
     <div style={{ color: T.sub, fontSize: 14 }}>Loading…</div>
   </div>;
-  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: u.village || [] }); LS.set("session_uid", u.id); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
-  if (pg === "signup") return <Signup onDone={u => { setMe(u); LS.set("session_uid", u.id); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: u.village || [] }); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "signup") return <Signup onDone={u => { setMe(u); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
   const myV = me?.village || [];
   const feed = (() => {
@@ -3322,7 +3296,7 @@ export default function App() {
 
 
 
-          <button onClick={() => { setMe(null); localStorage.removeItem("session_uid"); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
+          <button onClick={() => { setMe(null); LS.set("session_uid", null); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
           {/* ── CHANGE PASSWORD (optional) ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
