@@ -961,7 +961,7 @@ const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
 };
 
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
-const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
+const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
   const myV = me.village || [];
   const inV = myV.includes(user.id);
   const isMe = user.id === me.id;
@@ -991,7 +991,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
           {user.mood && <div style={{ fontSize: 13, color: accent.color, marginTop: 3, fontStyle: "italic" }}>{user.mood}</div>}
         </div>
         <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
-          {!isMe && mutual && <button style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>💬 IM</button>}
+          {!isMe && mutual && <button onClick={() => { onIM && onIM(user); onClose(); }} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>💬 IM</button>}
           {!isMe && <button onClick={() => onVillage(user.id)} style={{ background: inV ? "transparent" : accent.color, color: inV ? T.text : "white", border: `1px solid ${inV ? T.border : accent.color}`, borderRadius: 9999, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{inV ? "In Village ✓" : "+ Village"}</button>}
           <button onClick={onClose} style={{ background: T.input, border: "none", cursor: "pointer", color: T.text, borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center" }}><XI /></button>
         </div>
@@ -1299,13 +1299,14 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
 };
 
 // ── POST CARD ─────────────────────────────────────────────────────────────────
-const Post = ({ p, me, users, all, onLike, onRt, onReply, onThread, onUser, T }) => {
+const Post = ({ p, me, users, all, onLike, onRt, onReply, onThread, onUser, onDelete, T }) => {
   const author = users.find(u => u.id === p.userId) || { username: p.username || "anon" };
   const liked = p.likes?.includes(me?.id);
   const rted = p.reposts?.includes(me?.id);
   const rCount = all.filter(x => x.parentId === p.id).length || p.replyCount || 0;
   const [showR, setShowR] = useState(false);
   const [showRep, setShowRep] = useState(false);
+  const isOwner = me && p.userId === me.id;
   if (p.villageOnly && p.userId !== me?.id && !(me?.village || []).includes(p.userId)) return null;
   return <div style={{ background: T.card, borderBottom: `1px solid ${T.border}` }}>
     {showRep && <ReportModal post={p} onClose={() => setShowRep(false)} T={T} />}
@@ -1319,7 +1320,8 @@ const Post = ({ p, me, users, all, onLike, onRt, onReply, onThread, onUser, T })
             <span style={{ fontSize: 13, color: T.sub }}>@{author.username.toLowerCase()} · {ago(p.createdAt)}</span>
             {p.villageOnly && <span style={{ fontSize: 10, color: PURPLE, background: T.input, borderRadius: 4, padding: "1px 5px" }}>🔒 Village</span>}
           </div>
-          {p.userId !== me?.id && <button onClick={e => { e.stopPropagation(); setShowRep(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, padding: 2, opacity: 0.6 }}><FlagI /></button>}
+          {isOwner && onDelete && <button onClick={e => { e.stopPropagation(); if (window.confirm("Delete this Scrypt?")) onDelete(p.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, padding: 2, opacity: 0.6, fontSize: 15 }} title="Delete Scrypt">🗑️</button>}
+          {!isOwner && <button onClick={e => { e.stopPropagation(); setShowRep(true); }} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, padding: 2, opacity: 0.6 }}><FlagI /></button>}
         </div>
         <div style={{ fontSize: 15, lineHeight: 1.6, color: T.text, marginBottom: 8, wordBreak: "break-word" }}>
           <Rich text={censor(p.content)} users={users} onUser={onUser} />
@@ -1338,16 +1340,16 @@ const Post = ({ p, me, users, all, onLike, onRt, onReply, onThread, onUser, T })
 };
 
 // ── THREAD ────────────────────────────────────────────────────────────────────
-const Thread = ({ p, me, users, all, onLike, onRt, onReply, onBack, onUser, T }) => {
+const Thread = ({ p, me, users, all, onLike, onRt, onReply, onBack, onUser, onDelete, T }) => {
   const replies = all.filter(x => x.parentId === p.id).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   return <div>
     <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><BackI /></button>
       <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Thread</span>
     </div>
-    <Post p={p} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={r => onReply({ ...r, parentId: p.id })} onThread={() => {}} onUser={onUser} T={T} />
+    <Post p={p} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={r => onReply({ ...r, parentId: p.id })} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />
     <Compose me={me} onPost={onReply} T={T} users={users} compact parentId={p.id} clickId={p.clickId} />
-    {replies.map(r => <Post key={r.id} p={r} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={rr => onReply({ ...rr, parentId: r.id })} onThread={() => {}} onUser={onUser} T={T} />)}
+    {replies.map(r => <Post key={r.id} p={r} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={rr => onReply({ ...rr, parentId: r.id })} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />)}
     {replies.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 0", fontSize: 14 }}>No replies yet. Start the conversation!</p>}
   </div>;
 };
@@ -2585,6 +2587,11 @@ export default function App() {
     const target = updated.find(p => p.id === id);
     if (target) DB.updatePost(id, { reposts: JSON.stringify(target.reposts) }).catch(() => {});
   };
+  const doDelete = id => {
+    setPosts(prev => prev.filter(p => p.id !== id));
+    DB.deletePost(id).catch(() => {});
+    notify("Scrypt deleted.");
+  };
   const doJoin = id => {
     const updated = clicks.map(c => c.id !== id ? c : { ...c, members: c.members?.includes(me.id) ? c.members.filter(x => x !== me.id) : [...(c.members || []), me.id] });
     setClicks(updated);
@@ -2724,7 +2731,7 @@ export default function App() {
     {toast && <div style={{ position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.bg, padding: "10px 20px", borderRadius: 9999, fontSize: 14, fontWeight: 600, zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
     {voiceCall && <VoiceCall me={me} participants={voiceCall.participants} users={users} T={T} onEnd={() => { setVoiceCall(null); notify("Call ended"); }} />}
     {showClaude && <ClaudeChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={claudeInit} />}
-    {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} T={T} posts={posts} />}
+    {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} />}
     {showPP && <PicPicker onPick={doPickDef} onClose={() => setShowPP(false)} T={T} />}
     {showWallpaper && <WallpaperPicker onPick={doWallpaper} onClose={() => setShowWallpaper(false)} T={T} />}
 
@@ -2780,7 +2787,7 @@ export default function App() {
             <button onClick={() => setOpenClick(null)} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><XI /></button>
           </div>
           <Compose me={me} onPost={doPost} T={T} users={users} placeholder={`Post in ${liveClick.name}...`} clickId={liveClick.id} />
-          {posts.filter(p => p.clickId === liveClick.id && !p.parentId).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
+          {posts.filter(p => p.clickId === liveClick.id && !p.parentId).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
           {posts.filter(p => p.clickId === liveClick.id && !p.parentId).length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No posts yet. Be the first! 👋</p>}
         </div>
       </div>;
@@ -2805,7 +2812,7 @@ export default function App() {
 
     {/* CONTENT */}
     <div style={{ maxWidth: 600, margin: "0 auto", paddingBottom: 76 }}>
-      {thread && <Thread p={thread} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={doPost} onBack={() => setThread(null)} onUser={setOpenUser} T={T} />}
+      {thread && <Thread p={thread} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={doPost} onBack={() => setThread(null)} onUser={setOpenUser} onDelete={doDelete} T={T} />}
 
       {!thread && tab === "home" && <>
         <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2813,7 +2820,7 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub }}>{feed.length} posts</div>
         </div>
         <Compose me={me} onPost={doPost} T={T} users={users} />
-        {feed.map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
+        {feed.map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
         {feed.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "40px 16px" }}>No posts yet. Say something! 👋</p>}
       </>}
 
@@ -2841,7 +2848,7 @@ export default function App() {
             <span style={{ fontSize: 11, color: BLUE, fontWeight: 600, background: `${BLUE}18`, borderRadius: 9999, padding: "3px 8px" }}>Official</span>
           </div>)}
           {/* Post results */}
-          {posts.filter(p => !p.parentId && p.content?.toLowerCase().includes(search.toLowerCase())).slice(0, 8).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
+          {posts.filter(p => !p.parentId && p.content?.toLowerCase().includes(search.toLowerCase())).slice(0, 8).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
           {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase())).length === 0 &&
            posts.filter(p => p.content?.toLowerCase().includes(search.toLowerCase())).length === 0 &&
             <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px" }}>No results for "{search}"</p>}
@@ -3048,10 +3055,10 @@ export default function App() {
         </div>
         {mine.filter(p => p.villageOnly).length > 0 && <>
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: PURPLE, borderBottom: `1px solid ${T.border}` }}>🔒 VILLAGE POSTS</div>
-          {mine.filter(p => p.villageOnly).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
+          {mine.filter(p => p.villageOnly).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
         </>}
         <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}` }}>MY SCRYPTS</div>
-        {mine.filter(p => !p.villageOnly).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} T={T} />)}
+        {mine.filter(p => !p.villageOnly).map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
         {mine.filter(p => !p.villageOnly).length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 16px", fontSize: 14 }}>No posts yet. Start Scrypting!</p>}
       </div>}
 
