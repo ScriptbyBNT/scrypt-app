@@ -1008,7 +1008,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {user.id === "bot_minerva" && <div style={{ background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Fascinating historical facts and daily "This Day in History" posts. Because knowing your past is the key to understanding the present.</div>
-          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>Posts every 12h · This Day in History daily · Powered by Claude AI</div>
+          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by Claude AI</div>
         </div>}
         {user.id === "bot_news" && <div style={{ background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div>
@@ -1415,13 +1415,13 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
     setErr("");
     // Special accounts can log in — but only via direct username/password, not shown publicly
     // Always use hardcoded special account data to prevent regular users hijacking these usernames
-    const specialMatch = SPECIAL_ACCOUNTS.find(x => x.username === u.trim() && x.password === pw);
+    const specialMatch = SPECIAL_ACCOUNTS.find(x => x.username.toLowerCase() === u.trim().toLowerCase() && x.password === pw);
     if (specialMatch) {
       onLogin(specialMatch);
       return;
     }
     try {
-      const rows = await DB.getUserByUsername(u.trim());
+      const rows = await DB.getUserByUsername(u.trim().toLowerCase());
       const f = rows && rows[0] ? rowToUser(rows[0]) : null;
       if (!f || f.password !== pw) { setErr("Invalid username or password."); return; }
       onLogin(f);
@@ -1484,18 +1484,19 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
 
   const go = async () => {
     setErr("");
-    const t = u.trim();
+    const t = u.trim().toLowerCase();
     if (t.length < 3) { setErr("Username must be at least 3 characters."); return; }
     const rows = await DB.getUserByUsername(t);
     const all = rows ? rows.map(rowToUser) : [];
-    if (all.find(x => x.username === t)) { setErr("Username already taken."); return; }
+    if (all.find(x => x.username.toLowerCase() === t)) { setErr("Username already taken."); return; }
     if (pw.length < 6) { setErr("Password must be at least 6 characters."); return; }
     if (pw !== pw2) { setErr("Passwords don't match."); return; }
     if (!ageConfirmed) { setErr("You must confirm you are old enough to join Scrypt."); return; }
     setTerms(true);
   };
   const confirm = async () => {
-    const nu = { id: Date.now().toString(), username: u.trim(), password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
+    const t = u.trim().toLowerCase();
+    const nu = { id: Date.now().toString(), username: t, password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
     await DB.insertUser(userToRow(nu));
     onDone(nu);
   };
@@ -2394,19 +2395,20 @@ export default function App() {
     return () => clearInterval(interval);
   }, [me]);
 
-  // ── SCRYPT MINERVA: History facts every 12h + This Day in History daily ──────
+  // ── SCRYPT MINERVA: History fact every hour + This Day in History at 12pm daily ──
   useEffect(() => {
     if (!me) return;
+
     const postHistoryFact = async () => {
       if (!getKey()) return;
       try {
-        const eras = ["ancient Egypt","ancient Greece","the Roman Empire","the Renaissance","the Age of Exploration","the Industrial Revolution","World War I","World War II","the Cold War","ancient China","the Ottoman Empire","the Viking Age","medieval Europe","the Byzantine Empire","ancient Persia","the Mongol Empire","the British Empire","the French Revolution","ancient Rome","the Ottoman Empire"];
+        const eras = ["ancient Egypt","ancient Greece","the Roman Empire","the Renaissance","the Age of Exploration","the Industrial Revolution","World War I","World War II","the Cold War","ancient China","the Ottoman Empire","the Viking Age","medieval Europe","the Byzantine Empire","ancient Persia","the Mongol Empire","the British Empire","the French Revolution","ancient Mesopotamia","the Han Dynasty","the Mughal Empire","the Crusades","the Age of Enlightenment","the American Revolution","the Napoleonic Wars","ancient India","the Aztec Empire","the Inca Empire","the Silk Road","the Black Death"];
         const era = eras[Math.floor(Math.random() * eras.length)];
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
-          max_tokens: 200,
-          system: "You are Script_Minerva, a history education account. Post ONE specific historical fact. Rules: always anchor to a real date/era (format: 'Roman Empire, 44 BCE —' or 'Medieval Europe, 1347 —'). State facts plainly — no enthusiasm, no opinions, no modern commentary, no pop culture references. End with one historical emoji. Under 230 characters. Output only the fact text.",
-          messages: [{ role: "user", content: `Share a fascinating, little-known historical fact strictly from ${era}.` }]
+          max_tokens: 220,
+          system: "You are Script_Minerva, a professional history education account. Post ONE specific, fact-checked historical fact. Rules: 1) Always anchor to a real verified date/era using the format 'Roman Empire, 44 BCE —' or 'Medieval Europe, 1347 —'. 2) Include specific names, numbers, and places. 3) No enthusiasm, no opinions, no modern commentary, no speculation. 4) Professional, encyclopaedic tone. 5) End with exactly one relevant historical emoji (🏛️ ⚔️ 📜 🗺️ 🔭 ⚓ 🏰 🕌 🌏 etc). 6) Under 240 characters. Output only the fact text, nothing else.",
+          messages: [{ role: "user", content: `Share one specific, verified, little-known historical fact from ${era}. Include real names, dates, and numbers.` }]
         });
         const d = await r.json();
         const content = d.content?.[0]?.text;
@@ -2436,9 +2438,9 @@ export default function App() {
         const day = now.getDate();
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
-          max_tokens: 200,
-          system: "You are Script_Minerva, a history education account. Post a 'This Day in History' entry. Pick one real, verified historical event from this exact date. Format: '📅 This Day in History — [YEAR]: [what happened, with specific names/places/numbers]'. Rules: facts only — no opinions, no modern spin, no commentary, no enthusiasm, no personality. Output only the formatted entry. Under 240 characters.",
-          messages: [{ role: "user", content: `What happened on ${month} ${day} in history? Pick the most significant or surprising event.` }]
+          max_tokens: 220,
+          system: "You are Script_Minerva, a professional history education account. Post a 'This Day in History' entry. Rules: 1) Pick one real, verified, significant historical event from this exact calendar date. 2) Format strictly as: '📅 This Day in History — [YEAR]: [event with specific names/places/numbers]'. 3) Only verified, fact-checked events. 4) No opinions, no modern spin, no commentary, no enthusiasm, no personality. 5) Professional encyclopaedic tone. 6) Under 250 characters. Output only the formatted entry, nothing else.",
+          messages: [{ role: "user", content: `What is one significant, verified historical event that occurred on ${month} ${day}? Include the year, key figures, and specific details.` }]
         });
         const d = await r.json();
         const content = d.content?.[0]?.text;
@@ -2460,12 +2462,44 @@ export default function App() {
       } catch { /* fail silently */ }
     };
 
-    // Post on login
-    postHistoryFact();
-    setTimeout(postThisDayInHistory, 8000); // stagger slightly
-    const histInterval = setInterval(postHistoryFact, 12 * 60 * 60 * 1000); // 12h
-    const tdihInterval = setInterval(postThisDayInHistory, 24 * 60 * 60 * 1000); // 24h
-    return () => { clearInterval(histInterval); clearInterval(tdihInterval); };
+    // ── Scheduling ──────────────────────────────────────────────────────────────
+    // This Day in History fires once a day at 12:00pm local time.
+    // History facts fire every hour EXCEPT the 12pm slot (Minerva posts TDIH then).
+    const scheduleNoon = () => {
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(12, 0, 0, 0);
+      if (next <= now) next.setDate(next.getDate() + 1); // already past noon → tomorrow
+      const msUntilNoon = next - now;
+      return setTimeout(() => {
+        postThisDayInHistory();
+        setInterval(postThisDayInHistory, 24 * 60 * 60 * 1000); // daily thereafter
+      }, msUntilNoon);
+    };
+
+    const scheduleHourly = () => {
+      // Fire once on load (if current hour ≠ 12), then every hour skip 12pm
+      const tick = () => {
+        const h = new Date().getHours();
+        if (h !== 12) postHistoryFact(); // skip the noon slot
+      };
+      // Align to the next top-of-hour
+      const now = new Date();
+      const msUntilHour = (60 - now.getMinutes()) * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
+      tick(); // immediate first post
+      return setTimeout(() => {
+        tick();
+        setInterval(tick, 60 * 60 * 1000);
+      }, msUntilHour);
+    };
+
+    const noonTimer  = scheduleNoon();
+    const hourTimer  = scheduleHourly();
+    // Also fire TDIH immediately on login if it's already noon (±5 min)
+    const h = new Date().getHours(), m = new Date().getMinutes();
+    if (h === 12 && m < 5) setTimeout(postThisDayInHistory, 3000);
+
+    return () => { clearTimeout(noonTimer); clearTimeout(hourTimer); };
   }, [me]);
 
   // ── SCRYPT NEWS: Breaking news every 3 hours via web search ──────────────────
@@ -2632,10 +2666,10 @@ export default function App() {
   const doSave = () => {
     setSerr("");
     const upd = {};
-    if (sf.u && sf.u.trim() !== me.username) {
-      const t = sf.u.trim();
+    if (sf.u && sf.u.trim().toLowerCase() !== me.username.toLowerCase()) {
+      const t = sf.u.trim().toLowerCase();
       if (t.length < 3) { setSerr("Min 3 characters."); return; }
-      if (users.find(u => u.username === t && u.id !== me.id)) { setSerr("Username taken."); return; }
+      if (users.find(u => u.username.toLowerCase() === t && u.id !== me.id)) { setSerr("Username taken."); return; }
       upd.username = t;
     }
     if (sf.pw) {
