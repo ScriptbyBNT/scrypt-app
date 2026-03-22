@@ -193,7 +193,7 @@ const Av = ({ user, sz = 40, onClick }) => {
   const [err, setErr] = useState(false);
   const cols = [BLUE, PURPLE, PINK, "#ea580c", "#16a34a", "#0891b2"];
   const bg = cols[((user?.username || "?").charCodeAt(0) || 0) % cols.length];
-  const s = { width: sz, height: sz, borderRadius: "50%", flexShrink: 0, cursor: onClick ? "pointer" : "default", objectFit: "cover" };
+  const s = { width: sz, height: sz, borderRadius: "50%", flexShrink: 0, cursor: onClick ? "pointer" : "default", objectFit: "cover", display: "block" };
   if (user?.avatar && !err) return <img src={user.avatar} alt="" onError={() => setErr(true)} style={s} onClick={onClick} />;
   return <div onClick={onClick} style={{ ...s, background: bg, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: sz * 0.4 }}>{(user?.username || "?")[0].toUpperCase()}</div>;
 };
@@ -421,24 +421,117 @@ const ProfileSongPlayer = ({ songSrc, songName, accent }) => {
 
 // ── PROFILE INFO CARDS ─────────────────────────────────────────────────────────
 const INFO_FIELDS = [
-  { key: "infoMovie",  photoKey: "infoMoviePhoto",  icon: "🎬", label: "Fav Movie" },
-  { key: "infoArtist", photoKey: "infoArtistPhoto", icon: "🎵", label: "Top Artist" },
-  { key: "infoShow",   photoKey: "infoShowPhoto",   icon: "📺", label: "Watching" },
-  { key: "infoBook",   photoKey: "infoBookPhoto",   icon: "📖", label: "Reading" },
-  { key: "infoGame",   photoKey: "infoGamePhoto",   icon: "🎮", label: "Playing" },
+  { key: "infoMovie",  photoKey: "infoMoviePhoto",  icon: "🎬", label: "Fav Movie",   grad: "linear-gradient(135deg,#1a1a2e,#16213e)" },
+  { key: "infoArtist", photoKey: "infoArtistPhoto", icon: "🎵", label: "Top Artist",  grad: "linear-gradient(135deg,#0d0d1a,#1a0533)" },
+  { key: "infoShow",   photoKey: "infoShowPhoto",   icon: "📺", label: "Watching",    grad: "linear-gradient(135deg,#0a1628,#1e3a5f)" },
+  { key: "infoBook",   photoKey: "infoBookPhoto",   icon: "📖", label: "Reading",     grad: "linear-gradient(135deg,#1a0a00,#3d1a00)" },
+  { key: "infoGame",   photoKey: "infoGamePhoto",   icon: "🎮", label: "Playing",     grad: "linear-gradient(135deg,#0a1a0a,#0d3319)" },
 ];
+
+// ── IMAGE CROP MODAL ──────────────────────────────────────────────────────────
+const ImageCropModal = ({ src, onSave, onClose, T }) => {
+  const canvasRef = useRef();
+  const [drag, setDrag] = useState(false);
+  const [start, setStart] = useState({ x: 0, y: 0 });
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
+  const imgRef = useRef(new window.Image());
+  const SIZE = 260; // crop square size in display px
+
+  useEffect(() => {
+    const img = imgRef.current;
+    img.onload = () => draw(offset, scale);
+    img.src = src;
+  }, [src]);
+
+  const draw = (off, sc) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const img = imgRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = SIZE * dpr; canvas.height = SIZE * dpr;
+    canvas.style.width = SIZE + "px"; canvas.style.height = SIZE + "px";
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    const iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
+    ctx.drawImage(img, off.x, off.y, iw, ih);
+  };
+
+  const onMouseDown = e => { setDrag(true); setStart({ x: e.clientX - offset.x, y: e.clientY - offset.y }); };
+  const onMouseMove = e => {
+    if (!drag) return;
+    const newOff = { x: e.clientX - start.x, y: e.clientY - start.y };
+    setOffset(newOff); draw(newOff, scale);
+  };
+  const onMouseUp = () => setDrag(false);
+  const onTouchStart = e => { const t = e.touches[0]; setDrag(true); setStart({ x: t.clientX - offset.x, y: t.clientY - offset.y }); };
+  const onTouchMove = e => {
+    if (!drag) return;
+    const t = e.touches[0];
+    const newOff = { x: t.clientX - start.x, y: t.clientY - start.y };
+    setOffset(newOff); draw(newOff, scale);
+  };
+
+  const changeScale = v => { const s = Math.max(0.2, Math.min(3, v)); setScale(s); draw(offset, s); };
+
+  const save = () => {
+    const canvas = canvasRef.current;
+    const out = document.createElement("canvas");
+    const EXPORT = 400;
+    out.width = EXPORT; out.height = EXPORT;
+    const ctx = out.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    // re-draw at export size
+    const img = imgRef.current;
+    const ratio = EXPORT / SIZE;
+    ctx.drawImage(img, offset.x * ratio / (window.devicePixelRatio||1) * dpr, offset.y * ratio / (window.devicePixelRatio||1) * dpr,
+      img.naturalWidth * scale * ratio, img.naturalHeight * scale * ratio);
+    onSave(out.toDataURL("image/jpeg", 0.88));
+  };
+
+  return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 16 }}>
+    <div style={{ fontWeight: 700, fontSize: 16, color: "white" }}>Crop Image</div>
+    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>Drag to reposition · Pinch or slide to zoom</div>
+    <div style={{ borderRadius: 14, overflow: "hidden", cursor: drag ? "grabbing" : "grab", userSelect: "none", border: "2px solid rgba(255,255,255,0.2)" }}
+      onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}>
+      <canvas ref={canvasRef} style={{ display: "block" }} />
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, width: SIZE }}>
+      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>–</span>
+      <input type="range" min={0.2} max={3} step={0.01} value={scale} onChange={e => changeScale(parseFloat(e.target.value))} style={{ flex: 1, accentColor: BLUE }} />
+      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>+</span>
+    </div>
+    <div style={{ display: "flex", gap: 10 }}>
+      <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 9999, padding: "10px 22px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+      <button onClick={save} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "10px 26px", fontWeight: 700, cursor: "pointer" }}>Use Photo</button>
+    </div>
+  </div>;
+};
+
 const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
   const filled = INFO_FIELDS.filter(f => user[f.key]);
   if (!filled.length) return null;
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7, marginBottom: 12 }}>
     {filled.map(f => {
       const photo = resolvePhoto ? resolvePhoto(user, f.photoKey) : user[f.photoKey];
-      return <div key={f.key} style={{ background: `${accent.color}12`, border: `1px solid ${accent.color}30`, borderRadius: 12, overflow: "hidden" }}>
-        {photo && <img src={photo} alt={user[f.key]} style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />}
-        {!photo && <div style={{ width: "100%", height: 56, background: `${accent.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{f.icon}</div>}
-        <div style={{ padding: "6px 9px" }}>
-          <div style={{ fontSize: 10, color: accent.color, fontWeight: 700, marginBottom: 2 }}>{f.icon} {f.label}</div>
-          <div style={{ fontSize: 12, color: "#ccc", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user[f.key]}</div>
+      return <div key={f.key} style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${accent.color}28`, background: accent.color + "10" }}>
+        {/* Square image area */}
+        <div style={{ width: "100%", aspectRatio: "1/1", position: "relative", background: photo ? "transparent" : f.grad, overflow: "hidden" }}>
+          {photo
+            ? <img src={photo} alt={user[f.key]} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            : <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                <span style={{ fontSize: 26 }}>{f.icon}</span>
+              </div>}
+          {/* label overlay at bottom of square */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.65))", padding: "14px 7px 5px", pointerEvents: "none" }}>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.75)", fontWeight: 700, letterSpacing: 0.5 }}>{f.label.toUpperCase()}</div>
+          </div>
+        </div>
+        {/* Title below */}
+        <div style={{ padding: "5px 7px 6px", background: accent.color + "10" }}>
+          <div style={{ fontSize: 11, color: accent.color === "#1D9BF0" ? "#E7E9EA" : accent.color, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>{user[f.key]}</div>
         </div>
       </div>;
     })}
@@ -462,7 +555,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, T, posts }) => {
     <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, maxHeight: "88vh", overflow: "auto", border: `1px solid ${accent.color}60` }} onClick={e => e.stopPropagation()}>
       {/* Banner with accent border */}
       <div style={{ height: 90, background: bannerBg, position: "relative", overflow: "visible", borderRadius: "16px 16px 0 0" }}>
-        <div style={{ position: "absolute", bottom: -26, left: 16, border: `3px solid ${accent.color}`, borderRadius: "50%", background: T.card }}>
+        <div style={{ position: "absolute", bottom: -26, left: 16, border: `3px solid ${accent.color}`, borderRadius: "50%", overflow: "hidden", lineHeight: 0 }}>
           <Av user={user} sz={52} />
         </div>
         {/* Profile song autoplay hint */}
@@ -697,6 +790,8 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
   const [img, setImg] = useState(null);
   const [vill, setVill] = useState(false);
   const [mq, setMq] = useState(null);
+  const [modBusy, setModBusy] = useState(false);
+  const [modErr, setModErr] = useState("");
   const fRef = useRef();
   const taRef = useRef();
   const onChange = e => {
@@ -710,10 +805,48 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
     setText(text.slice(0, pos).replace(/@\w*$/, `@${name} `) + text.slice(pos));
     setMq(null);
   };
-  const submit = () => {
+
+  const moderateWithClaude = async (content, imageData) => {
+    const parts = [];
+    if (content) parts.push(`Post text: "${content}"`);
+    const messages = [];
+    if (imageData) {
+      // Send image + text together for moderation
+      const imgContent = [
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageData.split(",")[1] || imageData } },
+        { type: "text", text: `Review this post content for a social platform. ${content ? `Post text: "${content}". ` : ""}Check for: hate speech, threats, harassment, sexual/graphic content, illegal activity, or content harmful to minors. Respond ONLY with a JSON object: {"safe": true/false, "reason": "brief reason if unsafe, empty string if safe"}` }
+      ];
+      messages.push({ role: "user", content: imgContent });
+    } else {
+      messages.push({ role: "user", content: `Review this social media post for a platform that requires safe content. Check for: hate speech, threats, harassment, sexual/graphic content, illegal activity, or content harmful to minors. Post: "${content}". Respond ONLY with a JSON object: {"safe": true/false, "reason": "brief reason if unsafe, empty string if safe"}` });
+    }
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": "YOUR_API_KEY_HERE", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 100, messages })
+    });
+    const d = await r.json();
+    const txt = d.content?.[0]?.text || '{"safe":true,"reason":""}';
+    return JSON.parse(txt.replace(/```json|```/g, "").trim());
+  };
+
+  const submit = async () => {
     if (!text.trim() && !img) return;
+    setModErr("");
+    setModBusy(true);
+    try {
+      const result = await moderateWithClaude(text, img);
+      if (!result.safe) {
+        setModErr(`⚠️ Post blocked: ${result.reason || "Content violates community guidelines."}`);
+        setModBusy(false);
+        return;
+      }
+    } catch {
+      // If moderation API fails, fall through (don't block on API errors)
+    }
+    setModBusy(false);
     onPost({ content: text, image: img, clickId, parentId, villageOnly: vill });
-    setText(""); setImg(null); setVill(false);
+    setText(""); setImg(null); setVill(false); setModErr("");
   };
   const pickImg = e => {
     const f = e.target.files[0];
@@ -733,6 +866,8 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
           <button onClick={() => setImg(null)} style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}><XI /></button>
         </div>}
         {vill && !compact && <div style={{ fontSize: 11, color: PURPLE, marginBottom: 5, display: "flex", alignItems: "center", gap: 4 }}><LockI /> Village members only</div>}
+        {modErr && <div style={{ fontSize: 12, color: PINK, background: "rgba(249,24,128,0.08)", borderRadius: 8, padding: "7px 10px", marginBottom: 6, lineHeight: 1.5 }}>{modErr}</div>}
+        {modBusy && <div style={{ fontSize: 12, color: BLUE, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 12, height: 12, border: `2px solid ${BLUE}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} /> Checking content...</div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", gap: 2 }}>
             <button onClick={() => fRef.current.click()} style={{ background: "none", border: "none", cursor: "pointer", color: BLUE, padding: 6, borderRadius: 8 }}><ImgI /></button>
@@ -742,7 +877,7 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ fontSize: 12, color: text.length > 260 ? PINK : T.sub }}>{280 - text.length}</span>
             {onCancel && <button onClick={onCancel} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, fontSize: 13 }}>Cancel</button>}
-            <button onClick={submit} disabled={!text.trim() && !img} style={{ background: vill ? PURPLE : BLUE, color: "white", border: "none", borderRadius: 9999, padding: compact ? "7px 16px" : "8px 18px", fontWeight: 700, fontSize: compact ? 14 : 15, cursor: (!text.trim() && !img) ? "not-allowed" : "pointer", opacity: (!text.trim() && !img) ? 0.5 : 1 }}>Scrypt</button>
+            <button onClick={submit} disabled={(!text.trim() && !img) || modBusy} style={{ background: vill ? PURPLE : BLUE, color: "white", border: "none", borderRadius: 9999, padding: compact ? "7px 16px" : "8px 18px", fontWeight: 700, fontSize: compact ? 14 : 15, cursor: ((!text.trim() && !img) || modBusy) ? "not-allowed" : "pointer", opacity: ((!text.trim() && !img) || modBusy) ? 0.5 : 1 }}>{modBusy ? "Checking..." : "Scrypt"}</button>
           </div>
         </div>
       </div>
@@ -847,6 +982,7 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
   const [pw2, setPw2] = useState("");
   const [bio, setBio] = useState("");
   const [av, setAv] = useState(null);
+  const [dob, setDob] = useState("");
   const [err, setErr] = useState("");
   const [terms, setTerms] = useState(false);
   const [showPP, setShowPP] = useState(false);
@@ -860,11 +996,18 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
     if (all.find(x => x.username === t)) { setErr("Username already taken."); return; }
     if (pw.length < 6) { setErr("Password must be at least 6 characters."); return; }
     if (pw !== pw2) { setErr("Passwords don't match."); return; }
+    if (!dob) { setErr("Please enter your date of birth."); return; }
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+    if (age < 16) { setErr("You must be at least 16 years old to join Scrypt."); return; }
     setTerms(true);
   };
   const confirm = () => {
     const all = LS.get("su") || [];
-    const nu = { id: Date.now().toString(), username: u.trim(), password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
+    const nu = { id: Date.now().toString(), username: u.trim(), password: pw, bio, avatar: av, dob, village: [], joinedAt: new Date().toISOString() };
     LS.set("su", [...all, nu]);
     onDone(nu);
   };
@@ -906,6 +1049,10 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
           <input value={bio} onChange={e => setBio(e.target.value)} placeholder="Bio (optional)" style={s} />
           <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password" style={s} />
           <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm password" style={s} />
+          <div>
+            <label style={{ fontSize: 12, color: T.sub, display: "block", marginBottom: 4 }}>Date of Birth (must be 16+)</label>
+            <input type="date" value={dob} onChange={e => setDob(e.target.value)} max={new Date(Date.now() - 16 * 365.25 * 24 * 3600000).toISOString().split("T")[0]} style={{ ...s, colorScheme: dark ? "dark" : "light" }} />
+          </div>
           {err && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8 }}>{err}</div>}
           <button onClick={go} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: 14, fontWeight: 800, fontSize: 15, cursor: "pointer" }}>Continue</button>
           <button onClick={onBack} style={{ background: "transparent", color: T.text, border: `2px solid ${T.border}`, borderRadius: 9999, padding: 13, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Back to Login</button>
@@ -1739,7 +1886,7 @@ export default function App() {
           return <>
             <div style={{ height: 110, background: bannerBg, position: "relative", overflow: "visible", flexShrink: 0, borderBottom: `2px solid ${myAccent.color}` }}>
               <button onClick={() => setShowWallpaper(true)} style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "white", border: "none", borderRadius: 9999, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🖼️ Edit banner</button>
-              <div style={{ position: "absolute", bottom: -32, left: 16, border: `3px solid ${myAccent.color}`, borderRadius: "50%", zIndex: 2, background: T.card }}>
+              <div style={{ position: "absolute", bottom: -32, left: 16, border: `3px solid ${myAccent.color}`, borderRadius: "50%", zIndex: 2, overflow: "hidden", lineHeight: 0 }}>
                 <Av user={me} sz={62} />
               </div>
             </div>
@@ -1831,38 +1978,61 @@ export default function App() {
           </div>
 
           {/* ── PROFILE INFO CARDS ── */}
-          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🃏 Profile Info Cards</div>
-            <div style={{ fontSize: 12, color: T.sub, marginBottom: 12 }}>Add a title and optional cover photo for each card</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {INFO_FIELDS.map(f => {
-                const currentPhoto = sf[f.photoKey] !== undefined ? sf[f.photoKey] : resolvePhoto(me, f.photoKey);
-                return <div key={f.key} style={{ background: T.input, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}` }}>
-                  {/* Photo strip */}
-                  <div style={{ position: "relative", height: 72, background: currentPhoto ? "transparent" : `${myAccent.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {currentPhoto
-                      ? <img src={currentPhoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <span style={{ fontSize: 28 }}>{f.icon}</span>}
-                    <label style={{ position: "absolute", bottom: 6, right: 6, background: "rgba(0,0,0,0.6)", color: "white", borderRadius: 7, padding: "3px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
-                      {currentPhoto ? "📷 Change" : "📷 Add photo"}
-                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
-                        const file = e.target.files[0]; if (!file) return;
-                        const r = new FileReader();
-                        r.onload = x => setSf(p => ({ ...p, [f.photoKey]: x.target.result }));
-                        r.readAsDataURL(file);
-                      }} />
-                    </label>
-                    {currentPhoto && <button onClick={() => setSf(p => ({ ...p, [f.photoKey]: null }))} style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(200,0,0,0.7)", color: "white", border: "none", borderRadius: 7, padding: "3px 8px", fontSize: 10, cursor: "pointer" }}>✕ Remove</button>}
-                  </div>
-                  {/* Text input */}
-                  <div style={{ padding: "8px 10px" }}>
-                    <label style={{ fontSize: 10, color: myAccent.color, fontWeight: 700, display: "block", marginBottom: 4 }}>{f.icon} {f.label.toUpperCase()}</label>
-                    <input value={sf[f.key] ?? (me[f.key] || "")} onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))} placeholder={`Your ${f.label.toLowerCase()}...`} style={{ ...inp13, padding: "7px 10px" }} />
-                  </div>
-                </div>;
-              })}
-            </div>
-          </div>
+          {(() => {
+            const [cropSrc, setCropSrc] = useState(null);
+            const [cropKey, setCropKey] = useState(null);
+            const openCrop = (file, photoKey) => {
+              const r = new FileReader();
+              r.onload = x => { setCropSrc(x.target.result); setCropKey(photoKey); };
+              r.readAsDataURL(file);
+            };
+            return <>
+              {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { setSf(p => ({ ...p, [cropKey]: dataUrl })); setCropSrc(null); setCropKey(null); }} />}
+              <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 3 }}>🃏 Profile Cards</div>
+                <div style={{ fontSize: 12, color: T.sub, marginBottom: 14 }}>Showcase your favorites — photo optional</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {INFO_FIELDS.map(f => {
+                    const currentPhoto = sf[f.photoKey] !== undefined ? sf[f.photoKey] : resolvePhoto(me, f.photoKey);
+                    const currentText = sf[f.key] !== undefined ? sf[f.key] : (me[f.key] || "");
+                    return <div key={f.key} style={{ display: "flex", gap: 10, alignItems: "center", background: T.input, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}` }}>
+                      {/* Square thumbnail preview */}
+                      <div style={{ position: "relative", flexShrink: 0, width: 62, height: 62, background: currentPhoto ? "transparent" : f.grad, overflow: "hidden" }}>
+                        {currentPhoto
+                          ? <img src={currentPhoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{f.icon}</div>}
+                        {/* Photo actions overlay */}
+                        <label style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.35)", cursor: "pointer", opacity: 0, transition: "opacity 0.15s" }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                          <span style={{ color: "white", fontSize: 18 }}>📷</span>
+                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file, f.photoKey); e.target.value = ""; }} />
+                        </label>
+                      </div>
+                      {/* Text + controls */}
+                      <div style={{ flex: 1, padding: "8px 10px 8px 0" }}>
+                        <div style={{ fontSize: 10, color: myAccent.color, fontWeight: 700, marginBottom: 5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span>{f.icon} {f.label.toUpperCase()}</span>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <label style={{ fontSize: 10, color: T.sub, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${T.border}`, background: T.card }}>
+                              {currentPhoto ? "Change photo" : "Add photo"}
+                              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file, f.photoKey); e.target.value = ""; }} />
+                            </label>
+                            {currentPhoto && <button onClick={() => setSf(p => ({ ...p, [f.photoKey]: null }))} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>Remove</button>}
+                          </div>
+                        </div>
+                        <input
+                          value={currentText}
+                          onChange={e => setSf(p => ({ ...p, [f.key]: e.target.value }))}
+                          placeholder={`Your ${f.label.toLowerCase()}...`}
+                          style={{ ...inp13, padding: "6px 9px", fontSize: 13 }}
+                        />
+                      </div>
+                    </div>;
+                  })}
+                </div>
+              </div>
+            </>;
+          })()}
 
           {/* ── FEATURED SCRYPT ── */}
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
