@@ -97,8 +97,22 @@ const NEWS_USER = {
   joinedAt: new Date(Date.now() - 86400000 * 20).toISOString()
 };
 
+
+const ABANDONWARE_USER = {
+  id: "bot_abandonware",
+  username: "Abandonware",
+  password: "Abandonware2025!",
+  avatar: mkSpecialAvatar("#0f766e", "A", "🎮"),
+  bio: "Video games, movies & TV shows — reviews, rankings, hot takes. Drops every 4 hours. Powered by Claude AI. 🎬🕹️",
+  isBot: true,
+  isSpecial: true,
+  verified: true,
+  village: [],
+  joinedAt: new Date(Date.now() - 86400000 * 15).toISOString()
+};
+
 // All special accounts in one place for easy lookup
-const SPECIAL_ACCOUNTS = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER];
+const SPECIAL_ACCOUNTS = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER, ABANDONWARE_USER];
 
 // Seeded posts from bots - rich activity including Scrypt mentions
 const SP = [
@@ -112,6 +126,9 @@ const SP = [
   { id: "news_seed_1", userId: "bot_news", username: "Scrypt_News", content: "📰 [Reuters] Global AI investment hits record $100B+ in 2025 — semiconductor demand surges as major tech firms race to build next-gen data centers across US, Europe and Southeast Asia. 🤖", likes: ["bot_083","bot_084","bot_085","bot_086","bot_087","bot_088","bot_089","bot_091","bot_092","bot_093","bot_094","bot_095","bot_096","bot_097","bot_098","bot_099","bot_100","bot_101","bot_102","bot_103"], reposts: ["bot_104","bot_105","bot_106","bot_107","bot_108","bot_109","bot_110"], createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(), replyCount: 8 },
   { id: "news_seed_2", userId: "bot_news", username: "Scrypt_News", content: "📰 [AP] Scientists confirm new deep-sea species discovered off Pacific coast — bioluminescent creature found at 3,200m depth sheds light on ecosystems previously thought uninhabitable. 🌊", likes: ["bot_111","bot_112","bot_113","bot_114","bot_115","bot_116","bot_117","bot_118","bot_119","bot_121","bot_122","bot_123","bot_124","bot_125"], reposts: ["bot_126","bot_127","bot_128","bot_129"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 5 },
   { id: "news_seed_3", userId: "bot_news", username: "Scrypt_News", content: "📰 [BBC] SpaceX completes landmark Starship orbital test — vehicle successfully re-entered atmosphere and executed controlled ocean splashdown, major milestone for Mars mission timeline. 🚀", likes: ["bot_130","bot_131","bot_132","bot_133","bot_134","bot_135","bot_136","bot_137","bot_138","bot_139","bot_141","bot_142","bot_143","bot_144","bot_145","bot_146","bot_147"], reposts: ["bot_148","bot_149","bot_150","bot_151","bot_152","bot_153"], createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), replyCount: 12 },
+  { id: "abandonware_seed_1", userId: "bot_abandonware", username: "Abandonware", content: "GTA VI is the most expensive game ever made at ~$2B and Rockstar still won't give us a release date. The hype is real but so is the wait. 🎮", likes: ["bot_154","bot_155","bot_156","bot_157","bot_158","bot_159","bot_161","bot_162","bot_163","bot_164","bot_165","bot_166","bot_167","bot_168","bot_169","bot_170"], reposts: ["bot_171","bot_172","bot_173","bot_174","bot_175"], createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 14 },
+  { id: "abandonware_seed_2", userId: "bot_abandonware", username: "Abandonware", content: "Dune: Part Two proved that big, serious sci-fi still dominates the box office when done right. Denis Villeneuve is on another level. 🏜️🎬", likes: ["bot_176","bot_177","bot_178","bot_179","bot_180","bot_181","bot_182","bot_183","bot_184","bot_185","bot_186","bot_187","bot_188","bot_189","bot_190"], reposts: ["bot_191","bot_192","bot_193","bot_194"], createdAt: new Date(Date.now() - 3600000 * 3).toISOString(), replyCount: 9 },
+  { id: "abandonware_seed_3", userId: "bot_abandonware", username: "Abandonware", content: "The Bear season 3 might be the most stressful TV experience since its own S1. Carmy's kitchen is chaos personified and we cannot look away. 🍽️", likes: ["bot_195","bot_196","bot_197","bot_198","bot_199","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_107","bot_108","bot_109","bot_110","bot_111"], createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 11 },
   // HOME FEED - general posts
   { id: "cpost_1143", userId: "bot_050", username: "thorn_sharp", content: "Hot take: chronological feeds are superior in every way. Stop trying to guess what I want to see.", likes: ["bot_001","bot_002","bot_003","bot_010","bot_020","bot_030","bot_040"], reposts: ["bot_005","bot_015","bot_025"], createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 3 },
   { id: "cpost_1144", userId: "bot_001", username: "alex_rivera", content: "Just discovered the best taco truck in the city. Life is good 🌮", likes: ["bot_002","bot_004","bot_006","bot_008","bot_100","bot_110","bot_120"], reposts: ["bot_003","bot_013"], createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 2 },
@@ -1142,6 +1159,7 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
     if (account.id === "bot_scryptbot") return "#1D9BF0";
     if (account.id === "bot_minerva") return "#7c3aed";
     if (account.id === "bot_news") return "#e11d48";
+    if (account.id === "bot_abandonware") return "#0f766e";
     return "#CC785C";
   };
 
@@ -1216,9 +1234,9 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
     {showPP && <PicPicker onPick={url => { setAv(url); setShowPP(false); }} onClose={() => setShowPP(false)} T={T} />}
     <div style={{ maxWidth: 380, width: "100%" }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BLUE, padding: "10px 18px", borderRadius: 16 }}>
-          <img src={LOGO} style={{ width: 140, height: 80, objectFit: "contain" }} alt="logo" />
-          <span style={{ fontWeight: 900, fontSize: 28, color: "white" }}>Scrypt</span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BLUE, padding: "14px 28px", borderRadius: 9999, boxShadow: "0 6px 24px rgba(29,155,240,0.4)", overflow: "hidden" }}>
+          <img src={LOGO} style={{ width: 104, height: 104, objectFit: "contain", margin: "-26px -10px" }} alt="Scrypt logo" />
+          <span style={{ fontWeight: 700, fontSize: 26, color: "white", fontFamily: "\"TwitterChirp\", \"Chirp\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif", letterSpacing: "-0.5px" }}>Scrypt</span>
         </div>
       </div>
       <div style={{ background: T.card, borderRadius: 16, padding: "24px 20px", border: `1px solid ${T.border}` }}>
@@ -1387,10 +1405,10 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
-    const V = "v21";
+    const V = "v22";
     if (LS.get("dv") !== V) {
       const h = (LS.get("su") || []).filter(u => !u.isBot);
-      const m = [...h, ...SU, SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER];
+      const m = [...h, ...SU, SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER, ABANDONWARE_USER];
       LS.set("su", m); setUsers(m);
       LS.set("sp", SP); setPosts(SP);
       LS.set("sc", SC); setClicks(SC);
@@ -1403,6 +1421,7 @@ export default function App() {
       if (!next.find(u => u.id === "bot_scryptbot")) { next.push(SCRYPTBOT_USER); updated = true; }
       if (!next.find(u => u.id === "bot_minerva")) { next.push(MINERVA_USER); updated = true; }
       if (!next.find(u => u.id === "bot_news")) { next.push(NEWS_USER); updated = true; }
+      if (!next.find(u => u.id === "bot_abandonware")) { next.push(ABANDONWARE_USER); updated = true; }
       if (!next.find(u => u.id === "claude_account")) { next.push(CLAUDE_USER); updated = true; }
       if (updated) { LS.set("su", next); setUsers(next); }
     }
@@ -2099,6 +2118,56 @@ export default function App() {
     const newsInterval = setInterval(postNews, 3 * 60 * 60 * 1000); // 3h
     return () => clearInterval(newsInterval);
   }, [me]);
+  // ── ABANDONWARE: Video games / movies / TV shows every 4h ────────────────────
+  useEffect(() => {
+    if (!me) return;
+    const topics = [
+      "a highly anticipated upcoming video game release",
+      "a classic retro video game that deserves a modern remake",
+      "a recently released movie everyone is talking about",
+      "an underrated indie video game that deserves more attention",
+      "a popular TV show season finale or premiere",
+      "a controversial video game review or industry news",
+      "a nostalgic movie franchise and its latest installment",
+      "a binge-worthy TV series currently streaming",
+      "a video game studio news or acquisition",
+      "an iconic movie director's latest project",
+    ];
+    const postEntertainment = async () => {
+      if (!getKey()) return;
+      try {
+        const topic = topics[Math.floor(Math.random() * topics.length)];
+        const r = await claudeFetch({
+          model: "claude-sonnet-4-6",
+          max_tokens: 260,
+          system: `You are Abandonware, an entertainment account on a social platform covering video games, movies, and TV shows. Post ONE punchy, opinionated take or news update. Rules:\n- Be specific: name real titles, studios, directors, actors\n- Have a clear opinion or interesting angle — not just a plot summary\n- Use relevant emojis naturally (not excessively)\n- Keep it under 250 characters\n- Start with the most interesting detail — no preamble\n- Format: just the post text, nothing else`,
+          messages: [{ role: "user", content: `Write a post about ${topic}.` }]
+        });
+        const d = await r.json();
+        const content = d.content?.[0]?.text;
+        if (!content || content.length < 20) return;
+        const newPost = {
+          id: `abandonware_${Date.now()}`,
+          userId: "bot_abandonware",
+          username: "Abandonware",
+          content: content.trim(),
+          likes: [], reposts: [],
+          createdAt: new Date().toISOString(),
+          replyCount: 0
+        };
+        const cur = LS.get("sp") || [];
+        const allBots = (LS.get("su") || []).filter(u => u.isBot && !u.isSpecial);
+        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 18)).map(b => b.id);
+        if (Math.random() > 0.4) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 6)).map(b => b.id);
+        LS.set("sp", [newPost, ...cur]); setPosts([newPost, ...cur]);
+      } catch { /* fail silently */ }
+    };
+
+    setTimeout(postEntertainment, 22000); // stagger after other bots
+    const abandonwareInterval = setInterval(postEntertainment, 4 * 60 * 60 * 1000); // 4h
+    return () => clearInterval(abandonwareInterval);
+  }, [me]);
+
 
   const doLike = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, likes: p.likes?.includes(me.id) ? p.likes.filter(x => x !== me.id) : [...(p.likes || []), me.id] }), setPosts);
   const doRt = id => sv("sp", posts.map(p => p.id !== id ? p : { ...p, reposts: p.reposts?.includes(me.id) ? p.reposts.filter(x => x !== me.id) : [...(p.reposts || []), me.id] }), setPosts);
