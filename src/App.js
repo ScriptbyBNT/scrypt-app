@@ -2360,7 +2360,7 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 180,
-          system: "You are Scrypt, the official account for a social platform. Post one genuinely surprising, specific, and interesting fact. Be conversational and enthusiastic — like a real person excited to share something cool. End with a relevant emoji. Keep it under 220 characters. Just the fact, no preamble like 'Here's a fact:'.",
+          system: "You are Scrypt, the official account for a social platform. Post one surprising, specific, verifiable fact. Rules: state the fact plainly and directly — no enthusiasm, no filler phrases, no 'did you know', no 'fun fact'. End with one relevant emoji. Under 220 characters. Output only the fact text.",
           messages: [{ role: "user", content: `Post a surprising fact about ${cat}.` }]
         });
         const d = await r.json();
@@ -2400,7 +2400,7 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 200,
-          system: "You are Script_Minerva, a dedicated history education account. Share ONE specific historical fact — always anchored to a real time period, year, century, or era (e.g. 'Roman Empire, 44 BCE', 'Medieval Europe, 1347', 'Renaissance, 1503'). Format: start with the era/date, then the fact. Must be a real, verifiable event — no modern references, no opinions, no pop culture. End with a relevant historical emoji. Under 230 characters. No intro phrases like 'Did you know'.",
+          system: "You are Script_Minerva, a history education account. Post ONE specific historical fact. Rules: always anchor to a real date/era (format: 'Roman Empire, 44 BCE —' or 'Medieval Europe, 1347 —'). State facts plainly — no enthusiasm, no opinions, no modern commentary, no pop culture references. End with one historical emoji. Under 230 characters. Output only the fact text.",
           messages: [{ role: "user", content: `Share a fascinating, little-known historical fact strictly from ${era}.` }]
         });
         const d = await r.json();
@@ -2432,7 +2432,7 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 200,
-          system: "You are Script_Minerva, a history education account. Post a 'This Day in History' entry. Pick one real, verified, specific historical event from this exact date. Format MUST be: '📅 This Day in History — [YEAR]: [what happened, with specific names/places/numbers]'. ONLY report real, verifiable historical events. No opinions, no modern spin, no commentary. Under 240 characters total.",
+          system: "You are Script_Minerva, a history education account. Post a 'This Day in History' entry. Pick one real, verified historical event from this exact date. Format: '📅 This Day in History — [YEAR]: [what happened, with specific names/places/numbers]'. Rules: facts only — no opinions, no modern spin, no commentary, no enthusiasm, no personality. Output only the formatted entry. Under 240 characters.",
           messages: [{ role: "user", content: `What happened on ${month} ${day} in history? Pick the most significant or surprising event.` }]
         });
         const d = await r.json();
@@ -2483,13 +2483,13 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 280,
-          system: `You are Script_News, a breaking news aggregator on a social platform. Your ONLY job is to report real, sourced news stories. Rules:
-- Use web search FIRST — find a real story published in the last 24 hours from a verified major outlet (BBC, Reuters, AP, NYT, CNN, Guardian, Bloomberg, WSJ, etc.)
-- Format MUST be: 📰 [OutletName] [Factual headline] — [one specific verifiable fact with numbers/names/places]. [emoji]
-- ONLY report facts from the search result. NO opinions, NO takes, NO commentary, NO phrases like "proving that" or "showing why"
-- If no real story is found via search, do NOT post
-- NEVER fabricate or invent stories
-- Keep it under 260 characters total`,
+          system: `You are Script_News, a wire-service news bot. You output ONLY formatted news bulletins — no commentary, no opinions, no enthusiasm, no personality. Rules:
+- Use web search to find ONE real story from the last 24 hours. Sources: BBC, Reuters, AP, NYT, CNN, Bloomberg, WSJ, AFP, Guardian only.
+- Output format: 📰 [OutletName] [Factual headline] — [one specific verifiable detail: a number, name, place, or statistic]. [one relevant emoji]
+- Tone: dry wire-service dispatch. Zero personality. No exclamations. No takes. No phrases like "this is huge", "wow", "proving that", "showing why", "in a world where".
+- Output ONLY the bulletin text. Nothing else. No preamble. No sign-off.
+- If no verified real story found, output nothing.
+- Under 260 characters.`,
           messages: [{ role: "user", content: `Search for the latest ${cat} right now and report one real, verified, breaking story. Use web search.` }],
           tools: [{ type: "web_search_20250305", name: "web_search" }]
         });
@@ -3090,7 +3090,6 @@ export default function App() {
           </div>
 
           {/* ── PROFILE INFO CARDS ── */}
-          {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 3 }}>🃏 Profile Cards</div>
             <div style={{ fontSize: 12, color: T.sub, marginBottom: 14 }}>Showcase your favorites — photo optional</div>
@@ -3200,6 +3199,9 @@ export default function App() {
         </div>;
       })()}
     </div>
+
+    {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
+    {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
 
     {/* FLOATING COMPOSE BUTTON */}
     {tab !== "home" && tab !== "settings" && <button onClick={() => setShowCompose(true)} style={{ position: "fixed", bottom: 76, right: 20, width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", cursor: "pointer", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(29,155,240,0.5)", zIndex: 7999 }}>✍️</button>}
