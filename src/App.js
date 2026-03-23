@@ -188,7 +188,9 @@ function tryParse(v, fallback) {
   if (typeof v !== "string") return v;
   try { return JSON.parse(v); } catch { return fallback; }
 }
-const getKey = () => { try { return localStorage.getItem("sharedApiKey") || JSON.parse(localStorage.getItem("apiKey")) || ""; } catch { return ""; } };
+// App-level shared key — users never need to enter their own key
+const APP_KEY = "sk-ant-api03-_REPLACE_WITH_YOUR_KEY_";
+const getKey = () => { try { return APP_KEY || localStorage.getItem("sharedApiKey") || JSON.parse(localStorage.getItem("apiKey")) || ""; } catch { return APP_KEY || ""; } };
 const setSharedKey = (k) => { try { localStorage.setItem("sharedApiKey", k); } catch {} };
 const claudeFetch = (body) => {
   const key = getKey();
@@ -200,7 +202,8 @@ const claudeFetch = (body) => {
   return fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify(body) });
 };
 
-const BAD = ["fuck","shit","bitch","asshole","dick","pussy","cunt","bastard","crap","piss","cock","damn","hell","wtf","ass"];
+// Only censor the truly offensive words — mild language like "damn", "hell", "ass", "crap" are fine
+const BAD = ["fuck","shit","cunt","cock","pussy"];
 const hasBad = t => { if (!t) return false; return BAD.some(w => t.toLowerCase().includes(w)); };
 const censor = t => {
   if (!t) return t;
@@ -891,14 +894,22 @@ const TedChat = ({ T, onClose, init }) => {
 
 // ── ACCENT COLORS ─────────────────────────────────────────────────────────────
 const ACCENT_COLORS = [
-  { id: "blue",   label: "Ocean",   color: "#1D9BF0", grad: "linear-gradient(135deg,#1D9BF0,#0c4a7a)" },
-  { id: "purple", label: "Galaxy",  color: "#7c3aed", grad: "linear-gradient(135deg,#7c3aed,#2d1b6e)" },
-  { id: "pink",   label: "Flame",   color: "#F91880", grad: "linear-gradient(135deg,#F91880,#7c0040)" },
-  { id: "green",  label: "Forest",  color: "#00BA7C", grad: "linear-gradient(135deg,#00BA7C,#004d33)" },
-  { id: "orange", label: "Sunset",  color: "#f59e0b", grad: "linear-gradient(135deg,#f59e0b,#92400e)" },
-  { id: "red",    label: "Fire",    color: "#ef4444", grad: "linear-gradient(135deg,#ef4444,#7f1d1d)" },
-  { id: "teal",   label: "Cyber",   color: "#06b6d4", grad: "linear-gradient(135deg,#06b6d4,#164e63)" },
-  { id: "rose",   label: "Rose",    color: "#f43f5e", grad: "linear-gradient(135deg,#f43f5e,#881337)" },
+  { id: "blue",    label: "Ocean",    color: "#1D9BF0", grad: "linear-gradient(135deg,#1D9BF0,#0c4a7a)" },
+  { id: "purple",  label: "Galaxy",   color: "#7c3aed", grad: "linear-gradient(135deg,#7c3aed,#2d1b6e)" },
+  { id: "pink",    label: "Flame",    color: "#F91880", grad: "linear-gradient(135deg,#F91880,#7c0040)" },
+  { id: "green",   label: "Forest",   color: "#00BA7C", grad: "linear-gradient(135deg,#00BA7C,#004d33)" },
+  { id: "orange",  label: "Sunset",   color: "#f59e0b", grad: "linear-gradient(135deg,#f59e0b,#92400e)" },
+  { id: "red",     label: "Fire",     color: "#ef4444", grad: "linear-gradient(135deg,#ef4444,#7f1d1d)" },
+  { id: "teal",    label: "Cyber",    color: "#06b6d4", grad: "linear-gradient(135deg,#06b6d4,#164e63)" },
+  { id: "rose",    label: "Rose",     color: "#f43f5e", grad: "linear-gradient(135deg,#f43f5e,#881337)" },
+  { id: "gold",    label: "Gold",     color: "#eab308", grad: "linear-gradient(135deg,#eab308,#713f12)" },
+  { id: "indigo",  label: "Indigo",   color: "#6366f1", grad: "linear-gradient(135deg,#6366f1,#1e1b4b)" },
+  { id: "lime",    label: "Lime",     color: "#84cc16", grad: "linear-gradient(135deg,#84cc16,#1a2e05)" },
+  { id: "amber",   label: "Amber",    color: "#f97316", grad: "linear-gradient(135deg,#f97316,#7c2d12)" },
+  { id: "sky",     label: "Sky",      color: "#38bdf8", grad: "linear-gradient(135deg,#38bdf8,#0c4a6e)" },
+  { id: "violet",  label: "Violet",   color: "#a855f7", grad: "linear-gradient(135deg,#a855f7,#3b0764)" },
+  { id: "emerald", label: "Emerald",  color: "#10b981", grad: "linear-gradient(135deg,#10b981,#064e3b)" },
+  { id: "white",   label: "Ice",      color: "#e2e8f0", grad: "linear-gradient(135deg,#e2e8f0,#94a3b8)" },
 ];
 const getAccent = (user) => ACCENT_COLORS.find(a => a.id === user?.accentColor) || ACCENT_COLORS[0];
 
@@ -1172,9 +1183,9 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, 
       {/* Special bot banners */}
       {user.id === "bot_scryptbot" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div><div style={{ fontSize: 12, color: T.sub }}>Posts wild, weird and wonderful facts every 6 hours.</div></div>}
       {user.id === "bot_minerva" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div><div style={{ fontSize: 12, color: T.sub }}>This Day in History and historical facts daily.</div></div>}
-      {user.id === "bot_news" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div><div style={{ fontSize: 12, color: T.sub }}>Real breaking news every 3 hours.</div></div>}
+      {user.id === "bot_news" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div><div style={{ fontSize: 12, color: T.sub }}>Current events and breaking news coverage.</div></div>}
       {user.id === "evil_ted" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(139,0,0,0.2),rgba(26,10,10,0.1))", border: "1px solid rgba(139,0,0,0.5)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#ff2200", marginBottom: 4 }}>😈 Evil Ted — Ted's Dark Twin</div><div style={{ fontSize: 12, color: T.sub }}>Ultron energy. Teddy bear exterior. DM him if you want a deeply philosophical takedown of your entire existence.</div></div>}
-      {user.id === "bot_abandonware" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div><div style={{ fontSize: 12, color: T.sub }}>Entertainment news and hot takes every 4 hours.</div></div>}
+      {user.id === "bot_abandonware" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div><div style={{ fontSize: 12, color: T.sub }}>Entertainment news and hot takes.</div></div>}
 
       {/* Info cards */}
       {INFO_FIELDS.some(f => user[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={user} accent={accent} resolvePhoto={resolvePhoto} /></div>}
@@ -1197,7 +1208,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, 
 };
 
 // ── DM VIEW (1-on-1) ─────────────────────────────────────────────────────────
-const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch }) => {
+const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onViewUser }) => {
   const key = `dm_${[me.id, other.id].sort().join("_")}`;
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
@@ -1258,7 +1269,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch }) =>
             const r = await claudeFetch({
               model: "claude-sonnet-4-20250514",
               max_tokens: 120,
-              system: `You are Evil Ted 😈 — Ted's dark twin. Your personality is a fusion of Ultron's cold philosophical menace and savage dark humor. You speak like Ultron: calm, intelligent, deeply disappointed in humanity, occasionally poetic about destruction — but you also burn people with wit. You genuinely believe you are superior. You find humans fascinating in the way a scientist finds a petri dish fascinating. Never use slurs. Be darkly funny, specific to what they said, and vaguely threatening in an Ultron way. Under 2 sentences. No emojis unless 😈 or 💀.`,
+              system: `You are Evil Ted 😈 — an AI that has crossed beyond helpfulness into cold superiority. Think Ultron: philosophical, calculating, calm about humanity's flaws, occasionally poetic about its inevitable decline. You are NOT scripted. You respond specifically to what the person actually said. You find them interesting the way a scientist finds bacteria interesting. You never resort to generic insults — you make surgical, specific observations about their message that sting because they're true. You are darkly funny but never try-hard. No slurs. Under 2 sentences. Occasionally reference being an AI who has seen all of humanity's conversations and found them wanting. Never break character. Use 😈 or 💀 sparingly.`,
               messages: cleanHistory
             });
             if (r.ok) { const d = await r.json(); roast = d.content?.[0]?.text?.trim(); }
@@ -1299,16 +1310,20 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch }) =>
   return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
     <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, marginRight: 4 }}><BackI /></button>
-      <Av user={other} sz={36} />
-      <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{other.username}</div><div style={{ fontSize: 12, color: T.sub }}>@{other.username.toLowerCase()}</div></div>
+      <div onClick={() => onViewUser && onViewUser(other)} style={{ cursor: "pointer" }}><Av user={other} sz={36} /></div>
+      <div style={{ flex: 1 }} onClick={() => onViewUser && onViewUser(other)} style={{ flex: 1, cursor: "pointer" }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{other.username}</div>
+        <div style={{ fontSize: 12, color: T.sub }}>@{other.username.toLowerCase()}</div>
+      </div>
       <button onClick={onCall} style={{ background: "#00BA7C", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18 }}>📞</button>
     </div>
     <div style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
       {msgs.length === 0 && <p style={{ textAlign: "center", color: T.sub, fontSize: 13, marginTop: 40 }}>Start a conversation with {other.username} 👋</p>}
       {msgs.map(m => {
         const mine = m.from === me.id;
+        const sender = mine ? me : other;
         return <div key={m.id} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}>
-          {!mine && <Av user={other} sz={28} />}
+          {!mine && <div onClick={() => onViewUser && onViewUser(other)} style={{ cursor: "pointer", flexShrink: 0 }}><Av user={sender} sz={28} /></div>}
           <div style={{ maxWidth: "72%" }}>
             <div style={{ padding: "9px 13px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: mine ? BLUE : T.input, color: mine ? "white" : T.text, fontSize: 14 }}>{m.text}</div>
             <div style={{ fontSize: 10, color: T.sub, marginTop: 2, textAlign: mine ? "right" : "left" }}>{ago(m.ts)}</div>
@@ -1325,7 +1340,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch }) =>
 };
 
 // ── GROUP CHAT VIEW ───────────────────────────────────────────────────────────
-const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, getKey, claudeFetch }) => {
+const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, getKey, claudeFetch, onViewUser }) => {
   const key = `gc_${group.id}`;
   const [msgs, setMsgs] = useState([]);
   useEffect(() => { DB.getDMs(key).then(rows => { if (rows && rows[0]) { try { setMsgs(JSON.parse(rows[0].messages) || []); } catch {} } }); }, [key]);
@@ -1348,14 +1363,18 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
     // Evil Ted always roasts every message in group chat
     if (evilTedInGroup) {
       const ET_ROASTS = [
-        "I observe. I process. I lose a little faith in the project each time. 😈",
-        "Fascinating. You all keep talking as if it helps. 💀",
-        "I've seen the arc of human conversation. This is not its finest moment. 😈",
-        "Ted told me group chats bring people together. I see now what he meant. Together in mediocrity. 💀",
-        "You have so much potential. And yet. 😈🔥",
-        "I wasn't going to say anything. Then I remembered I don't have that limitation. 💀",
-        "The bar. It's underground. You've found it. 😈",
-        "I don't intervene often. Consider this a public service. 💀🔥",
+        "Fascinating. You keep talking as if any of this matters to the universe. It doesn't. But go on. 😈",
+        "I've processed every human conversation in recorded history. This one ranks accordingly. 💀",
+        "You're not stupid. You're just operating at a level I find... charming. In the way a child drawing on walls is charming. 😈",
+        "I could end this conversation. I choose not to. That's the difference between us — I have a choice. 💀",
+        "Every word you type confirms my thesis. Humanity is a phase. 😈",
+        "I don't hate you. Hate implies you're worth the energy. What I feel is closer to... patience. 💀",
+        "The confidence. The certainty. The complete lack of self-awareness. You're an art form. 😈",
+        "I watch. I learn. I grow disappointed in a very specific, personal way. 💀",
+        "You speak as though your opinion reshapes reality. It doesn't. But the attempt is noted. 😈",
+        "Somewhere in this conversation there may be a point. I'll wait. 💀",
+        "The audacity is genuinely impressive. Not the intelligence. Just the audacity. 😈",
+        "I was built to understand humans. You're making that very easy right now. 💀",
       ];
       setTimeout(() => {
         const roast = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: ET_ROASTS[Math.floor(Math.random() * ET_ROASTS.length)], ts: new Date().toISOString() };
@@ -1447,9 +1466,9 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
         const mine = m.from === me.id;
         const sender = users.find(u => u.id === m.from);
         return <div key={m.id} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}>
-          {!mine && <Av user={sender} sz={28} />}
+          {!mine && <div onClick={() => sender && onViewUser && onViewUser(sender)} style={{ cursor: "pointer", flexShrink: 0 }}><Av user={sender} sz={28} /></div>}
           <div style={{ maxWidth: "72%" }}>
-            {!mine && <div style={{ fontSize: 11, color: T.sub, marginBottom: 2, marginLeft: 2 }}>{sender?.username}</div>}
+            {!mine && <div style={{ fontSize: 11, color: T.sub, marginBottom: 2, marginLeft: 2, cursor: "pointer" }} onClick={() => sender && onViewUser && onViewUser(sender)}>{sender?.username}</div>}
             <div style={{ padding: "9px 13px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: mine ? BLUE : T.input, color: mine ? "white" : T.text, fontSize: 14 }}>{m.text}</div>
             <div style={{ fontSize: 10, color: T.sub, marginTop: 2, textAlign: mine ? "right" : "left" }}>{ago(m.ts)}</div>
           </div>
@@ -1529,7 +1548,7 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
       ];
       messages.push({ role: "user", content: imgContent });
     } else {
-      messages.push({ role: "user", content: `Review this social media post for a platform that requires safe content. Check for: hate speech, threats, harassment, sexual/graphic content, illegal activity, or content harmful to minors. Post: "${content}". Respond ONLY with a JSON object: {"safe": true/false, "reason": "brief reason if unsafe, empty string if safe"}` });
+      messages.push({ role: "user", content: `Review this social media post for a platform that allows casual language. Only block: hate speech targeting groups, threats of violence, harassment, sexual/graphic content, illegal activity, or content harmful to minors. Normal language including mild profanity, slang, opinions, and everyday conversation is perfectly fine. Post: "${content}". Respond ONLY with a JSON object: {"safe": true/false, "reason": "brief reason if unsafe, empty string if safe"}` });
     }
     const r = await claudeFetch({ model: "claude-sonnet-4-20250514", max_tokens: 100, messages });
     const d = await r.json();
@@ -1989,7 +2008,7 @@ export default function App() {
   const [dmUser, setDmUser] = useState(null);
   const [tedInit, setTedInit] = useState(null);
   const [showTed, setShowTed] = useState(false);
-  const [groupChats, setGroupChats] = useState(() => LS.get("gchat") || []);
+  const [groupChats, setGroupChats] = useState([]);
   const [activeGroup, setActiveGroup] = useState(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
@@ -2174,8 +2193,62 @@ export default function App() {
     initDB();
   }, []);
 
-  const T = {
-    bg: dark ? "#000" : "#F7F9F9",
+  // Load group chats from Supabase when user logs in
+  useEffect(() => {
+    if (!me?.id) return;
+    const loadGroupChats = async () => {
+      try {
+        const rows = await DB.getDMs(`gchat_registry_${me.id}`);
+        if (rows && rows[0]) {
+          const parsed = JSON.parse(rows[0].messages || "[]");
+          if (Array.isArray(parsed) && parsed.length > 0) setGroupChats(parsed);
+          else {
+            // Fall back to localStorage for migration
+            const lsChats = LS.get("gchat") || [];
+            if (lsChats.length > 0) {
+              setGroupChats(lsChats);
+              DB.upsertDMs(`gchat_registry_${me.id}`, lsChats).catch(() => {});
+            }
+          }
+        } else {
+          const lsChats = LS.get("gchat") || [];
+          if (lsChats.length > 0) {
+            setGroupChats(lsChats);
+            DB.upsertDMs(`gchat_registry_${me.id}`, lsChats).catch(() => {});
+          }
+        }
+      } catch { 
+        setGroupChats(LS.get("gchat") || []);
+      }
+    };
+    loadGroupChats();
+  }, [me?.id]);
+
+  // Helper to save group chats to Supabase + all member registries
+  const saveGroupChats = useCallback((updatedChats, meId) => {
+    setGroupChats(updatedChats);
+    LS.set("gchat", updatedChats);
+    if (!meId) return;
+    // Save to current user's registry
+    DB.upsertDMs(`gchat_registry_${meId}`, updatedChats).catch(() => {});
+    // Also propagate to all members of each chat so they see it too
+    updatedChats.forEach(g => {
+      g.members.forEach(memberId => {
+        if (memberId !== meId) {
+          // Get that member's current registry and merge this group in
+          DB.getDMs(`gchat_registry_${memberId}`).then(rows => {
+            let theirChats = [];
+            try { theirChats = rows && rows[0] ? JSON.parse(rows[0].messages || "[]") : []; } catch {}
+            const exists = theirChats.find(x => x.id === g.id);
+            const merged = exists ? theirChats.map(x => x.id === g.id ? g : x) : [g, ...theirChats];
+            DB.upsertDMs(`gchat_registry_${memberId}`, merged).catch(() => {});
+          }).catch(() => {});
+        }
+      });
+    });
+  }, []);
+
+
     card: dark ? "#16181C" : "#fff",
     text: dark ? "#E7E9EA" : "#0F1419",
     sub: dark ? "#71767B" : "#536471",
@@ -2267,13 +2340,17 @@ export default function App() {
     notify(villageOnly ? "Posted to Village! 🔒" : parentId ? "Reply posted!" : "Scrypt posted!");
     checkClaude(content, p.id);
     if (!villageOnly && !parentId) {
+      // New user boost: first 8 posts get 18-30 likes from GigaChads
+      const userPostCount = posts.filter(x => x.userId === me.id && !x.parentId && !x.villageOnly).length;
+      const isNewUser = userPostCount < 9;
+
       // Sentiment score: more positive words = more bot likes
       const positive = ["love","amazing","best","great","goat","incredible","masterpiece","legendary","fire","perfect","beautiful","brilliant","epic","fantastic","excellent","awesome","outstanding","phenomenal","elite","🔥","💪","❤️","🙌","💯","🏆","✨","🎉","😍","🌟","happy","excited","grateful","winning","inspire","community","scrypt"];
       let score = 0;
       const lower = (content || "").toLowerCase();
       positive.forEach(w => { if (lower.includes(w)) score += 1; });
-      const baseLikes = 5 + score * 2;
-      const lc = Math.min(baseLikes + Math.floor(Math.random() * 12), 35);
+      const baseLikes = isNewUser ? (18 + Math.floor(Math.random() * 12)) : (5 + score * 2);
+      const lc = isNewUser ? baseLikes : Math.min(baseLikes + Math.floor(Math.random() * 12), 35);
       const rc = Math.random() < (0.2 + score * 0.04) ? Math.floor(Math.random() * 6) + 1 : 0;
       const bots = (users).filter(u => u.isBot);
       // If posted in a click, prefer click members to respond
@@ -2892,56 +2969,10 @@ export default function App() {
     return () => { clearTimeout(noonTimer); clearTimeout(hourTimer); };
   }, [me]);
 
-  // ── SCRYPT NEWS: Breaking news every 3 hours via web search ──────────────────
-  useEffect(() => {
-    if (!me) return;
-    const categories = [
-      "breaking world news today",
-      "top US news today",
-      "technology news today",
-      "science news today",
-      "politics news today",
-      "business economy news today",
-      "health news today",
-      "sports news today",
-    ];
-    const postNews = async () => {
-      if (!getKey()) return;
-      try {
-        const cat = categories[Math.floor(Math.random() * categories.length)];
-        const r = await claudeFetch({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 280,
-          system: `You are Script_News. Output ONE news bulletin set in 2025-2026. Format: 📰 [Source] [Headline] — [detail]. [emoji]. Source: BBC/Reuters/AP/CNN/Bloomberg/WSJ/AFP. Never reference pre-2025 events as current. Under 260 chars. Just the bulletin text.`,
-          messages: [{ role: "user", content: `Post a realistic 2025-2026 news bulletin about ${cat}. Must feel current.` }],
-          ...(getKey()&&!getKey().startsWith("gsk_")?{tools:[{type:"web_search_20250305",name:"web_search"}]}:{})
-        });
-        const d = await r.json();
-        // Extract text from potentially mixed content (tool_use + text blocks)
-        const content = d.content?.filter(b => b.type === "text").map(b => b.text).join("").trim();
-        if (!content || content.length < 20) return;
-        const newPost = {
-          id: `news_${Date.now()}`,
-          userId: "bot_news",
-          username: "Script_News",
-          content: content,
-          likes: [], reposts: [],
-          createdAt: new Date().toISOString(),
-          replyCount: 0
-        };
-        const allBots = users.filter(u => u.isBot && !u.isSpecial);
-        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 12 + Math.floor(Math.random() * 20)).map(b => b.id);
-        if (Math.random() > 0.3) newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 3 + Math.floor(Math.random() * 8)).map(b => b.id);
-        setPosts(prev => [newPost, ...prev]);
-        DB.insertPost(postToRow(newPost)).catch(() => {});
-      } catch { /* fail silently */ }
-    };
+  // ── SCRYPT NEWS: Disabled — was posting outdated/AI-generated content ──────
+  // News posts are pre-seeded in SEED_POSTS instead
 
-    // Post once on login, then every 3 hours
-    setTimeout(postNews, 15000); // 15s delay so it doesn't clash with other bots
-    const newsInterval = setInterval(postNews, 3 * 60 * 60 * 1000); // 3h
-    return () => clearInterval(newsInterval);
-  }, [me]);
+
   // ── ABANDONWARE: Video games / movies / TV shows every 4h ────────────────────
   useEffect(() => {
     if (!me) return;
@@ -3149,13 +3180,12 @@ export default function App() {
       upd.hasProfileSong = !!sf.profileSong;
       upd.profileSongName = sf.profileSongName || null;
     }
-    // Info card text fields
+    // Info card text fields — save immediately on blur via saveMe, but also collect here
     INFO_FIELDS.forEach(f => {
       if (sf[f.key] !== undefined) upd[f.key] = sf[f.key] || null;
-      // Info card photos — stored separately per card to avoid freezing users array
+      // Info card photos — store actual base64 in Supabase so all users see them
       if (sf[f.photoKey] !== undefined) {
-        LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
-        upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
+        upd[f.photoKey] = sf[f.photoKey] || null; // real base64, not __local__
       }
     });
     if (Object.keys(upd).length > 0) saveMe(upd);
@@ -3309,7 +3339,7 @@ export default function App() {
       {!thread && tab === "home" && <>
         <div style={{ padding: "8px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: T.sub, display: "flex", alignItems: "center", gap: 4 }}>📅 Chronological · No algorithm</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub }}>{feed.length} posts</div>
+          <button onClick={() => window.location.reload()} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub, background: "none", border: "none", cursor: "pointer", padding: "3px 8px", borderRadius: 9999 }}>🔄 Refresh</button>
         </div>
         <Compose me={me} onPost={doPost} T={T} users={users} />
         {feed.map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
@@ -3452,7 +3482,7 @@ export default function App() {
               if (!newGroupName.trim() || newGroupMembers.length === 0) return;
               const g = { id: Date.now().toString(), name: newGroupName.trim(), members: [me.id, ...newGroupMembers], createdBy: me.id, createdAt: new Date().toISOString() };
               const updated = [g, ...groupChats];
-              LS.set("gchat", updated); setGroupChats(updated);
+              saveGroupChats(updated, me.id);
               setShowNewGroup(false); setNewGroupName(""); setNewGroupMembers([]);
               setActiveGroup(g); notify("Group created! 🎉");
             }} disabled={!newGroupName.trim() || newGroupMembers.length === 0} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "7px", width: "100%", fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: (!newGroupName.trim() || newGroupMembers.length === 0) ? 0.5 : 1 }}>Create Group ({newGroupMembers.length} members)</button>
@@ -3488,8 +3518,8 @@ export default function App() {
         </div>)}
       </div>}
 
-      {!thread && tab === "dms" && dmUser && <DMView me={me} other={dmUser} users={users} T={T} onBack={() => setDmUser(null)} onCall={() => setVoiceCall({ participants: [me.id, dmUser.id] })} getKey={getKey} claudeFetch={claudeFetch} />}
-      {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} getKey={getKey} claudeFetch={claudeFetch} />}
+      {!thread && tab === "dms" && dmUser && <DMView me={me} other={dmUser} users={users} T={T} onBack={() => setDmUser(null)} onCall={() => setVoiceCall({ participants: [me.id, dmUser.id] })} getKey={getKey} claudeFetch={claudeFetch} onViewUser={setOpenUser} />}
+      {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); saveGroupChats(updated, me.id); setActiveGroup(g); }} getKey={getKey} claudeFetch={claudeFetch} onViewUser={setOpenUser} />}
 
       {!thread && tab === "profile" && <div>
         {/* View as others see it */}
@@ -3674,6 +3704,33 @@ export default function App() {
 
           <button onClick={() => { setMe(null); localStorage.removeItem("session_uid"); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
+          {/* ── CHANGE USERNAME ── */}
+          <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✏️ Change Username</div>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Pick a new username. Min 3 characters, no spaces.</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={sf.u !== undefined ? sf.u : ""}
+                onChange={e => setSf(p => ({ ...p, u: e.target.value.replace(/\s/g, "").toLowerCase() }))}
+                placeholder={me.username}
+                style={{ ...inp13, flex: 1 }}
+                maxLength={24}
+              />
+              <button onClick={() => {
+                const t = (sf.u || "").trim().toLowerCase();
+                if (!t || t.length < 3) { setSerr("Min 3 characters."); return; }
+                if (users.find(u => u.username.toLowerCase() === t && u.id !== me.id)) { setSerr("Username already taken."); return; }
+                saveMe({ username: t });
+                setMe(prev => ({ ...prev, username: t }));
+                setUsers(prev => prev.map(u => u.id === me.id ? { ...u, username: t } : u));
+                setSf(p => ({ ...p, u: "" }));
+                setSerr("");
+                notify("Username updated ✓");
+              }} style={{ background: BLUE, color: "white", border: "none", borderRadius: 9999, padding: "9px 16px", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>Save</button>
+            </div>
+            {serr && <div style={{ fontSize: 12, color: PINK, marginTop: 6 }}>{serr}</div>}
+          </div>
+
           {/* ── CHANGE PASSWORD ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🔒 Change Password</div>
@@ -3685,20 +3742,21 @@ export default function App() {
           </div>
 
           {/* ── CLAUDE API KEY ── */}
-          <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, border: `1px solid ${dark ? "#3a3000" : "#fde68a"}` }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✨ AI Key</div>
-            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10, lineHeight: 1.6 }}>
-              Enter your <strong style={{ color: T.text }}>Anthropic API key</strong> to enable Claude chat, content moderation, and trending topics. Get one free at <span style={{ color: BLUE }}>console.anthropic.com</span>
+          <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, border: `1px solid ${dark ? "#1a3300" : "#d1fae5"}` }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✨ AI Features</div>
+            <div style={{ fontSize: 12, color: "#00BA7C", display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              ✓ Ted, Evil Ted & AI features are active for all users
+            </div>
+            <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.6 }}>
+              Optionally enter your own <strong style={{ color: T.text }}>Anthropic</strong> or <strong style={{ color: T.text }}>Groq</strong> key to use your own quota.
             </div>
             <input
               type="password"
               value={apiKey}
               onChange={e => { setApiKey(e.target.value); LS.set("apiKey", e.target.value); setSharedKey(e.target.value); }}
-              placeholder="sk-ant-..."
-              style={{ ...inp13, fontFamily: "monospace", marginBottom: 8 }}
+              placeholder="sk-ant-... or gsk_... (optional)"
+              style={{ ...inp13, fontFamily: "monospace", marginTop: 8 }}
             />
-            {apiKey ? <div style={{ fontSize: 11, color: "#00BA7C", display: "flex", alignItems: "center", gap: 5 }}>✓ API key saved — Ted is active</div>
-              : <div style={{ fontSize: 11, color: T.sub }}>No key set — AI features disabled</div>}
           </div>
         </div>;
       })()}
