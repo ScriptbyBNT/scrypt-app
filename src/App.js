@@ -105,6 +105,9 @@ const rowToUser = r => {
     infoMovie: extra.infoMovie||null, infoArtist: extra.infoArtist||null,
     infoShow: extra.infoShow||null, infoBook: extra.infoBook||null,
     infoGame: extra.infoGame||null, dark: extra.dark!==undefined?extra.dark:null,
+    infoMoviePhoto: extra.infoMoviePhoto||null, infoArtistPhoto: extra.infoArtistPhoto||null,
+    infoShowPhoto: extra.infoShowPhoto||null, infoBookPhoto: extra.infoBookPhoto||null,
+    infoGamePhoto: extra.infoGamePhoto||null,
   };
 };
 
@@ -155,7 +158,19 @@ const userToRow = u => ({
   featured_post_id: u.featuredPostId || null,
   has_profile_song: u.hasProfileSong || false,
   profile_song_name: u.profileSongName || null,
-  info_fields: JSON.stringify({ infoMovie: u.infoMovie||null, infoArtist: u.infoArtist||null, infoShow: u.infoShow||null, infoBook: u.infoBook||null, infoGame: u.infoGame||null, dark: u.dark!==undefined?u.dark:null }),
+  info_fields: JSON.stringify({
+    infoMovie: u.infoMovie || null,
+    infoArtist: u.infoArtist || null,
+    infoShow: u.infoShow || null,
+    infoBook: u.infoBook || null,
+    infoGame: u.infoGame || null,
+    infoMoviePhoto: u.infoMoviePhoto || null,
+    infoArtistPhoto: u.infoArtistPhoto || null,
+    infoShowPhoto: u.infoShowPhoto || null,
+    infoBookPhoto: u.infoBookPhoto || null,
+    infoGamePhoto: u.infoGamePhoto || null,
+    dark: u.dark !== undefined ? u.dark : null,
+  }),
 });
 
 const clickToRow = c => ({
@@ -1030,81 +1045,109 @@ const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
 };
 
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
-const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, onLike, onRt, onReply, onDelete }) => {
-  const myV = Array.isArray(me.village)?me.village:[];
+const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, onLike, onRt, onReply, onDelete, onBlock, blocked }) => {
+  const [showConfirm, setShowConfirm] = useState(null); // 'remove' | 'block'
+  const myV = Array.isArray(me.village) ? me.village : [];
   const inV = myV.includes(user.id);
   const isMe = user.id === me.id;
-  const theirV = user.village || [];
+  const theirV = Array.isArray(user.village) ? user.village : [];
   const mutual = inV && theirV.includes(me.id);
   const pub = posts.filter(p => p.userId === user.id && !p.parentId && !p.villageOnly);
-  const wp = user.wallpaper;
+  const villagerUsers = theirV.map(id => posts.find(p => false) || { id }).filter(Boolean); // placeholder
   const accent = getAccent(user);
+  const wp = (() => { const w = user.wallpaper; if (!w) return null; if (w?.type === "image" && w?.value === "__local_wallpaper__") return LS.get(`wallpaper_${user.id}`) || null; return w; })();
   const bannerBg = wp?.type === "image" ? `url(${wp.value}) center/cover` : (wp?.value || accent.grad);
-  // Featured post
   const featured = user.featuredPostId ? posts.find(p => p.id === user.featuredPostId) : null;
+  const resolvePhoto = (u, photoKey) => { const val = u[photoKey]; if (!val) return null; if (typeof val === "string" && val.startsWith("__local__")) return LS.get(`icard_${u.id}_${val.replace("__local__","")}`); return val; };
+  const profileSong = LS.get(`psong_${user.id}`) || (user.profileSong ? { song: user.profileSong, name: user.profileSongName } : null);
+
+  if (showConfirm === 'remove') return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ background: T.card, borderRadius: 16, padding: 24, width: "100%", maxWidth: 340, border: `1px solid ${T.border}` }}>
+        <div style={{ fontWeight: 700, fontSize: 16, color: T.text, marginBottom: 8 }}>Remove from Village?</div>
+        <div style={{ fontSize: 14, color: T.sub, marginBottom: 20 }}>@{user.username} will be removed from your village.</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setShowConfirm(null)} style={{ flex: 1, background: T.input, color: T.text, border: "none", borderRadius: 9999, padding: "9px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button onClick={() => { onVillage(user.id); setShowConfirm(null); onClose(); }} style={{ flex: 1, background: PINK, color: "white", border: "none", borderRadius: 9999, padding: "9px", fontWeight: 700, cursor: "pointer" }}>Remove</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (showConfirm === 'block') return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ background: T.card, borderRadius: 16, padding: 24, width: "100%", maxWidth: 340, border: `1px solid ${T.border}` }}>
+        <div style={{ fontWeight: 700, fontSize: 16, color: T.text, marginBottom: 8 }}>Block @{user.username}?</div>
+        <div style={{ fontSize: 14, color: T.sub, marginBottom: 20 }}>They won't appear in your feed and can't interact with your posts.</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setShowConfirm(null)} style={{ flex: 1, background: T.input, color: T.text, border: "none", borderRadius: 9999, padding: "9px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          <button onClick={() => { onBlock && onBlock(user.id); setShowConfirm(null); onClose(); }} style={{ flex: 1, background: PINK, color: "white", border: "none", borderRadius: 9999, padding: "9px", fontWeight: 700, cursor: "pointer" }}>Block</button>
+        </div>
+      </div>
+    </div>
+  );
+
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 8800, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-    <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, maxHeight: "88vh", overflow: "auto", border: `1px solid ${accent.color}60` }} onClick={e => e.stopPropagation()}>
-      {/* Banner with accent border */}
-      <div style={{ height: 90, background: bannerBg, position: "relative", overflow: "visible", borderRadius: "16px 16px 0 0" }}>
-        <div style={{ position: "absolute", bottom: -26, left: 16, border: `3px solid ${accent.color}`, borderRadius: "50%", overflow: "hidden", lineHeight: 0 }}>
-          <Av user={user} sz={52} />
+    <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, maxHeight: "92vh", overflow: "auto", border: `1px solid ${accent.color}60` }} onClick={e => e.stopPropagation()}>
+
+      {/* Banner */}
+      <div style={{ height: 100, background: bannerBg, position: "relative", borderRadius: "16px 16px 0 0", flexShrink: 0 }}>
+        <div style={{ position: "absolute", bottom: -30, left: 16, border: `3px solid ${accent.color}`, borderRadius: "50%", overflow: "hidden", lineHeight: 0, zIndex: 2 }}>
+          <Av user={user} sz={58} />
         </div>
-        {/* Profile song autoplay hint */}
-        {user.profileSong && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.55)", borderRadius: 9999, padding: "3px 8px", fontSize: 10, color: "white" }}>🎵 has a profile song</div>}
+        <button onClick={onClose} style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.5)", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "white", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
       </div>
-      <div style={{ padding: "34px 16px 12px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 16, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{user.username}{user.verified && <span style={{ color: BLUE, fontSize: 14 }}>✓</span>}</div>
-          <div style={{ fontSize: 12, color: T.sub }}>@{user.username.toLowerCase()}</div>
-          {/* Mood status */}
-          {user.mood && <div style={{ fontSize: 13, color: accent.color, marginTop: 3, fontStyle: "italic" }}>{user.mood}</div>}
+
+      {/* Header info */}
+      <div style={{ padding: "38px 16px 12px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{user.username}{user.verified && <span style={{ color: BLUE, fontSize: 14 }}>✓</span>}</div>
+            <div style={{ fontSize: 13, color: T.sub }}>@{user.username.toLowerCase()}</div>
+            {user.mood && <div style={{ fontSize: 13, color: accent.color, marginTop: 3, fontStyle: "italic" }}>{user.mood}</div>}
+            {user.bio && <div style={{ fontSize: 14, color: T.text, marginTop: 5, lineHeight: 1.4 }}>{user.bio}</div>}
+          </div>
+          {/* Action buttons */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+            {!isMe && mutual && <button onClick={() => { onIM && onIM(user); onClose(); }} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>💬 Message</button>}
+            {!isMe && !inV && <button onClick={() => { onVillage(user.id); }} style={{ background: accent.color, color: "white", border: "none", borderRadius: 9999, padding: "6px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ Village</button>}
+            {!isMe && inV && <button onClick={() => setShowConfirm('remove')} style={{ background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 9999, padding: "6px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>✕ Remove</button>}
+            {!isMe && !user.isBot && <button onClick={() => setShowConfirm('block')} style={{ background: "transparent", color: T.sub, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "5px 12px", fontWeight: 600, fontSize: 11, cursor: "pointer" }}>🚫 Block</button>}
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
-          {!isMe && mutual && <button onClick={() => { onIM && onIM(user); onClose(); }} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>💬 IM</button>}
-          {!isMe && <button onClick={() => onVillage(user.id)} style={{ background: inV ? "transparent" : accent.color, color: inV ? T.text : "white", border: `1px solid ${inV ? T.border : accent.color}`, borderRadius: 9999, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{inV ? "In Village ✓" : "+ Village"}</button>}
-          <button onClick={onClose} style={{ background: T.input, border: "none", cursor: "pointer", color: T.text, borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center" }}><XI /></button>
-        </div>
-      </div>
-      <div style={{ padding: "12px 16px 16px" }}>
-        {/* Profile song player */}
-        {(() => { const s = LS.get(`psong_${user.id}`) || (user.profileSong ? {song:user.profileSong,name:user.profileSongName} : null); return s ? <ProfileSongPlayer songSrc={s.song} songName={s.name} accent={accent} /> : null; })()}
-        {/* Special bot profile banners */}
-        {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
-          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by AI. Follow for daily doses of the unexpected.</div>
-          <div style={{ fontSize: 11, color: BLUE, marginTop: 5, fontWeight: 600 }}>Posts every 6h · Science, Space, History & more</div>
-        </div>}
-        {user.id === "bot_minerva" && <div style={{ background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div>
-          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Fascinating historical facts and daily "This Day in History" posts. Because knowing your past is the key to understanding the present.</div>
-          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by AI</div>
-        </div>}
-        {user.id === "bot_news" && <div style={{ background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div>
-          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Real, verified breaking news sourced from major outlets — BBC, Reuters, AP, NYT and more. No opinion, just facts.</div>
-          <div style={{ fontSize: 11, color: "#e11d48", marginTop: 5, fontWeight: 600 }}>Updates every 3h · Web search powered · Fact-checked</div>
-        </div>}
-        {user.id === "bot_abandonware" && <div style={{ background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div>
-          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Hot takes, reviews and news from across the entertainment world. Video games, blockbusters, prestige TV — we cover it all.</div>
-          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by AI</div>
-        </div>}
-        {user.bio && <div style={{ fontSize: 14, color: T.text, marginBottom: 10 }}>{user.bio}</div>}
-        <div style={{ display: "flex", gap: 18, marginBottom: 12 }}>
+
+        {/* Stats */}
+        <div style={{ display: "flex", gap: 18, marginTop: 10 }}>
           <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.length}</strong> Scrypts</span>
-          <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{(user.village || []).length}</strong> Village</span>
+          <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{theirV.length}</strong> Village</span>
           <span style={{ fontSize: 13, color: T.sub }}><strong style={{ color: accent.color }}>{pub.reduce((s, p) => s + (p.likes?.length || 0), 0)}</strong> Likes</span>
         </div>
-        {/* Info cards */}
-        <ProfileInfoCards user={user} accent={accent} resolvePhoto={(u,k) => { const v=u[k]; if(!v) return null; if(v.startsWith("__local__")) return LS.get(`icard_${u.id}_${v.replace("__local__","")}`); return v; }} />
-        {/* Featured post */}
-        {featured && <div style={{ marginBottom: 12, padding: "10px 12px", border: `1.5px solid ${accent.color}`, borderRadius: 12, background: `${accent.color}08` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: accent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
-          <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(featured.content)}</p>
-          <div style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>{featured.likes?.length || 0} likes · {ago(featured.createdAt)}</div>
-        </div>}
-        {pub.slice(0, user.isSpecial ? 20 : 10).map(p => <Post key={p.id} p={p} me={me} users={[user]} all={posts} onLike={onLike || (() => {})} onRt={onRt || (() => {})} onReply={onReply || (() => {})} onThread={p => { if (onThread) { onClose(); onThread(p); } }} onUser={() => {}} onDelete={onDelete || (() => {})} T={T} />)}
-        {pub.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "14px 0", fontSize: 14 }}>No public posts yet.</p>}
+      </div>
+
+      {/* Profile song */}
+      {profileSong && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileSongPlayer songSrc={profileSong.song} songName={profileSong.name} accent={accent} /></div>}
+
+      {/* Special bot banners */}
+      {user.id === "bot_scryptbot" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div><div style={{ fontSize: 12, color: T.sub }}>Posts wild, weird and wonderful facts every 6 hours.</div></div>}
+      {user.id === "bot_minerva" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div><div style={{ fontSize: 12, color: T.sub }}>This Day in History and historical facts daily.</div></div>}
+      {user.id === "bot_news" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div><div style={{ fontSize: 12, color: T.sub }}>Real breaking news every 3 hours.</div></div>}
+      {user.id === "bot_abandonware" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div><div style={{ fontSize: 12, color: T.sub }}>Entertainment news and hot takes every 4 hours.</div></div>}
+
+      {/* Info cards */}
+      {INFO_FIELDS.some(f => user[f.key]) && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}` }}><ProfileInfoCards user={user} accent={accent} resolvePhoto={resolvePhoto} /></div>}
+
+      {/* Featured post */}
+      {featured && <div style={{ margin: "10px 16px 0", padding: "10px 12px", border: `1.5px solid ${accent.color}`, borderRadius: 12, background: `${accent.color}08` }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: accent.color, marginBottom: 5 }}>📌 FEATURED SCRYPT</div>
+        <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(featured.content)}</p>
+        <div style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>{featured.likes?.length || 0} likes · {ago(featured.createdAt)}</div>
+      </div>}
+
+      {/* Posts */}
+      <div style={{ padding: "8px 0 16px" }}>
+        <div style={{ padding: "6px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, marginBottom: 4 }}>SCRYPTS</div>
+        {pub.slice(0, user.isSpecial ? 20 : 15).map(p => <Post key={p.id} p={p} me={me} users={[user, me]} all={posts} onLike={onLike || (() => {})} onRt={onRt || (() => {})} onReply={onReply || (() => {})} onThread={pt => { onClose(); if (onThread) onThread(pt); }} onUser={() => {}} onDelete={onDelete || (() => {})} T={T} />)}
+        {pub.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 0", fontSize: 14 }}>No public posts yet.</p>}
       </div>
     </div>
   </div>;
@@ -1407,7 +1450,28 @@ const Post = ({ p, me, users, all, onLike, onRt, onReply, onThread, onUser, onDe
 
 // ── THREAD ────────────────────────────────────────────────────────────────────
 const Thread = ({ p, me, users, all, onLike, onRt, onReply, onBack, onUser, onDelete, T }) => {
-  const replies = all.filter(x => x.parentId === p.id).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const [extraReplies, setExtraReplies] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Always fetch replies from DB to make sure we have them all
+    setLoading(true);
+    sbFetch(`posts?parent_id=eq.${encodeURIComponent(p.id)}&select=*&order=created_at.asc`)
+      .then(rows => {
+        if (rows && rows.length > 0) {
+          setExtraReplies(rows.map(rowToPost));
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [p.id]);
+
+  // Merge DB replies with local state replies, dedupe by id
+  const localReplies = all.filter(x => x.parentId === p.id);
+  const allReplies = [...localReplies];
+  extraReplies.forEach(r => { if (!allReplies.find(x => x.id === r.id)) allReplies.push(r); });
+  allReplies.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
   return <div>
     <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><BackI /></button>
@@ -1415,8 +1479,9 @@ const Thread = ({ p, me, users, all, onLike, onRt, onReply, onBack, onUser, onDe
     </div>
     <Post p={p} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={r => onReply({ ...r, parentId: p.id })} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />
     <Compose me={me} onPost={onReply} T={T} users={users} compact parentId={p.id} clickId={p.clickId} />
-    {replies.map(r => <Post key={r.id} p={r} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={rr => onReply({ ...rr, parentId: r.id })} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />)}
-    {replies.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 0", fontSize: 14 }}>No replies yet. Start the conversation!</p>}
+    {loading && <div style={{ textAlign: "center", padding: "16px", color: T.sub, fontSize: 13 }}>Loading replies...</div>}
+    {allReplies.map(r => <Post key={r.id} p={r} me={me} users={users} all={[...all, ...extraReplies]} onLike={onLike} onRt={onRt} onReply={rr => onReply({ ...rr, parentId: r.id })} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />)}
+    {!loading && allReplies.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 0", fontSize: 14 }}>No replies yet. Start the conversation!</p>}
   </div>;
 };
 
@@ -1673,19 +1738,29 @@ const VoiceCall = ({ me, participants, users, T, onEnd }) => {
 
 // ── HOME TRENDING STRIP ───────────────────────────────────────────────────────
 const HomeTrending = ({ posts, users, T, onThread, onUser }) => {
-  const topPosts = [...posts]
-    .filter(p => !p.parentId && p.content && p.content.length > 10)
-    .map(p => ({ ...p, score: (p.likes?.length || 0) + (p.reposts?.length || 0) * 2 }))
+  const now = Date.now();
+  const h24 = 24 * 60 * 60 * 1000;
+  const h12 = 12 * 60 * 60 * 1000;
+
+  // Try last 12h first, fall back to 24h if not enough posts
+  const recent12 = posts.filter(p => !p.parentId && p.content?.length > 10 && (now - new Date(p.createdAt).getTime()) < h12);
+  const recent24 = posts.filter(p => !p.parentId && p.content?.length > 10 && (now - new Date(p.createdAt).getTime()) < h24);
+  const pool = recent12.length >= 5 ? recent12 : recent24.length >= 3 ? recent24 : posts.filter(p => !p.parentId && p.content?.length > 10);
+
+  const topPosts = [...pool]
+    .map(p => ({ ...p, score: (p.likes?.length || 0) * 1 + (p.reposts?.length || 0) * 2 + (p.replyCount || 0) * 1.5 }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .slice(0, 5);
 
   if (topPosts.length === 0) return null;
 
+  const timeLabel = recent12.length >= 5 ? "last 12h" : recent24.length >= 3 ? "last 24h" : "all time";
   const SPECIAL_COLORS = { bot_scryptbot: BLUE, bot_minerva: "#7c3aed", bot_news: "#e11d48", bot_abandonware: "#0f766e", claude_account: "#8B4513" };
 
   return <div style={{ borderBottom: `1px solid ${T.border}` }}>
     <div style={{ padding: "11px 16px 6px", display: "flex", alignItems: "center", gap: 6 }}>
       <span style={{ fontWeight: 800, fontSize: 13, color: T.text }}>🔥 Trending</span>
+      <span style={{ fontSize: 11, color: T.sub }}>· {timeLabel}</span>
     </div>
     {topPosts.map((p, i) => {
       const author = users?.find(u => u.id === p.userId);
@@ -1702,7 +1777,7 @@ const HomeTrending = ({ posts, users, T, onThread, onUser }) => {
             <span onClick={e => { e.stopPropagation(); author && onUser && onUser(author); }}
               style={{ fontWeight: 700, fontSize: 13, color: accent, cursor: "pointer" }}>{author?.username || p.username}</span>
             {isVerified && <span style={{ color: BLUE, fontSize: 11 }}>✓</span>}
-            <span style={{ fontSize: 11, color: T.sub }}>· ❤️ {p.likes?.length || 0}</span>
+            <span style={{ fontSize: 11, color: T.sub }}>· ❤️ {p.likes?.length || 0}{p.reposts?.length > 0 ? ` 🔁 ${p.reposts.length}` : ''}</span>
           </div>
           <div style={{ fontSize: 13, color: T.text, lineHeight: 1.45, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.content}</div>
         </div>
@@ -1920,9 +1995,11 @@ export default function App() {
         replyCount: 0,
         isClaudeReply: true
       };
-      const cur2 = posts;
-      const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
-      const noKeyPosts = [noKeyReply, ...withReply]; setPosts(noKeyPosts); (async () => { try { await DB.insertPost(postToRow(noKeyReply)); } catch {} })();
+      setPosts(prev => {
+        const withReply = parentPostId ? prev.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : prev;
+        return [noKeyReply, ...withReply];
+      });
+      (async () => { try { await DB.insertPost(postToRow(noKeyReply)); } catch {} })();
       return;
     }
     try {
@@ -1947,9 +2024,12 @@ export default function App() {
         replyCount: 0,
         isClaudeReply: true
       };
-      const cur2 = posts;
-      const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
-      const claudePosts = [claudePost, ...withReply]; setPosts(claudePosts); (async () => { try { await DB.insertPost(postToRow(claudePost)); } catch {} })();
+      // Use functional update to avoid stale closure on posts
+      setPosts(prev => {
+        const withReply = parentPostId ? prev.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : prev;
+        return [claudePost, ...withReply];
+      });
+      (async () => { try { await DB.insertPost(postToRow(claudePost)); } catch {} })();
       notify("Ted replied! 🧸");
     } catch {
       // fail silently
@@ -2738,6 +2818,24 @@ export default function App() {
     DB.updateUser(me.id, { village: JSON.stringify(nv) }).catch(() => {});
     notify(has ? "Removed from Village" : "Added to Village! 🏘️");
   };
+
+  const doBlock = uid => {
+    // Remove from village if present, hide from feed via blocked list in localStorage
+    const blocked = tryParse(localStorage.getItem("blocked_users"), []);
+    if (!blocked.includes(uid)) {
+      const updated = [...blocked, uid];
+      localStorage.setItem("blocked_users", JSON.stringify(updated));
+    }
+    // Also remove from village
+    const v = Array.isArray(me.village) ? me.village : [];
+    if (v.includes(uid)) {
+      const nv = v.filter(x => x !== uid);
+      setMe(p => ({ ...p, village: nv }));
+      setUsers(prev => prev.map(u => u.id === me.id ? { ...u, village: nv } : u));
+      DB.updateUser(me.id, { village: JSON.stringify(nv) }).catch(() => {});
+    }
+    notify("User blocked");
+  };
   const doAvatar = e => {
     const f = e.target.files[0];
     if (!f) return;
@@ -2757,11 +2855,14 @@ export default function App() {
     const updated = { ...me, ...fields };
     setMe(updated);
     setUsers(prev => prev.map(u => u.id === me.id ? updated : u));
+    // Build one single PATCH with all fields — same pattern as avatar/wallpaper saves
     const row = userToRow(updated);
-    const { info_fields, ...coreRow } = row;
-    DB.updateUser(me.id, coreRow).catch(e => console.error("saveMe", e));
-    if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {});
-    if (updated.wallpaper !== me.wallpaper) DB.updateUser(me.id, { wallpaper: updated.wallpaper ? JSON.stringify(updated.wallpaper) : null }).catch(() => {});
+    // Always include wallpaper as its own field (not inside info_fields)
+    const patch = { ...row };
+    if (updated.wallpaper !== undefined) {
+      patch.wallpaper = updated.wallpaper ? JSON.stringify(updated.wallpaper) : null;
+    }
+    DB.updateUser(me.id, patch).catch(e => console.error("saveMe failed", e));
   };
 
   const doWallpaper = wp => {
@@ -2835,11 +2936,12 @@ export default function App() {
   if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: Array.isArray(u.village)?u.village:[] }); LS.set("session_uid", u.id); setDbLoading(false); if (u.dark!=null&&u.dark!==undefined) setDark(!!u.dark); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
   if (pg === "signup") return <Signup onDone={u => { setMe({...u,village:Array.isArray(u.village)?u.village:[]}); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
-  const myV = Array.isArray(me?.village)?me.village:[];
+  const myV = Array.isArray(me?.village) ? me.village : [];
+  const blockedUsers = new Set(tryParse(localStorage.getItem("blocked_users"), []));
   const feed = (() => {
-    const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (Array.isArray(u.village)?u.village:[]).includes(me.id)).map(u => u.id));
+    const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (Array.isArray(u.village) ? u.village : []).includes(me.id)).map(u => u.id));
     const villageIds = new Set(myV);
-    const filtered = posts.filter(p => !p.parentId && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId))));
+    const filtered = posts.filter(p => !p.parentId && !blockedUsers.has(p.userId) && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId))));
     const priorityScore = p => {
       if (p.userId === me.id) return 3;
       if (mutualIds.has(p.userId)) return 2;
@@ -2869,7 +2971,7 @@ export default function App() {
     {toast && <div style={{ position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.bg, padding: "10px 20px", borderRadius: 9999, fontSize: 14, fontWeight: 600, zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
     {voiceCall && <VoiceCall me={me} participants={voiceCall.participants} users={users} T={T} onEnd={() => { setVoiceCall(null); notify("Call ended"); }} />}
     {showTed && <TedChat T={T} onClose={() => { setShowTed(false); setTedInit(null); }} init={tedInit} />}
-    {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} onThread={p => { setOpenUser(null); setThread(p); setTab("home"); }} onLike={doLike} onRt={doRt} onReply={doPost} onDelete={doDelete} />}
+    {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onBlock={doBlock} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} onThread={p => { setOpenUser(null); setThread(p); setTab("home"); }} onLike={doLike} onRt={doRt} onReply={doPost} onDelete={doDelete} />}
     {showPP && <PicPicker onPick={doPickDef} onClose={() => setShowPP(false)} T={T} />}
     {showWallpaper && <WallpaperPicker onPick={doWallpaper} onClose={() => setShowWallpaper(false)} T={T} />}
 
@@ -3351,7 +3453,26 @@ export default function App() {
     </div>
 
     {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
-    {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
+    {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => {
+      if (cropKey === "__avatar__") {
+        const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u);
+        setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl }));
+        DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {});
+      } else {
+        // Info card photo: store base64 in localStorage, update me state immediately so it renders
+        const lsKey = `icard_${me.id}_${cropKey}`;
+        LS.set(lsKey, dataUrl);
+        // Update me and sf so it shows right away
+        setSf(p => ({ ...p, [cropKey]: dataUrl }));
+        const updatedMe = { ...me, [cropKey]: `__local__${cropKey}` };
+        setMe(updatedMe);
+        setUsers(prev => prev.map(u => u.id === me.id ? updatedMe : u));
+        // Save the __local__ marker to DB inside info_fields
+        const row = userToRow(updatedMe);
+        DB.updateUser(me.id, row).catch(e => console.error("photo save", e));
+      }
+      setCropSrc(null); setCropKey(null);
+    }} />}
 
 
 
