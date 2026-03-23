@@ -1213,7 +1213,10 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
   const endRef = useRef();
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
+  const scrollRef = useRef();
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [msgs]);
 
   // Mark conversation as read whenever it's open
   const markRead = () => {
@@ -1327,7 +1330,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
       </div>
       <button onClick={onCall} style={{ background: "#00BA7C", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18 }}>📞</button>
     </div>
-    <div style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div ref={scrollRef} style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
       {msgs.length === 0 && <p style={{ textAlign: "center", color: T.sub, fontSize: 13, marginTop: 40 }}>Start a conversation with {other.username} 👋</p>}
       {msgs.map(m => {
         const mine = m.from === me.id;
@@ -1358,7 +1361,8 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
   const [showAdd, setShowAdd] = useState(false);
   const [addSearch, setAddSearch] = useState("");
   const endRef = useRef();
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
+  const scrollRef = useRef();
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs]);
 
   const tedInGroup = group.members.includes("claude_account");
   const evilTedInGroup = group.members.includes("evil_ted");
@@ -1470,7 +1474,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
       </div>
     </div>}
 
-    <div style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+    <div ref={scrollRef} style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
       {msgs.length === 0 && <p style={{ textAlign: "center", color: T.sub, fontSize: 13, marginTop: 40 }}>Group chat created! Say hi 👋</p>}
       {msgs.map(m => {
         const mine = m.from === me.id;
