@@ -853,7 +853,7 @@ const TedChat = ({ T, onClose, init }) => {
     setMsgs(next); setInput(""); setBusy(true);
     try {
       const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 1000, system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly.", messages: api });
+      const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 1000, system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly. Current date: March 2026.", messages: api });
       const d = await r.json();
       setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
     } catch {
@@ -1303,7 +1303,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
             const r = await claudeFetch({
               model: "llama-3.3-70b-versatile",
               max_tokens: 200,
-              system: `You are Ted 🧸, a friendly AI on Scrypt social. You're in a private DM with ${me.username}. Be warm, helpful, and natural. Keep replies short (1-3 sentences) unless they need detail. Reply directly to what they said.`,
+              system: `You are Ted 🧸, a friendly AI on Scrypt social. Current date: March 2026. You're in a private DM with ${me.username}. Be warm, helpful, and natural. Keep replies short (1-3 sentences) unless they need detail. Reply directly to what they said.`,
               messages: cleanHistory
             });
             if (r.ok) { const d = await r.json(); replyText = d.content?.[0]?.text?.trim(); }
@@ -1414,7 +1414,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
             const r = await claudeFetch({
               model: "llama-3.3-70b-versatile",
               max_tokens: 120,
-              system: `You are Ted 🧸, a friendly AI in a group chat called "${group.name}". You're chatting with: ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. Keep it short — 1-2 sentences. Be natural, warm, helpful. If someone asks you to say hi to someone or do something specific, just do it.`,
+              system: `You are Ted 🧸, a friendly AI in a group chat called "${group.name}". Current date: March 2026. You're chatting with: ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. Keep it short — 1-2 sentences. Be natural, warm, helpful. If someone asks you to say hi to someone or do something specific, just do it.`,
               messages: history.length > 0 ? history : [{ role: "user", content: input }]
             });
             if (r.ok) {
@@ -2389,7 +2389,7 @@ export default function App() {
       const r = await claudeFetch({
         model: "llama-3.3-70b-versatile",
         max_tokens: 220,
-        system: "You are Ted 🧸, a warm AI on Scrypt. Someone @mentioned you. Reply naturally, conversationally, under 240 chars.",
+        system: "You are Ted 🧸, a warm AI on Scrypt. Current date: March 2026. Someone @mentioned you. Reply naturally, conversationally, under 240 chars.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
       });
       if (!r.ok) return;
