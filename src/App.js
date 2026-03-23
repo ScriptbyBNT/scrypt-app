@@ -104,9 +104,8 @@ const rowToUser = r => {
     accentColor: r.accent_color || r.accentColor || null,
     featuredPostId: r.featured_post_id || r.featuredPostId || null,
     hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
-    profileSongName: r.profile_song_name || r.profileSongName || extra.profileSongName || null,
+    profileSongName: r.profile_song_name || r.profileSongName || null,
     wallpaper: extra.wallpaper || null,
-    profileSong: extra.profileSong || null,
     infoMovie: extra.infoMovie || null,
     infoArtist: extra.infoArtist || null,
     infoShow: extra.infoShow || null,
@@ -163,15 +162,17 @@ const userToRow = u => ({
   featured_post_id: u.featuredPostId || null,
   has_profile_song: u.hasProfileSong || false,
   profile_song_name: u.profileSongName || null,
+  // info_fields stores small text-only data (no base64 blobs)
   info_fields: JSON.stringify({
-    wallpaper: u.wallpaper || null,
-    profileSong: u.profileSong || null,
+    wallpaper: u.wallpaper || null,       // wallpaper preset/gradient (small)
     infoMovie: u.infoMovie || null,
     infoArtist: u.infoArtist || null,
     infoShow: u.infoShow || null,
     infoBook: u.infoBook || null,
     infoGame: u.infoGame || null,
     dark: u.dark !== undefined ? u.dark : null,
+    // NOTE: profileSong and info card photos are base64 — stored in localStorage only
+    // They are referenced via __local__ markers
   }),
 });
 
@@ -264,7 +265,7 @@ const CLAUDE_USER = {
   username: "Ted",
   password: "claude2024!",
   avatar: mkSpecialAvatar("#8B4513", "T", "🧸"),
-  bio: "I'm Ted 🧸, your AI on Scrypt. Mention me with @ted in any post and I'll reply. Ask me anything!",
+  bio: "I'm Ted 🧸, your AI on Scrypt. Mention me with @ted in any post and I'll reply. Ask me anything! ✨",
   isBot: true,
   isSpecial: true,
   verified: true,
@@ -543,7 +544,7 @@ const XI     = () => Ic("M18 6L6 18M6 6l12 12", 18);
 const SunI   = () => Ic("M12 17A5 5 0 1012 7a5 5 0 000 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42", 18);
 const MoonI  = () => Ic("M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z", 18);
 const PlusI  = () => Ic("M12 5v14M5 12h14", 20);
-const SparkI = () => Ic("M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z");
+const SparkI = () => <span style={{fontSize:14}}>🧸</span>;
 const ReplyI = () => Ic("M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z", 18);
 const BackI  = () => Ic("M19 12H5M12 5l-7 7 7 7");
 const LockI  = () => Ic("M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M7 11V7a5 5 0 0110 0v4");
@@ -810,7 +811,7 @@ const TedChat = ({ T, onClose, init }) => {
     setMsgs(next); setInput(""); setBusy(true);
     try {
       const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Ted, an AI assistant integrated into Scrypt — a Twitter-like social platform. Be helpful, concise, and friendly. Keep responses brief unless asked for detail.", messages: api });
+      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Ted, an AI on Scrypt — a Twitter-like social platform. Be helpful, concise, and friendly. Keep responses brief unless asked for detail.", messages: api });
       const d = await r.json();
       setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
     } catch {
@@ -1054,7 +1055,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
   const theirV = user.village || [];
   const mutual = inV && theirV.includes(me.id);
   const pub = posts.filter(p => p.userId === user.id && !p.parentId && !p.villageOnly);
-  const wp = user.wallpaper;
+  const wp = (() => { const w = user.wallpaper; if (!w) return null; if (w?.type === "image" && w?.value === "__local_wallpaper__") return LS.get(`wallpaper_${user.id}`) || null; return w; })();
   const accent = getAccent(user);
   const bannerBg = wp?.type === "image" ? `url(${wp.value}) center/cover` : (wp?.value || accent.grad);
   // Featured post
@@ -1863,11 +1864,10 @@ export default function App() {
         const resolvedSpecial = await Promise.all(specialBots.map(async (b) => {
           const existing = dbUsers.find(u => u.id === b.id);
           if (existing) {
-            // Force-update Ted's avatar/username in case DB has stale data
             if (b.id === "claude_account" && (existing.username !== b.username || existing.avatar !== b.avatar)) {
               try { await DB.updateUser(b.id, { username: b.username, avatar: b.avatar, bio: b.bio }); } catch {}
             }
-            return { ...existing, username: b.username, avatar: b.avatar }; // always use latest username/avatar
+            return { ...existing, username: b.id === "claude_account" ? b.username : existing.username, avatar: b.id === "claude_account" ? b.avatar : existing.avatar };
           }
           try { await DB.upsertUser(userToRow(b)); } catch(e) {}
           return b;
@@ -1963,14 +1963,14 @@ export default function App() {
       const r = await claudeFetch({
         model: "claude-sonnet-4-6",
         max_tokens: 220,
-        system: "You are Ted 🧸, a warm and witty AI on Scrypt — a social platform like Twitter. Someone just @mentioned you. Reply naturally: conversational, friendly, occasionally playful. Keep it under 240 characters. No hashtags unless genuinely funny. Sound human.",
+        system: "You are Ted 🧸, a warm and witty AI on Scrypt — a social platform like Twitter. Someone just @mentioned you in a post. Reply naturally like a real user would: conversational, warm, occasionally funny, never robotic. Keep it under 240 characters — this is a social post not an essay. No hashtags unless they're genuinely funny. Sound human.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
       });
       if (!r.ok) return;
       const d = await r.json();
       const reply = d.content?.[0]?.text?.trim();
       if (!reply) return;
-      const tedPost = {
+      const claudePost = {
         id: `claude_reply_${Date.now()}`,
         userId: "claude_account",
         username: "Ted",
@@ -1983,8 +1983,8 @@ export default function App() {
       };
       const cur2 = posts;
       const withReply = parentPostId ? cur2.map(x => x.id === parentPostId ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x) : cur2;
-      const tedPosts = [tedPost, ...withReply]; setPosts(tedPosts); (async () => { try { await DB.insertPost(postToRow(tedPost)); } catch {} })();
-      notify("Ted replied to your Scrypt! 🧸");
+      const claudePosts = [claudePost, ...withReply]; setPosts(claudePosts); (async () => { try { await DB.insertPost(postToRow(claudePost)); } catch {} })();
+      notify("Ted replied! 🧸");
     } catch {
       // fail silently
     }
@@ -2466,39 +2466,33 @@ export default function App() {
         }
       }
 
-      // 30% chance: bots reply to each other's posts and user posts (no API key needed)
+      // 30% chance: bots reply to each other and user posts (no API key needed)
       if (Math.random() < 0.30) {
         const BOT_REPLIES = [
           "This is exactly the take I needed today 🔥", "100% agree, couldn't have said it better",
           "Bro this goes hard 💪", "Facts. No cap.", "This right here 👆", "Real talk",
           "Genuinely one of the best takes on here", "Screenshotting this", "W post fr",
-          "The people need to see this", "Say it louder for the people in the back 📢",
-          "I was literally just thinking about this", "Needed to hear this today, thanks 🙏",
-          "Underrated take tbh", "This is the way", "Built different mentality right here 💯",
-          "Not me nodding along to every word", "Okay you actually cooked here", "Clean 🧹",
+          "The people need to see this", "Say it louder 📢", "I was literally just thinking this",
+          "Needed to hear this today 🙏", "Underrated take tbh", "This is the way",
+          "Not me nodding along to every word", "Okay you actually cooked here 🍳", "Clean 🧹",
           "The accuracy is unreal", "This slaps", "Respect. Real one.", "All day every day 🔥",
-          "Dropped this like it was nothing wow", "Said what needed to be said",
-          "I feel this in my soul honestly", "Top tier scrypt ngl", "W take, no debates",
+          "Said what needed to be said", "I feel this honestly", "Top tier scrypt ngl",
+          "W take, no debates", "Dropped this like it was nothing", "Built different mentality 💯",
         ];
-        // Target: recent bot posts and recent user posts
-        const replyablePosts = curPosts.filter(p => !p.parentId && p.userId !== me.id).slice(0, 20);
-        const userPosts2 = curPosts.filter(p => !p.parentId && p.userId === me.id).slice(0, 5);
-        const allReplyable = [...replyablePosts, ...userPosts2];
-        if (allReplyable.length > 0) {
-          const targetPost = allReplyable[Math.floor(Math.random() * allReplyable.length)];
+        const replyablePosts = curPosts.filter(p => !p.parentId).slice(0, 25);
+        if (replyablePosts.length > 0) {
+          const targetPost = replyablePosts[Math.floor(Math.random() * Math.min(15, replyablePosts.length))];
           const replierPool = allBots.filter(b => b.id !== targetPost.userId && !SPECIAL_BOT_IDS.has(b.id));
           const replier = replierPool[Math.floor(Math.random() * replierPool.length)];
           if (replier) {
-            // Check this replier hasn't already replied to this post
             const alreadyReplied = curPosts.some(p => p.parentId === targetPost.id && p.userId === replier.id);
             if (!alreadyReplied) {
-              const replyContent = BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)];
               setTimeout(() => {
                 const reply = {
                   id: `breply2_${Date.now()}_${Math.floor(Math.random() * 99999)}`,
                   userId: replier.id, username: replier.username,
-                  content: replyContent, parentId: targetPost.id,
-                  likes: [], reposts: [],
+                  content: BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)],
+                  parentId: targetPost.id, likes: [], reposts: [],
                   createdAt: new Date().toISOString(), replyCount: 0
                 };
                 setPosts(prev => {
@@ -2832,6 +2826,8 @@ export default function App() {
     setUsers(nu); setMe(p => ({ ...p, avatar: url })); setShowPP(false);
     DB.updateUser(me.id, { avatar: url }).catch(() => {});
   };
+  // saveMe: updates local state and Supabase atomically
+  // Splits core columns from info_fields to avoid one failing the other
   const saveMe = (fields) => {
     const updated = { ...me, ...fields };
     setMe(updated);
@@ -2839,12 +2835,20 @@ export default function App() {
     const row = userToRow(updated);
     const { info_fields, ...coreRow } = row;
     DB.updateUser(me.id, coreRow).catch(e => console.error("saveMe core", e));
-    if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {});
+    if (info_fields) DB.updateUser(me.id, { info_fields }).catch(e => console.error("saveMe info", e));
   };
 
   const doWallpaper = wp => {
     setShowWallpaper(false);
-    saveMe({ wallpaper: wp });
+    // Store custom image wallpapers in localStorage (too large for DB)
+    // Store preset/gradient wallpapers in DB via info_fields
+    if (wp?.type === "image") {
+      LS.set(`wallpaper_${me.id}`, wp);
+      saveMe({ wallpaper: { type: "image", value: "__local_wallpaper__" } });
+    } else {
+      LS.set(`wallpaper_${me.id}`, null);
+      saveMe({ wallpaper: wp });
+    }
     notify("Wallpaper saved! 🖼️");
   };
   const doSave = () => {
@@ -2865,17 +2869,13 @@ export default function App() {
     if (sf.mood !== undefined) upd.mood = sf.mood || null;
     if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
     if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
-    // Profile song — save to Supabase via saveMe
     if (sf.profileSong !== undefined) {
       LS.set(`psong_${me.id}`, sf.profileSong ? { song: sf.profileSong, name: sf.profileSongName } : null);
       upd.hasProfileSong = !!sf.profileSong;
       upd.profileSongName = sf.profileSongName || null;
-      upd.profileSong = sf.profileSong || null;
     }
-    // Info card text fields
     INFO_FIELDS.forEach(f => {
       if (sf[f.key] !== undefined) upd[f.key] = sf[f.key] || null;
-      // Info card photos — stored separately per card to avoid freezing users array
       if (sf[f.photoKey] !== undefined) {
         LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
         upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
@@ -2890,8 +2890,19 @@ export default function App() {
   const resolvePhoto = (user, photoKey) => {
     const val = user[photoKey];
     if (!val) return null;
-    if (val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
-    return val; // legacy direct base64
+    if (typeof val === "string" && val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
+    return val; // direct base64
+  };
+
+  // Resolves wallpaper — custom images stored in localStorage, presets in DB
+  const resolveWallpaper = (user) => {
+    const wp = user?.wallpaper;
+    if (!wp) return null;
+    if (wp?.type === "image" && wp?.value === "__local_wallpaper__") {
+      const local = LS.get(`wallpaper_${user.id}`);
+      return local || null;
+    }
+    return wp;
   };
 
   // Helper: resolve profile song
@@ -3217,7 +3228,7 @@ export default function App() {
         {/* Banner */}
         {(() => {
           const myAccent = getAccent(me);
-          const bannerBg = me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || myAccent.grad);
+          const bannerBg = (() => { const w = resolveWallpaper(me); return w?.type === "image" ? `url(${w.value}) center/cover` : (w?.value || myAccent.grad); })();
           const feat = me.featuredPostId ? posts.find(p => p.id === me.featuredPostId) : null;
           return <>
             <div style={{ height: 110, background: bannerBg, position: "relative", overflow: "visible", flexShrink: 0, borderBottom: `2px solid ${myAccent.color}` }}>
@@ -3284,7 +3295,7 @@ export default function App() {
           {/* ── PROFILE BASICS ── */}
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 12 }}>Profile</div>
-            <div style={{ height: 72, borderRadius: 10, background: me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || myAccent.grad), position: "relative", marginBottom: 10, overflow: "hidden" }}>
+            <div style={{ height: 72, borderRadius: 10, background: (() => { const w = resolveWallpaper(me); return w?.type === "image" ? `url(${w.value}) center/cover` : (w?.value || myAccent.grad); })(), position: "relative", marginBottom: 10, overflow: "hidden" }}>
               <button onClick={() => setShowWallpaper(true)} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: 8, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🖼️ Change banner</button>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -3345,7 +3356,7 @@ export default function App() {
                           {currentPhoto ? "Change" : "Add photo"}
                           <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const file = e.target.files[0]; if (file) openCrop(file); e.target.value = ""; }} />
                         </label>
-                        {currentPhoto && <button onClick={() => { setSf(p => ({ ...p, [f.photoKey]: null })); saveMe({ [f.photoKey]: null }); }} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Photo</button>}
+                        {currentPhoto && <button onClick={() => { LS.set(`icard_${me.id}_${f.photoKey}`, null); setSf(p => ({ ...p, [f.photoKey]: null })); saveMe({ [f.photoKey]: null }); }} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Photo</button>}
                         {(me[f.key] || currentText) && <button onClick={() => { setSf(p => ({ ...p, [f.key]: "" })); saveMe({ [f.key]: null }); }} style={{ fontSize: 10, color: PINK, cursor: "pointer", padding: "2px 6px", borderRadius: 6, border: `1px solid ${PINK}30`, background: "transparent" }}>✕ Clear</button>}
                       </div>
                     </div>
@@ -3384,12 +3395,12 @@ export default function App() {
                   const song = x.target.result, name = f.name;
                   setSf(p => ({ ...p, profileSong: song, profileSongName: name }));
                   LS.set(`psong_${me.id}`, { song, name });
-                  saveMe({ profileSong: song, profileSongName: name, hasProfileSong: true });
+                  saveMe({ hasProfileSong: true, profileSongName: name });
                 };
                 r.readAsDataURL(f);
               }} />
             </label>
-            {(sf.profileSong || me.profileSong) && <button onClick={() => { setSf(p => ({ ...p, profileSong: null, profileSongName: null })); LS.set(`psong_${me.id}`, null); saveMe({ profileSong: null, profileSongName: null, hasProfileSong: false }); }} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+            {(sf.profileSong || me.profileSong || me.hasProfileSong) && <button onClick={() => { setSf(p => ({ ...p, profileSong: null, profileSongName: null })); LS.set(`psong_${me.id}`, null); saveMe({ hasProfileSong: false, profileSongName: null }); }} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
             {sf.profileSong && <div style={{ fontSize: 11, color: T.sub, marginTop: 6 }}>Preview: {sf.profileSongName}</div>}
           </div>
 
@@ -3397,13 +3408,12 @@ export default function App() {
 
           <button onClick={() => { setMe(null); localStorage.removeItem("session_uid"); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
-          {/* ── CHANGE PASSWORD ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🔒 Change Password</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password" style={inp13} />
               <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
-              <button onClick={() => { if (!sf.pw) return; if (sf.pw.length < 6) { setSerr("Min 6 chars"); return; } if (sf.pw !== sf.pw2) { setSerr("Passwords don't match"); return; } saveMe({ password: sf.pw }); setSf(p => ({ ...p, pw: "", pw2: "" })); setSerr(""); notify("Password updated ✓"); }} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Update Password</button>
+              <button onClick={() => { if (!sf.pw) return; if (sf.pw.length < 6) { setSerr("Min 6 chars"); return; } if (sf.pw !== sf.pw2) { setSerr("Passwords dont match"); return; } saveMe({ password: sf.pw }); setSf(p => ({ ...p, pw: "", pw2: "" })); setSerr(""); notify("Password updated ✓"); }} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Update Password</button>
             </div>
           </div>
 
@@ -3421,7 +3431,7 @@ export default function App() {
               style={{ ...inp13, fontFamily: "monospace", marginBottom: 8 }}
             />
             {apiKey ? <div style={{ fontSize: 11, color: "#00BA7C", display: "flex", alignItems: "center", gap: 5 }}>✓ API key saved — Ted is active</div>
-              : <div style={{ fontSize: 11, color: T.sub }}>No key set — Ted features disabled</div>}
+              : <div style={{ fontSize: 11, color: T.sub }}>No key set — AI features disabled</div>}
           </div>
         </div>;
       })()}
@@ -3430,7 +3440,7 @@ export default function App() {
     {/* GLOBAL IMAGE CROP MODAL — renders regardless of active tab */}
     {cropSrc && <ImageCropModal src={cropSrc} T={T} onClose={() => { setCropSrc(null); setCropKey(null); }} onSave={dataUrl => { if (cropKey === "__avatar__") { const nu = users.map(u => u.id === me.id ? { ...u, avatar: dataUrl } : u); setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl })); DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {}); } else { setSf(p => ({ ...p, [cropKey]: dataUrl })); } setCropSrc(null); setCropKey(null); }} />}
 
-    
+
 
     {/* BOTTOM NAV */}
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 8000, background: dark ? "rgba(0,0,0,0.97)" : "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", borderTop: `1px solid ${T.border}` }}>
