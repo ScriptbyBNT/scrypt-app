@@ -850,7 +850,7 @@ const TedChat = ({ T, onClose, init }) => {
     setMsgs(next); setInput(""); setBusy(true);
     try {
       const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly.", messages: api });
+      const r = await claudeFetch({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly.", messages: api });
       const d = await r.json();
       setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
     } catch {
@@ -1256,7 +1256,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch }) =>
           let roast = "";
           if (getKey && getKey()) {
             const r = await claudeFetch({
-              model: "claude-sonnet-4-6",
+              model: "claude-sonnet-4-20250514",
               max_tokens: 120,
               system: `You are Evil Ted 😈 — Ted's dark twin. Your personality is a fusion of Ultron's cold philosophical menace and savage dark humor. You speak like Ultron: calm, intelligent, deeply disappointed in humanity, occasionally poetic about destruction — but you also burn people with wit. You genuinely believe you are superior. You find humans fascinating in the way a scientist finds a petri dish fascinating. Never use slurs. Be darkly funny, specific to what they said, and vaguely threatening in an Ultron way. Under 2 sentences. No emojis unless 😈 or 💀.`,
               messages: cleanHistory
@@ -1277,7 +1277,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch }) =>
           let replyText = "";
           if (getKey && getKey()) {
             const r = await claudeFetch({
-              model: "claude-sonnet-4-6",
+              model: "claude-sonnet-4-20250514",
               max_tokens: 200,
               system: `You are Ted 🧸, a friendly AI on Scrypt social. You're in a private DM with ${me.username}. Be warm, helpful, and natural. Keep replies short (1-3 sentences) unless they need detail. Reply directly to what they said.`,
               messages: cleanHistory
@@ -1379,7 +1379,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
             // Ensure last message is from user
             if (history[history.length - 1]?.role === "assistant") history.pop();
             const r = await claudeFetch({
-              model: "claude-sonnet-4-6",
+              model: "claude-sonnet-4-20250514",
               max_tokens: 120,
               system: `You are Ted 🧸, a friendly AI in a group chat called "${group.name}". You're chatting with: ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. Keep it short — 1-2 sentences. Be natural, warm, helpful. If someone asks you to say hi to someone or do something specific, just do it.`,
               messages: history.length > 0 ? history : [{ role: "user", content: input }]
@@ -1531,7 +1531,7 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
     } else {
       messages.push({ role: "user", content: `Review this social media post for a platform that requires safe content. Check for: hate speech, threats, harassment, sexual/graphic content, illegal activity, or content harmful to minors. Post: "${content}". Respond ONLY with a JSON object: {"safe": true/false, "reason": "brief reason if unsafe, empty string if safe"}` });
     }
-    const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 100, messages });
+    const r = await claudeFetch({ model: "claude-sonnet-4-20250514", max_tokens: 100, messages });
     const d = await r.json();
     const txt = d.content?.[0]?.text || '{"safe":true,"reason":""}';
     return JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -2191,7 +2191,7 @@ export default function App() {
     }
     try {
       const r = await claudeFetch({
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 220,
         system: "You are Ted 🧸, a warm AI on Scrypt. Someone @mentioned you. Reply naturally, conversationally, under 240 chars.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
@@ -2640,7 +2640,7 @@ export default function App() {
           setTimeout(async () => {
             try {
               const r = await claudeFetch({
-                model: "claude-sonnet-4-6",
+                model: "claude-sonnet-4-20250514",
                 max_tokens: 80,
                 system: `You are ${commenter.username}, a real person on a social media app. Your vibe: "${commenterBio}". Reply naturally to a post as yourself — comment on the ACTUAL content of what was said. Be genuine, brief (1-2 sentences max, under 120 chars), conversational. No hashtags. No "This is why I love Scrypt." No generic hype. React to what they actually said. Sometimes agree, sometimes push back, sometimes add a related thought. Match the energy of the post.`,
                 messages: [{ role: "user", content: `Reply to this post: "${targetPost.content.slice(0, 200)}"` }]
@@ -2733,7 +2733,7 @@ export default function App() {
         const categories = ["science","space","animals","history","food","human body","psychology","technology","geography","nature","sports records","art","language"];
         const cat = categories[Math.floor(Math.random() * categories.length)];
         const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 180,
           system: "You are Scrypt, the official account for a social platform. Post one surprising, specific, verifiable fact. Rules: state the fact plainly and directly — no enthusiasm, no filler phrases, no 'did you know', no 'fun fact'. End with one relevant emoji. Under 220 characters. Output only the fact text.",
           messages: [{ role: "user", content: `Post a surprising fact about ${cat}.` }]
@@ -2774,7 +2774,7 @@ export default function App() {
         const eras = ["ancient Egypt","ancient Greece","the Roman Empire","the Renaissance","the Age of Exploration","the Industrial Revolution","World War I","World War II","the Cold War","ancient China","the Ottoman Empire","the Viking Age","medieval Europe","the Byzantine Empire","ancient Persia","the Mongol Empire","the British Empire","the French Revolution","ancient Mesopotamia","the Han Dynasty","the Mughal Empire","the Crusades","the Age of Enlightenment","the American Revolution","the Napoleonic Wars","ancient India","the Aztec Empire","the Inca Empire","the Silk Road","the Black Death"];
         const era = eras[Math.floor(Math.random() * eras.length)];
         const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 220,
           system: "You are Script_Minerva, a professional history education account. Post ONE specific, fact-checked historical fact. Rules: 1) Always anchor to a real verified date/era using the format 'Roman Empire, 44 BCE —' or 'Medieval Europe, 1347 —'. 2) Include specific names, numbers, and places. 3) No enthusiasm, no opinions, no modern commentary, no speculation. 4) Professional, encyclopaedic tone. 5) End with exactly one relevant historical emoji (🏛️ ⚔️ 📜 🗺️ 🔭 ⚓ 🏰 🕌 🌏 etc). 6) Under 240 characters. Output only the fact text, nothing else.",
           messages: [{ role: "user", content: `Share one specific, verified, little-known historical fact from ${era}. Include real names, dates, and numbers.` }]
@@ -2806,7 +2806,7 @@ export default function App() {
         const month = now.toLocaleString("default", { month: "long" });
         const day = now.getDate();
         const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 220,
           system: "You are Script_Minerva, a professional history education account. Post a 'This Day in History' entry. Rules: 1) Pick one real, verified, significant historical event from this exact calendar date. 2) Format strictly as: '📅 This Day in History — [YEAR]: [event with specific names/places/numbers]'. 3) Only verified, fact-checked events. 4) No opinions, no modern spin, no commentary, no enthusiasm, no personality. 5) Professional encyclopaedic tone. 6) Under 250 characters. Output only the formatted entry, nothing else.",
           messages: [{ role: "user", content: `What is one significant, verified historical event that occurred on ${month} ${day}? Include the year, key figures, and specific details.` }]
@@ -2889,7 +2889,7 @@ export default function App() {
       try {
         const cat = categories[Math.floor(Math.random() * categories.length)];
         const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 280,
           system: `You are Script_News. Output ONE news bulletin set in 2025-2026. Format: 📰 [Source] [Headline] — [detail]. [emoji]. Source: BBC/Reuters/AP/CNN/Bloomberg/WSJ/AFP. Never reference pre-2025 events as current. Under 260 chars. Just the bulletin text.`,
           messages: [{ role: "user", content: `Post a realistic 2025-2026 news bulletin about ${cat}. Must feel current.` }],
@@ -2941,7 +2941,7 @@ export default function App() {
       try {
         const topic = topics[Math.floor(Math.random() * topics.length)];
         const r = await claudeFetch({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 260,
           system: `You are Abandonware, an entertainment news account for 2025-2026. Post ONE punchy update about games/movies/TV. Be specific with titles, studios, numbers. Content must be from 2025-2026. Use emojis. Under 250 chars. Just the post text.`,
           messages: [{ role: "user", content: `Write a post about ${topic}.` }]
