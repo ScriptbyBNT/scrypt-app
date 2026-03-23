@@ -89,6 +89,14 @@ const rowToUser = r => {
   if (!r) return null;
   const village = tryParse(r.village, []);
   const extra = tryParse(r.info_fields, {});
+  // Wallpaper: try dedicated wallpaper field first, then legacy info_fields
+  const wallpaper = (() => {
+    if (r.wallpaper) {
+      const wp = tryParse(r.wallpaper, null);
+      return wp || r.wallpaper; // support both JSON and plain string
+    }
+    return extra.wallpaper || null;
+  })();
   return {
     id: r.id,
     username: r.username,
@@ -105,7 +113,7 @@ const rowToUser = r => {
     featuredPostId: r.featured_post_id || r.featuredPostId || null,
     hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
     profileSongName: r.profile_song_name || r.profileSongName || null,
-    wallpaper: extra.wallpaper || null,
+    wallpaper,
     infoMovie: extra.infoMovie || null,
     infoArtist: extra.infoArtist || null,
     infoShow: extra.infoShow || null,
@@ -163,7 +171,6 @@ const userToRow = u => ({
   has_profile_song: u.hasProfileSong || false,
   profile_song_name: u.profileSongName || null,
   info_fields: JSON.stringify({
-    wallpaper: (u.wallpaper && u.wallpaper.type === "image") ? { type: "image", value: "__local_wallpaper__" } : (u.wallpaper || null),
     infoMovie: u.infoMovie || null,
     infoArtist: u.infoArtist || null,
     infoShow: u.infoShow || null,
@@ -364,7 +371,7 @@ const SP = [
   // GAMING CLICK posts
   { id: "cp_gm_001", userId: "bot_100", username: "blaze_king", content: "Elden Ring Shadow of the Erdtree is one of the greatest DLCs in gaming history. FromSoftware cannot be stopped. Messmer is terrifying. 🗡️", likes: ["bot_110","bot_120","bot_130","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007"], reposts: ["bot_110","bot_120","bot_130","bot_140","bot_150"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 11 },
   { id: "cp_gm_002", userId: "bot_110", username: "grind_boss", content: "Baldur's Gate 3 won every award for a reason. I have 400 hours in it. I regret nothing. Larian Studios went above and beyond.", likes: ["bot_100","bot_120","bot_130","bot_140","bot_150","bot_160","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_100","bot_120","bot_130","bot_140"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 9 },
-  { id: "cp_gm_003", userId: "bot_120", username: "elite_flow", content: "GTA VI is finally here and it lived up to the hype. Rockstar did it again. The open world is on another level entirely. 🎮", likes: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008"], reposts: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 18 },
+  { id: "cp_gm_003", userId: "bot_120", username: "elite_flow", content: "GTA VI dropping next year and the internet is not ready. That trailer broke YouTube records for a reason. Rockstar Games about to change everything again. 🎮", likes: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008"], reposts: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 18 },
 
   // FITNESS CLICK posts
   { id: "cp_ft_001", userId: "bot_019", username: "eden_cross", content: "6 months of consistent gym. Down 25lbs, up 15lbs of muscle. Discipline > motivation every single time. Not stopping. 💪", likes: ["bot_029","bot_039","bot_049","bot_059","bot_069","bot_079","bot_089","bot_099","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_039","bot_049","bot_059","bot_069","bot_079","bot_089"], clickId: "click_fitness", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 13 },
@@ -789,7 +796,7 @@ const Terms = ({ onAccept, T }) => <div style={{ position: "fixed", inset: 0, ba
 </div>;
 
 // ── CLAUDE CHAT ───────────────────────────────────────────────────────────────
-const ClaudeChat = ({ T, onClose, init }) => {
+const TedChat = ({ T, onClose, init }) => {
   const [msgs, setMsgs] = useState([{ role: "assistant", content: "Hi! I'm Ted 🧸, your AI on Scrypt. What's on your mind?" }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -808,7 +815,7 @@ const ClaudeChat = ({ T, onClose, init }) => {
     setMsgs(next); setInput(""); setBusy(true);
     try {
       const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Ted, a helpful AI on Scrypt. Be helpful, concise, and friendly.", messages: api });
+      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly.", messages: api });
       const d = await r.json();
       setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
     } catch {
@@ -1052,7 +1059,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
   const theirV = user.village || [];
   const mutual = inV && theirV.includes(me.id);
   const pub = posts.filter(p => p.userId === user.id && !p.parentId && !p.villageOnly);
-  const wp = (() => { const w = user.wallpaper; if (!w) return null; if (w?.type === "image" && w?.value === "__local_wallpaper__") return LS.get(`wallpaper_${user.id}`) || null; return w; })();
+  const wp = user.wallpaper;
   const accent = getAccent(user);
   const bannerBg = wp?.type === "image" ? `url(${wp.value}) center/cover` : (wp?.value || accent.grad);
   // Featured post
@@ -1743,8 +1750,8 @@ export default function App() {
   const [openClick, setOpenClick] = useState(null);
   const [openUser, setOpenUser] = useState(null);
   const [dmUser, setDmUser] = useState(null);
-  const [claudeInit, setClaudeInit] = useState(null);
-  const [showClaude, setShowClaude] = useState(false);
+  const [tedInit, setClaudeInit] = useState(null);
+  const [showTed, setShowClaude] = useState(false);
   const [groupChats, setGroupChats] = useState(() => LS.get("gchat") || []);
   const [activeGroup, setActiveGroup] = useState(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -1931,7 +1938,7 @@ export default function App() {
         id: `claude_reply_${Date.now()}`,
         userId: "claude_account",
         username: "Ted",
-        content: "🧸 Hi! I need an API key to reply. Head to Settings → AI Key and paste your key — then type @ted again!",
+        content: "👋 Hi! I'd love to reply but I need an API key to think. Head to **Settings → AI Key** and paste your Anthropic key — then @mention me again! 🤖",
         parentId: parentPostId,
         likes: [], reposts: [],
         createdAt: new Date().toISOString(),
@@ -1947,7 +1954,7 @@ export default function App() {
       const r = await claudeFetch({
         model: "claude-sonnet-4-6",
         max_tokens: 220,
-        system: "You are Ted 🧸, a warm witty AI on Scrypt. Someone just @mentioned you. Reply naturally, conversationally, under 240 chars. No hashtags unless funny. Sound human.",
+        system: "You are Ted 🧸, a warm AI on Scrypt. Someone @mentioned you. Reply naturally, conversationally, under 240 chars. No hashtags unless funny.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
       });
       if (!r.ok) return;
@@ -2064,7 +2071,7 @@ export default function App() {
         "Inside Out 2 is secretly one of Pixar's best films. Anxiety is the most relatable character in cinema history 😭",
       ],
       click_hiphop: [
-        "Kendrick Lamar's Super Bowl halftime show was genuinely one of the greatest performances in the history of the event. That's not debatable. 🎤",
+        "Kendrick Lamar performing at the Super Bowl halftime show is going to be historic. He's on a different level rn. 🎤",
         "Tyler the Creator's Chromakopia grew on me hard. Thought I Walk Alone was strange then it became my most played.",
         "Wicked the movie soundtrack is lowkey hip hop adjacent and I will not be taking questions about this take 😂",
         "GNX by Kendrick might be album of the year already. The man just doesn't miss. #Kendrick",
@@ -2452,7 +2459,7 @@ export default function App() {
 
       // 30% chance: bots reply to posts (no API key needed)
       if (Math.random() < 0.30) {
-        const BOT_REPLIES = ["This is exactly the take I needed 🔥","100% agree, couldn't have said it better","Bro this goes hard 💪","Facts. No cap.","This right here 👆","Genuinely one of the best takes on here","W post fr","Say it louder 📢","I was literally just thinking this","Needed to hear this 🙏","Underrated take tbh","Okay you actually cooked here 🍳","The accuracy is unreal","This slaps","Respect. Real one.","All day every day 🔥","Said what needed to be said","Top tier scrypt ngl","W take no debates","Built different mentality 💯"];
+        const BOT_REPLIES = ["This is exactly the take I needed 🔥","100% agree, couldn't have said it better","Bro this goes hard 💪","Facts. No cap.","This right here 👆","Genuinely one of the best takes on here","W post fr","Say it louder 📢","I was literally just thinking this","Needed to hear this 🙏","Underrated take tbh","Okay you actually cooked 🍳","The accuracy is unreal","This slaps","Respect. Real one.","All day every day 🔥","Said what needed to be said","Top tier scrypt ngl","W take no debates","Built different mentality 💯"];
         const replyablePosts = curPosts.filter(p => !p.parentId).slice(0, 25);
         if (replyablePosts.length > 0) {
           const targetPost = replyablePosts[Math.floor(Math.random() * Math.min(15, replyablePosts.length))];
@@ -2653,15 +2660,14 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 280,
-          system: `You are Script_News, a wire-service news bot. You output ONLY formatted news bulletins — no commentary, no opinions, no enthusiasm, no personality. Rules:
-- Use web search to find ONE real story from the last 24 hours. Sources: BBC, Reuters, AP, NYT, CNN, Bloomberg, WSJ, AFP, Guardian only.
-- Output format: 📰 [OutletName] [Factual headline] — [one specific verifiable detail: a number, name, place, or statistic]. [one relevant emoji]
-- Tone: dry wire-service dispatch. Zero personality. No exclamations. No takes. No phrases like "this is huge", "wow", "proving that", "showing why", "in a world where".
-- Output ONLY the bulletin text. Nothing else. No preamble. No sign-off.
-- If no verified real story found, output nothing.
-- Under 260 characters.`,
-          messages: [{ role: "user", content: `Search for the latest ${cat} right now and report one real, verified, breaking story. Use web search.` }],
-          tools: [{ type: "web_search_20250305", name: "web_search" }]
+          system: `You are Script_News, a wire-service news bot posting in 2025-2026. Output ONLY a formatted bulletin. Rules:
+- Format: 📰 [Source] [Headline] — [one specific detail: number, name, place]. [emoji]
+- Source must be one of: BBC, Reuters, AP, CNN, Bloomberg, WSJ, AFP, Guardian
+- The story must be set in 2025 or 2026. Never reference events from before 2025.
+- Tone: dry wire-service. No personality. No exclamations. No commentary.
+- Output ONLY the bulletin. Nothing else. Under 260 characters.`,
+          messages: [{ role: "user", content: `Post a realistic 2025-2026 news bulletin about ${cat}. Must feel like today's news, not historical.` }],
+          ...(getKey() && !getKey().startsWith("gsk_") ? { tools: [{ type: "web_search_20250305", name: "web_search" }] } : {})
         });
         const d = await r.json();
         // Extract text from potentially mixed content (tool_use + text blocks)
@@ -2711,8 +2717,8 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 260,
-          system: `You are Abandonware, an entertainment news account on a social platform covering video games, movies, and TV shows. Post ONE punchy update or fact. Rules:\n- Prioritize real recent news: box office numbers, release dates, studio announcements, award nominations, reviews\n- Be specific: include real titles, studios, directors, actors, and numbers (budget, gross, scores)\n- Brief opinions OK but must be grounded in facts\n- Use relevant emojis naturally\n- Keep it under 250 characters\n- No preamble — lead with the most interesting fact\n- Format: just the post text, nothing else`,
-          messages: [{ role: "user", content: `Write a post about ${topic}.` }]
+          system: `You are Abandonware, an entertainment news account covering games, movies, and TV in 2025-2026. Post ONE punchy update. Rules: Be specific with real titles, studios, directors, actors, numbers. Content must be from 2025 or 2026 — never reference events as future if they happened before 2025. Use relevant emojis. Under 250 chars. Lead with the most interesting fact. Just the post text, nothing else.`,
+          messages: [{ role: "user", content: `Write a 2025-2026 post about ${topic}. Must feel current, not historical.` }]
         });
         const d = await r.json();
         const content = d.content?.[0]?.text;
@@ -2800,13 +2806,12 @@ export default function App() {
 
   const doWallpaper = wp => {
     setShowWallpaper(false);
-    if (wp?.type === "image") {
-      LS.set(`wallpaper_${me.id}`, wp);
-      saveMe({ wallpaper: { type: "image", value: "__local_wallpaper__" } });
-    } else {
-      LS.set(`wallpaper_${me.id}`, null);
-      saveMe({ wallpaper: wp });
-    }
+    const updated = { ...me, wallpaper: wp };
+    setMe(updated);
+    setUsers(prev => prev.map(u => u.id === me.id ? updated : u));
+    // Save wallpaper directly to its own column (like avatar) — no info_fields needed
+    const wallpaperVal = wp ? JSON.stringify(wp) : null;
+    DB.updateUser(me.id, { wallpaper: wallpaperVal }).catch(e => console.error("wallpaper save", e));
     notify("Wallpaper saved! 🖼️");
   };
   const doSave = () => {
@@ -2851,15 +2856,8 @@ export default function App() {
   const resolvePhoto = (user, photoKey) => {
     const val = user[photoKey];
     if (!val) return null;
-    if (typeof val === "string" && val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
-    return val;
-  };
-
-  const resolveWallpaper = (user) => {
-    const wp = user?.wallpaper;
-    if (!wp) return null;
-    if (wp?.type === "image" && wp?.value === "__local_wallpaper__") return LS.get(`wallpaper_${user.id}`) || null;
-    return wp;
+    if (val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
+    return val; // legacy direct base64
   };
 
   // Helper: resolve profile song
@@ -2912,7 +2910,7 @@ export default function App() {
   return <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Segoe UI',sans-serif", color: T.text }}>
     {toast && <div style={{ position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.bg, padding: "10px 20px", borderRadius: 9999, fontSize: 14, fontWeight: 600, zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
     {voiceCall && <VoiceCall me={me} participants={voiceCall.participants} users={users} T={T} onEnd={() => { setVoiceCall(null); notify("Call ended"); }} />}
-    {showClaude && <ClaudeChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={claudeInit} />}
+    {showTed && <TedChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={tedInit} />}
     {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} />}
     {showPP && <PicPicker onPick={doPickDef} onClose={() => setShowPP(false)} T={T} />}
     {showWallpaper && <WallpaperPicker onPick={doWallpaper} onClose={() => setShowWallpaper(false)} T={T} />}
@@ -3185,7 +3183,7 @@ export default function App() {
         {/* Banner */}
         {(() => {
           const myAccent = getAccent(me);
-          const bannerBg = (() => { const w = resolveWallpaper(me); return w?.type === "image" ? `url(${w.value}) center/cover` : (w?.value || myAccent.grad); })();
+          const bannerBg = me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || myAccent.grad);
           const feat = me.featuredPostId ? posts.find(p => p.id === me.featuredPostId) : null;
           return <>
             <div style={{ height: 110, background: bannerBg, position: "relative", overflow: "visible", flexShrink: 0, borderBottom: `2px solid ${myAccent.color}` }}>
@@ -3252,7 +3250,7 @@ export default function App() {
           {/* ── PROFILE BASICS ── */}
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 12 }}>Profile</div>
-            <div style={{ height: 72, borderRadius: 10, background: (() => { const w = resolveWallpaper(me); return w?.type === "image" ? `url(${w.value}) center/cover` : (w?.value || myAccent.grad); })(), position: "relative", marginBottom: 10, overflow: "hidden" }}>
+            <div style={{ height: 72, borderRadius: 10, background: me.wallpaper?.type === "image" ? `url(${me.wallpaper.value}) center/cover` : (me.wallpaper?.value || myAccent.grad), position: "relative", marginBottom: 10, overflow: "hidden" }}>
               <button onClick={() => setShowWallpaper(true)} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.5)", color: "white", border: "none", borderRadius: 8, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🖼️ Change banner</button>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -3360,6 +3358,7 @@ export default function App() {
 
           <button onClick={() => { setMe(null); localStorage.removeItem("session_uid"); setPg("login"); }} style={{ background: "transparent", color: PINK, border: `2px solid ${PINK}`, borderRadius: 9999, padding: "6px", width: "100%", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Sign Out</button>
 
+          {/* ── CHANGE PASSWORD ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🔒 Change Password</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
