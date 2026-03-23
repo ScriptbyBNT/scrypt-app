@@ -1405,9 +1405,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
             // Build conversation history so Ted knows what's been said
             const currentMsgs = [...msgs, m];
             const history = currentMsgs.slice(-10).map(msg => {
-              const sender = users.find(u => u.id === msg.from);
-              const name = sender?.username || msg.from;
-              return { role: msg.from === "claude_account" ? "assistant" : "user", content: `${msg.from !== "claude_account" ? `[${name}]: ` : ""}${msg.text}` };
+              return { role: msg.from === "claude_account" ? "assistant" : "user", content: msg.text };
             });
             // Ensure last message is from user
             if (history[history.length - 1]?.role === "assistant") history.pop();
@@ -2146,7 +2144,18 @@ export default function App() {
     meta.content = color;
     document.body.style.backgroundColor = color;
     LS.set("dark", dark ? "1" : "0");
-    if (me?.id) { const row=userToRow({...me,dark:dark?1:0}); const {info_fields,...cr}=row; DB.updateUser(me.id,cr).catch(()=>{}); if(info_fields) DB.updateUser(me.id,{info_fields}).catch(()=>{}); }
+    if (me?.id) {
+      DB.updateUser(me.id, {
+        info_fields: JSON.stringify({
+          infoMovie: me.infoMovie || null, infoArtist: me.infoArtist || null,
+          infoShow: me.infoShow || null, infoBook: me.infoBook || null,
+          infoGame: me.infoGame || null, infoMoviePhoto: me.infoMoviePhoto || null,
+          infoArtistPhoto: me.infoArtistPhoto || null, infoShowPhoto: me.infoShowPhoto || null,
+          infoBookPhoto: me.infoBookPhoto || null, infoGamePhoto: me.infoGamePhoto || null,
+          dark: dark ? 1 : 0,
+        })
+      }).catch(() => {});
+    }
   }, [dark]);
 
   useEffect(() => {
