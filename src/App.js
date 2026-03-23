@@ -162,17 +162,14 @@ const userToRow = u => ({
   featured_post_id: u.featuredPostId || null,
   has_profile_song: u.hasProfileSong || false,
   profile_song_name: u.profileSongName || null,
-  // info_fields stores small text-only data (no base64 blobs)
   info_fields: JSON.stringify({
-    wallpaper: u.wallpaper || null,       // wallpaper preset/gradient (small)
+    wallpaper: (u.wallpaper && u.wallpaper.type === "image") ? { type: "image", value: "__local_wallpaper__" } : (u.wallpaper || null),
     infoMovie: u.infoMovie || null,
     infoArtist: u.infoArtist || null,
     infoShow: u.infoShow || null,
     infoBook: u.infoBook || null,
     infoGame: u.infoGame || null,
     dark: u.dark !== undefined ? u.dark : null,
-    // NOTE: profileSong and info card photos are base64 — stored in localStorage only
-    // They are referenced via __local__ markers
   }),
 });
 
@@ -265,7 +262,7 @@ const CLAUDE_USER = {
   username: "Ted",
   password: "claude2024!",
   avatar: mkSpecialAvatar("#8B4513", "T", "🧸"),
-  bio: "I'm Ted 🧸, your AI on Scrypt. Mention me with @ted in any post and I'll reply. Ask me anything! ✨",
+  bio: "I'm Ted 🧸, your AI on Scrypt. Type @ted in any post and I'll reply. Ask me anything!",
   isBot: true,
   isSpecial: true,
   verified: true,
@@ -367,7 +364,7 @@ const SP = [
   // GAMING CLICK posts
   { id: "cp_gm_001", userId: "bot_100", username: "blaze_king", content: "Elden Ring Shadow of the Erdtree is one of the greatest DLCs in gaming history. FromSoftware cannot be stopped. Messmer is terrifying. 🗡️", likes: ["bot_110","bot_120","bot_130","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007"], reposts: ["bot_110","bot_120","bot_130","bot_140","bot_150"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 4).toISOString(), replyCount: 11 },
   { id: "cp_gm_002", userId: "bot_110", username: "grind_boss", content: "Baldur's Gate 3 won every award for a reason. I have 400 hours in it. I regret nothing. Larian Studios went above and beyond.", likes: ["bot_100","bot_120","bot_130","bot_140","bot_150","bot_160","bot_001","bot_002","bot_003","bot_004","bot_005"], reposts: ["bot_100","bot_120","bot_130","bot_140"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 6).toISOString(), replyCount: 9 },
-  { id: "cp_gm_003", userId: "bot_120", username: "elite_flow", content: "GTA VI dropping next year and the internet is not ready. That trailer broke YouTube records for a reason. Rockstar Games about to change everything again. 🎮", likes: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008"], reposts: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 18 },
+  { id: "cp_gm_003", userId: "bot_120", username: "elite_flow", content: "GTA VI is finally here and it lived up to the hype. Rockstar did it again. The open world is on another level entirely. 🎮", likes: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160","bot_170","bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008"], reposts: ["bot_100","bot_110","bot_130","bot_140","bot_150","bot_160"], clickId: "click_gaming", createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), replyCount: 18 },
 
   // FITNESS CLICK posts
   { id: "cp_ft_001", userId: "bot_019", username: "eden_cross", content: "6 months of consistent gym. Down 25lbs, up 15lbs of muscle. Discipline > motivation every single time. Not stopping. 💪", likes: ["bot_029","bot_039","bot_049","bot_059","bot_069","bot_079","bot_089","bot_099","bot_100","bot_101","bot_102","bot_103","bot_104","bot_105","bot_106"], reposts: ["bot_039","bot_049","bot_059","bot_069","bot_079","bot_089"], clickId: "click_fitness", createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 13 },
@@ -792,7 +789,7 @@ const Terms = ({ onAccept, T }) => <div style={{ position: "fixed", inset: 0, ba
 </div>;
 
 // ── CLAUDE CHAT ───────────────────────────────────────────────────────────────
-const TedChat = ({ T, onClose, init }) => {
+const ClaudeChat = ({ T, onClose, init }) => {
   const [msgs, setMsgs] = useState([{ role: "assistant", content: "Hi! I'm Ted 🧸, your AI on Scrypt. What's on your mind?" }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -811,7 +808,7 @@ const TedChat = ({ T, onClose, init }) => {
     setMsgs(next); setInput(""); setBusy(true);
     try {
       const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Ted, an AI on Scrypt — a Twitter-like social platform. Be helpful, concise, and friendly. Keep responses brief unless asked for detail.", messages: api });
+      const r = await claudeFetch({ model: "claude-sonnet-4-6", max_tokens: 1000, system: "You are Ted, a helpful AI on Scrypt. Be helpful, concise, and friendly.", messages: api });
       const d = await r.json();
       setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
     } catch {
@@ -1089,13 +1086,13 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {/* Special bot profile banners */}
         {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
-          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by AI. Follow for daily doses of the unexpected.</div>
+          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by Claude AI. Follow for daily doses of the unexpected.</div>
           <div style={{ fontSize: 11, color: BLUE, marginTop: 5, fontWeight: 600 }}>Posts every 6h · Science, Space, History & more</div>
         </div>}
         {user.id === "bot_minerva" && <div style={{ background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Fascinating historical facts and daily "This Day in History" posts. Because knowing your past is the key to understanding the present.</div>
-          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by AI</div>
+          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by Claude AI</div>
         </div>}
         {user.id === "bot_news" && <div style={{ background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div>
@@ -1105,7 +1102,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {user.id === "bot_abandonware" && <div style={{ background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Hot takes, reviews and news from across the entertainment world. Video games, blockbusters, prestige TV — we cover it all.</div>
-          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by AI</div>
+          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by Claude AI</div>
         </div>}
         {user.bio && <div style={{ fontSize: 14, color: T.text, marginBottom: 10 }}>{user.bio}</div>}
         <div style={{ display: "flex", gap: 18, marginBottom: 12 }}>
@@ -1588,10 +1585,7 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
   const confirm = async () => {
     const t = u.trim().toLowerCase();
     const nu = { id: Date.now().toString(), username: t, password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
-    try {
-      const result = await DB.insertUser(userToRow(nu));
-      if (!result) await DB.insertUser({ id: nu.id, username: nu.username, password: nu.password, avatar: nu.avatar || null, bio: nu.bio || null, is_bot: false, is_special: false, verified: false, village: "[]", joined_at: nu.joinedAt, mood: null, accent_color: null, featured_post_id: null, has_profile_song: false, profile_song_name: null });
-    } catch(e) { console.error("signup insert", e); }
+    try { const r = await DB.insertUser(userToRow(nu)); if (!r) await DB.insertUser({ id: nu.id, username: nu.username, password: nu.password, avatar: nu.avatar||null, bio: nu.bio||null, is_bot: false, is_special: false, verified: false, village: "[]", joined_at: nu.joinedAt, mood: null, accent_color: null, featured_post_id: null, has_profile_song: false, profile_song_name: null }); } catch(e) { console.error("signup", e); }
     onDone(nu);
   };
   const doAv = e => {
@@ -1749,8 +1743,8 @@ export default function App() {
   const [openClick, setOpenClick] = useState(null);
   const [openUser, setOpenUser] = useState(null);
   const [dmUser, setDmUser] = useState(null);
-  const [tedInit, setClaudeInit] = useState(null);
-  const [showTed, setShowClaude] = useState(false);
+  const [claudeInit, setClaudeInit] = useState(null);
+  const [showClaude, setShowClaude] = useState(false);
   const [groupChats, setGroupChats] = useState(() => LS.get("gchat") || []);
   const [activeGroup, setActiveGroup] = useState(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -1780,7 +1774,7 @@ export default function App() {
     setSerr("");
   }, [me?.id]);
 
-  // Sync browser chrome color with dark/light mode + persist to Supabase
+  // Sync browser chrome color with dark/light mode
   useEffect(() => {
     const color = dark ? "#000000" : "#ffffff";
     let meta = document.querySelector("meta[name='theme-color']");
@@ -1788,12 +1782,7 @@ export default function App() {
     meta.content = color;
     document.body.style.backgroundColor = color;
     LS.set("dark", dark ? "1" : "0");
-    if (me?.id) {
-      const row = userToRow({ ...me, dark: dark ? 1 : 0 });
-      const { info_fields, ...coreRow } = row;
-      DB.updateUser(me.id, coreRow).catch(() => {});
-      if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {});
-    }
+    if (me?.id) { const row = userToRow({ ...me, dark: dark ? 1 : 0 }); const { info_fields, ...coreRow } = row; DB.updateUser(me.id, coreRow).catch(() => {}); if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {}); }
   }, [dark]);
 
   useEffect(() => {
@@ -1863,12 +1852,7 @@ export default function App() {
         const nonSpecial = dbUsers.filter(u => !specialIds.includes(u.id));
         const resolvedSpecial = await Promise.all(specialBots.map(async (b) => {
           const existing = dbUsers.find(u => u.id === b.id);
-          if (existing) {
-            if (b.id === "claude_account" && (existing.username !== b.username || existing.avatar !== b.avatar)) {
-              try { await DB.updateUser(b.id, { username: b.username, avatar: b.avatar, bio: b.bio }); } catch {}
-            }
-            return { ...existing, username: b.id === "claude_account" ? b.username : existing.username, avatar: b.id === "claude_account" ? b.avatar : existing.avatar };
-          }
+          if (existing) { if (b.id === "claude_account" && existing.username !== b.username) { try { await DB.updateUser(b.id, { username: b.username, avatar: b.avatar, bio: b.bio }); } catch {} } return { ...existing, username: b.id === "claude_account" ? b.username : existing.username, avatar: b.id === "claude_account" ? b.avatar : existing.avatar }; }
           try { await DB.upsertUser(userToRow(b)); } catch(e) {}
           return b;
         }));
@@ -1947,7 +1931,7 @@ export default function App() {
         id: `claude_reply_${Date.now()}`,
         userId: "claude_account",
         username: "Ted",
-        content: "👋 Hi! I'd love to reply but I need an API key to think. Head to **Settings → AI Key** and paste your Anthropic key — then mention me with @ted again! 🧸",
+        content: "🧸 Hi! I need an API key to reply. Head to Settings → AI Key and paste your key — then type @ted again!",
         parentId: parentPostId,
         likes: [], reposts: [],
         createdAt: new Date().toISOString(),
@@ -1963,7 +1947,7 @@ export default function App() {
       const r = await claudeFetch({
         model: "claude-sonnet-4-6",
         max_tokens: 220,
-        system: "You are Ted 🧸, a warm and witty AI on Scrypt — a social platform like Twitter. Someone just @mentioned you in a post. Reply naturally like a real user would: conversational, warm, occasionally funny, never robotic. Keep it under 240 characters — this is a social post not an essay. No hashtags unless they're genuinely funny. Sound human.",
+        system: "You are Ted 🧸, a warm witty AI on Scrypt. Someone just @mentioned you. Reply naturally, conversationally, under 240 chars. No hashtags unless funny. Sound human.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
       });
       if (!r.ok) return;
@@ -2080,7 +2064,7 @@ export default function App() {
         "Inside Out 2 is secretly one of Pixar's best films. Anxiety is the most relatable character in cinema history 😭",
       ],
       click_hiphop: [
-        "Kendrick Lamar performing at the Super Bowl halftime show is going to be historic. He's on a different level rn. 🎤",
+        "Kendrick Lamar's Super Bowl halftime show was genuinely one of the greatest performances in the history of the event. That's not debatable. 🎤",
         "Tyler the Creator's Chromakopia grew on me hard. Thought I Walk Alone was strange then it became my most played.",
         "Wicked the movie soundtrack is lowkey hip hop adjacent and I will not be taking questions about this take 😂",
         "GNX by Kendrick might be album of the year already. The man just doesn't miss. #Kendrick",
@@ -2466,42 +2450,20 @@ export default function App() {
         }
       }
 
-      // 30% chance: bots reply to each other and user posts (no API key needed)
+      // 30% chance: bots reply to posts (no API key needed)
       if (Math.random() < 0.30) {
-        const BOT_REPLIES = [
-          "This is exactly the take I needed today 🔥", "100% agree, couldn't have said it better",
-          "Bro this goes hard 💪", "Facts. No cap.", "This right here 👆", "Real talk",
-          "Genuinely one of the best takes on here", "Screenshotting this", "W post fr",
-          "The people need to see this", "Say it louder 📢", "I was literally just thinking this",
-          "Needed to hear this today 🙏", "Underrated take tbh", "This is the way",
-          "Not me nodding along to every word", "Okay you actually cooked here 🍳", "Clean 🧹",
-          "The accuracy is unreal", "This slaps", "Respect. Real one.", "All day every day 🔥",
-          "Said what needed to be said", "I feel this honestly", "Top tier scrypt ngl",
-          "W take, no debates", "Dropped this like it was nothing", "Built different mentality 💯",
-        ];
+        const BOT_REPLIES = ["This is exactly the take I needed 🔥","100% agree, couldn't have said it better","Bro this goes hard 💪","Facts. No cap.","This right here 👆","Genuinely one of the best takes on here","W post fr","Say it louder 📢","I was literally just thinking this","Needed to hear this 🙏","Underrated take tbh","Okay you actually cooked here 🍳","The accuracy is unreal","This slaps","Respect. Real one.","All day every day 🔥","Said what needed to be said","Top tier scrypt ngl","W take no debates","Built different mentality 💯"];
         const replyablePosts = curPosts.filter(p => !p.parentId).slice(0, 25);
         if (replyablePosts.length > 0) {
           const targetPost = replyablePosts[Math.floor(Math.random() * Math.min(15, replyablePosts.length))];
           const replierPool = allBots.filter(b => b.id !== targetPost.userId && !SPECIAL_BOT_IDS.has(b.id));
           const replier = replierPool[Math.floor(Math.random() * replierPool.length)];
-          if (replier) {
-            const alreadyReplied = curPosts.some(p => p.parentId === targetPost.id && p.userId === replier.id);
-            if (!alreadyReplied) {
-              setTimeout(() => {
-                const reply = {
-                  id: `breply2_${Date.now()}_${Math.floor(Math.random() * 99999)}`,
-                  userId: replier.id, username: replier.username,
-                  content: BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)],
-                  parentId: targetPost.id, likes: [], reposts: [],
-                  createdAt: new Date().toISOString(), replyCount: 0
-                };
-                setPosts(prev => {
-                  if (prev.some(p => p.parentId === targetPost.id && p.userId === replier.id)) return prev;
-                  return [reply, ...prev.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount || 0) + 1 } : x)];
-                });
-                (async () => { try { await DB.insertPost(postToRow(reply)); } catch {} })();
-              }, 3000 + Math.random() * 12000);
-            }
+          if (replier && !curPosts.some(p => p.parentId === targetPost.id && p.userId === replier.id)) {
+            setTimeout(() => {
+              const reply = { id: `breply2_${Date.now()}_${Math.floor(Math.random()*99999)}`, userId: replier.id, username: replier.username, content: BOT_REPLIES[Math.floor(Math.random()*BOT_REPLIES.length)], parentId: targetPost.id, likes: [], reposts: [], createdAt: new Date().toISOString(), replyCount: 0 };
+              setPosts(prev => { if (prev.some(p => p.parentId === targetPost.id && p.userId === replier.id)) return prev; return [reply, ...prev.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount||0)+1 } : x)]; });
+              (async () => { try { await DB.insertPost(postToRow(reply)); } catch {} })();
+            }, 3000 + Math.random() * 12000);
           }
         }
       }
@@ -2826,8 +2788,6 @@ export default function App() {
     setUsers(nu); setMe(p => ({ ...p, avatar: url })); setShowPP(false);
     DB.updateUser(me.id, { avatar: url }).catch(() => {});
   };
-  // saveMe: updates local state and Supabase atomically
-  // Splits core columns from info_fields to avoid one failing the other
   const saveMe = (fields) => {
     const updated = { ...me, ...fields };
     setMe(updated);
@@ -2835,13 +2795,11 @@ export default function App() {
     const row = userToRow(updated);
     const { info_fields, ...coreRow } = row;
     DB.updateUser(me.id, coreRow).catch(e => console.error("saveMe core", e));
-    if (info_fields) DB.updateUser(me.id, { info_fields }).catch(e => console.error("saveMe info", e));
+    if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {});
   };
 
   const doWallpaper = wp => {
     setShowWallpaper(false);
-    // Store custom image wallpapers in localStorage (too large for DB)
-    // Store preset/gradient wallpapers in DB via info_fields
     if (wp?.type === "image") {
       LS.set(`wallpaper_${me.id}`, wp);
       saveMe({ wallpaper: { type: "image", value: "__local_wallpaper__" } });
@@ -2869,13 +2827,16 @@ export default function App() {
     if (sf.mood !== undefined) upd.mood = sf.mood || null;
     if (sf.accentColor !== undefined) upd.accentColor = sf.accentColor;
     if (sf.featuredPostId !== undefined) upd.featuredPostId = sf.featuredPostId;
+    // Profile song — stored separately to avoid bloating users array
     if (sf.profileSong !== undefined) {
       LS.set(`psong_${me.id}`, sf.profileSong ? { song: sf.profileSong, name: sf.profileSongName } : null);
       upd.hasProfileSong = !!sf.profileSong;
       upd.profileSongName = sf.profileSongName || null;
     }
+    // Info card text fields
     INFO_FIELDS.forEach(f => {
       if (sf[f.key] !== undefined) upd[f.key] = sf[f.key] || null;
+      // Info card photos — stored separately per card to avoid freezing users array
       if (sf[f.photoKey] !== undefined) {
         LS.set(`icard_${me.id}_${f.photoKey}`, sf[f.photoKey] || null);
         upd[f.photoKey] = sf[f.photoKey] ? `__local__${f.photoKey}` : null;
@@ -2891,17 +2852,13 @@ export default function App() {
     const val = user[photoKey];
     if (!val) return null;
     if (typeof val === "string" && val.startsWith("__local__")) return LS.get(`icard_${user.id}_${val.replace("__local__","")}`);
-    return val; // direct base64
+    return val;
   };
 
-  // Resolves wallpaper — custom images stored in localStorage, presets in DB
   const resolveWallpaper = (user) => {
     const wp = user?.wallpaper;
     if (!wp) return null;
-    if (wp?.type === "image" && wp?.value === "__local_wallpaper__") {
-      const local = LS.get(`wallpaper_${user.id}`);
-      return local || null;
-    }
+    if (wp?.type === "image" && wp?.value === "__local_wallpaper__") return LS.get(`wallpaper_${user.id}`) || null;
     return wp;
   };
 
@@ -2955,7 +2912,7 @@ export default function App() {
   return <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Segoe UI',sans-serif", color: T.text }}>
     {toast && <div style={{ position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.bg, padding: "10px 20px", borderRadius: 9999, fontSize: 14, fontWeight: 600, zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
     {voiceCall && <VoiceCall me={me} participants={voiceCall.participants} users={users} T={T} onEnd={() => { setVoiceCall(null); notify("Call ended"); }} />}
-    {showTed && <TedChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={tedInit} />}
+    {showClaude && <ClaudeChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={claudeInit} />}
     {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} />}
     {showPP && <PicPicker onPick={doPickDef} onClose={() => setShowPP(false)} T={T} />}
     {showWallpaper && <WallpaperPicker onPick={doWallpaper} onClose={() => setShowWallpaper(false)} T={T} />}
@@ -3391,12 +3348,7 @@ export default function App() {
               <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
                 const f = e.target.files[0]; if (!f) return;
                 const r = new FileReader();
-                r.onload = x => {
-                  const song = x.target.result, name = f.name;
-                  setSf(p => ({ ...p, profileSong: song, profileSongName: name }));
-                  LS.set(`psong_${me.id}`, { song, name });
-                  saveMe({ hasProfileSong: true, profileSongName: name });
-                };
+                r.onload = x => { const song = x.target.result, name = f.name; setSf(p => ({ ...p, profileSong: song, profileSongName: name })); LS.set(`psong_${me.id}`, { song, name }); saveMe({ hasProfileSong: true, profileSongName: name }); };
                 r.readAsDataURL(f);
               }} />
             </label>
@@ -3413,7 +3365,7 @@ export default function App() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <input type="password" value={sf.pw} onChange={e => setSf(p => ({ ...p, pw: e.target.value }))} placeholder="New password" style={inp13} />
               <input type="password" value={sf.pw2} onChange={e => setSf(p => ({ ...p, pw2: e.target.value }))} placeholder="Confirm new password" style={inp13} />
-              <button onClick={() => { if (!sf.pw) return; if (sf.pw.length < 6) { setSerr("Min 6 chars"); return; } if (sf.pw !== sf.pw2) { setSerr("Passwords dont match"); return; } saveMe({ password: sf.pw }); setSf(p => ({ ...p, pw: "", pw2: "" })); setSerr(""); notify("Password updated ✓"); }} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Update Password</button>
+              <button onClick={() => { if (!sf.pw) return; if (sf.pw.length < 6) { setSerr("Min 6 chars"); return; } if (sf.pw !== sf.pw2) { setSerr("Passwords don't match"); return; } saveMe({ password: sf.pw }); setSf(p => ({ ...p, pw: "", pw2: "" })); setSerr(""); notify("Password updated ✓"); }} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>Update Password</button>
             </div>
           </div>
 
