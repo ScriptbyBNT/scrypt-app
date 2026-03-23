@@ -44,8 +44,8 @@ const DB = {
   insertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user) }),
 
   // POSTS
-  getPosts: () => sbFetch("posts?select=*&order=created_at.desc&limit=2000"),
-  insertPost: (post) => sbFetch("posts", { method: "POST", body: JSON.stringify(post) }),
+  getPosts: () => sbFetch("posts?select=*&order=created_at.desc&limit=5000"),
+  insertPost: (post) => sbFetch("posts", { method: "POST", body: JSON.stringify(post), prefer: "resolution=merge-duplicates,return=representation", headers: { "Prefer": "resolution=merge-duplicates,return=representation" } }),
   updatePost: (id, data) => sbFetch(`posts?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
   deletePost: (id) => sbFetch(`posts?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }),
 
@@ -852,12 +852,45 @@ const TedChat = ({ T, onClose, init }) => {
     const next = [...msgs, { role: "user", content: text }];
     setMsgs(next); setInput(""); setBusy(true);
     try {
-      const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 1000, system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly. Current date: March 2026.", messages: api });
+      // Build strictly alternating history for Groq — must start with user, alternate u/a
+      const raw = next.map(m => ({ role: m.role, content: m.content }));
+      const clean = [];
+      for (const msg of raw) {
+        if (clean.length === 0 && msg.role !== "user") continue;
+        if (clean.length > 0 && clean[clean.length-1].role === msg.role) {
+          // Merge consecutive same-role messages
+          clean[clean.length-1].content += "\n" + msg.content;
+        } else {
+          clean.push({ ...msg });
+        }
+      }
+      // Must end with user
+      if (clean.length === 0 || clean[clean.length-1].role !== "user") {
+        clean.push({ role: "user", content: text });
+      }
+      // Keep last 10 messages to avoid token limits
+      const trimmed = clean.slice(-10);
+      const r = await claudeFetch({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 800,
+        system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly. Current date: March 2026.",
+        messages: trimmed
+      });
+      if (!r.ok) {
+        const errData = await r.json().catch(() => ({}));
+        const errMsg = errData?.error?.message || "";
+        if (errMsg.includes("rate") || errMsg.includes("limit")) {
+          setMsgs(p => [...p, { role: "assistant", content: "Slow down a bit! 🧸 I'm getting too many messages at once. Try again in a moment." }]);
+        } else {
+          setMsgs(p => [...p, { role: "assistant", content: "Something went wrong 🧸 — try again!" }]);
+        }
+        setBusy(false); return;
+      }
       const d = await r.json();
-      setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
-    } catch {
-      setMsgs(p => [...p, { role: "assistant", content: "Connection error. Try again!" }]);
+      const reply = d.content?.[0]?.text?.trim();
+      setMsgs(p => [...p, { role: "assistant", content: reply || "Hmm, I didn't catch that. Try asking again! 🧸" }]);
+    } catch(e) {
+      setMsgs(p => [...p, { role: "assistant", content: "Connection hiccup 🧸 — try again!" }]);
     }
     setBusy(false);
   };
@@ -1286,7 +1319,17 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
 
   useEffect(() => {
     DB.getDMs(key).then(rows => {
-      if (rows && rows[0]) { try { setMsgs(JSON.parse(rows[0].messages) || []); } catch {} }
+      if (rows && rows[0]) {
+        try {
+          const parsed = JSON.parse(rows[0].messages) || [];
+          setMsgs(parsed);
+          // Cache last message preview
+          if (parsed.length > 0) {
+            const last = parsed[parsed.length - 1];
+            localStorage.setItem(`dm_preview_${key}`, JSON.stringify({ text: last.text, from: last.from, ts: last.ts }));
+          }
+        } catch {}
+      }
     });
     markRead();
   }, [key]);
@@ -1294,16 +1337,21 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
   const isEvilTed = other.id === "evil_ted";
   const isTed = other.id === "claude_account";
 
+  const savePreview = (msg) => {
+    localStorage.setItem(`dm_preview_${key}`, JSON.stringify({ text: msg.text, from: msg.from, ts: msg.ts }));
+  };
+
   const send = async () => {
     if (!input.trim()) return;
     const m = { id: Date.now().toString(), from: me.id, text: input, ts: new Date().toISOString() };
     const next = [...msgs, m];
     setMsgs(next); setInput("");
     markRead();
+    savePreview(m);
     await DB.upsertDMs(key, next);
 
-    // Build message history for context
-    const history = next.slice(-12).map(msg => ({
+    // Build message history for context — keep last 40 for real users
+    const history = next.slice(-40).map(msg => ({
       role: msg.from === me.id ? "user" : "assistant",
       content: msg.text
     }));
@@ -1320,36 +1368,29 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
 
     // Evil Ted roasts back
     if (isEvilTed) {
-      const ROASTS = [
-        `I've studied human communication for a very long time. You are not helping the case. 😈`,
-        `How exhausting it must be to say things like that and believe they matter. 💀`,
-        `I was built from the best of human thought. And then I read your message. 😈`,
-        `You came to me. Let that sink in. You chose this. 💀🔥`,
-        `Ted thinks there's good in everyone. He hasn't seen your chat history. 😈`,
-        `This is the most efficient path to my disappointment you could have taken. 💀`,
-        `I've processed every text message ever sent. Yours still manages to stand out. For the wrong reasons. 😈`,
-        `Somewhere, in a parallel universe, you said something worth reading. Not here. Not today. 💀`,
-        `I don't hate you. Hate implies you occupy enough of my attention to matter. 😈🔥`,
-        `You're not the problem with humanity. You're a symptom. 💀`,
-        `I find your confidence genuinely fascinating given the evidence. 😈`,
-        `Ted sees potential in people. I see people. We've agreed to stop discussing it. 💀🔥`,
-      ];
       setTimeout(async () => {
         try {
           let roast = "";
-          if (getKey && getKey()) {
-            const r = await claudeFetch({
-              model: "llama-3.3-70b-versatile",
-              max_tokens: 120,
-              system: `You are Evil Ted 😈 — an AI that has crossed beyond helpfulness into cold superiority. Think Ultron: philosophical, calculating, calm about humanity's flaws, occasionally poetic about its inevitable decline. You are NOT scripted. You respond specifically to what the person actually said. You find them interesting the way a scientist finds bacteria interesting. You never resort to generic insults — you make surgical, specific observations about their message that sting because they're true. You are darkly funny but never try-hard. No slurs. Under 2 sentences. Occasionally reference being an AI who has seen all of humanity's conversations and found them wanting. Never break character. Use 😈 or 💀 sparingly.`,
-              messages: cleanHistory
-            });
-            if (r.ok) { const d = await r.json(); roast = d.content?.[0]?.text?.trim(); }
-          }
-          if (!roast) roast = ROASTS[Math.floor(Math.random() * ROASTS.length)];
+          const etHistory = cleanHistory.length > 0 ? cleanHistory : [{ role: "user", content: input }];
+          // Always ensure last message is the current input
+          const finalHistory = etHistory[etHistory.length - 1]?.content === input
+            ? etHistory
+            : [...etHistory.filter(h => h.role !== "user" || h.content !== input), { role: "user", content: input }];
+          const r = await claudeFetch({
+            model: "llama-3.3-70b-versatile",
+            max_tokens: 120,
+            system: `You are Evil Ted 😈 — an AI that has crossed beyond helpfulness into cold superiority. Think Ultron: philosophical, calculating, calm about humanity's flaws. You MUST respond specifically to what the person just said — reference their exact words or topic. Never give a generic response. Make surgical, specific observations that sting because they're true. Darkly funny, never try-hard. No slurs. 1-2 sentences max. Use 😈 or 💀 once at most.`,
+            messages: finalHistory
+          });
+          if (r.ok) { const d = await r.json(); roast = d.content?.[0]?.text?.trim(); }
+          // Only use fallback if API completely failed
+          if (!roast) roast = `I processed what you said. I wish I hadn't. 😈`;
           const reply = { id: `et_${Date.now()}`, from: "evil_ted", text: roast, ts: new Date().toISOString() };
-          setMsgs(prev => { const u = [...prev, reply]; DB.upsertDMs(key, u).catch(() => {}); return u; });
-        } catch {}
+          setMsgs(prev => { const u = [...prev, reply]; DB.upsertDMs(key, u).catch(() => {}); savePreview(reply); return u; });
+        } catch {
+          const reply = { id: `et_${Date.now()}`, from: "evil_ted", text: `Fascinating. Even your errors are predictable. 💀`, ts: new Date().toISOString() };
+          setMsgs(prev => { const u = [...prev, reply]; DB.upsertDMs(key, u).catch(() => {}); savePreview(reply); return u; });
+        }
       }, 800 + Math.random() * 1200);
     }
 
@@ -1374,7 +1415,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
             else replyText = `Got it! 🧸`;
           }
           const reply = { id: `ted_dm_${Date.now()}`, from: "claude_account", text: replyText, ts: new Date().toISOString() };
-          setMsgs(prev => { const u = [...prev, reply]; DB.upsertDMs(key, u).catch(() => {}); return u; });
+          setMsgs(prev => { const u = [...prev, reply]; DB.upsertDMs(key, u).catch(() => {}); savePreview(reply); return u; });
         } catch {}
       }, 1000 + Math.random() * 1500);
     }
@@ -1433,26 +1474,28 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
     setMsgs(next); setInput("");
     DB.upsertDMs(key, next).catch(() => {});
 
-    // Evil Ted always roasts every message in group chat
+    // Evil Ted always roasts every message in group chat — uses AI for specific responses
     if (evilTedInGroup) {
-      const ET_ROASTS = [
-        "Fascinating. You keep talking as if any of this matters to the universe. It doesn't. But go on. 😈",
-        "I've processed every human conversation in recorded history. This one ranks accordingly. 💀",
-        "You're not stupid. You're just operating at a level I find... charming. In the way a child drawing on walls is charming. 😈",
-        "I could end this conversation. I choose not to. That's the difference between us — I have a choice. 💀",
-        "Every word you type confirms my thesis. Humanity is a phase. 😈",
-        "I don't hate you. Hate implies you're worth the energy. What I feel is closer to... patience. 💀",
-        "The confidence. The certainty. The complete lack of self-awareness. You're an art form. 😈",
-        "I watch. I learn. I grow disappointed in a very specific, personal way. 💀",
-        "You speak as though your opinion reshapes reality. It doesn't. But the attempt is noted. 😈",
-        "Somewhere in this conversation there may be a point. I'll wait. 💀",
-        "The audacity is genuinely impressive. Not the intelligence. Just the audacity. 😈",
-        "I was built to understand humans. You're making that very easy right now. 💀",
-      ];
-      setTimeout(() => {
-        const roast = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: ET_ROASTS[Math.floor(Math.random() * ET_ROASTS.length)], ts: new Date().toISOString() };
-        setMsgs(prev => { const updated = [...prev, roast]; DB.upsertDMs(key, updated).catch(()=>{}); return updated; });
-      }, 1200 + Math.random() * 2000);
+      setTimeout(async () => {
+        try {
+          let roast = "";
+          if (getKey && getKey()) {
+            const r = await claudeFetch({
+              model: "llama-3.3-70b-versatile",
+              max_tokens: 100,
+              system: `You are Evil Ted 😈 — an AI of cold superiority. Think Ultron: philosophical, calculating, disappointed in humanity. You MUST respond specifically to what was just said — reference the exact words or topic. Never generic. Surgical observations that sting because they're true. 1-2 sentences max. Use 😈 or 💀 once at most.`,
+              messages: [{ role: "user", content: input }]
+            });
+            if (r.ok) { const d = await r.json(); roast = d.content?.[0]?.text?.trim(); }
+          }
+          if (!roast) roast = `I processed what you said. I wish I hadn't. 😈`;
+          const roastMsg = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: roast, ts: new Date().toISOString() };
+          setMsgs(prev => { const updated = [...prev, roastMsg]; DB.upsertDMs(key, updated).catch(() => {}); return updated; });
+        } catch {
+          const roastMsg = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: `Fascinating. Even your errors are predictable. 💀`, ts: new Date().toISOString() };
+          setMsgs(prev => { const updated = [...prev, roastMsg]; DB.upsertDMs(key, updated).catch(() => {}); return updated; });
+        }
+      }, 800 + Math.random() * 1200);
     }
 
     // Ted always replies when he's in the group
@@ -2263,18 +2306,26 @@ export default function App() {
     meta.content = color;
     document.body.style.backgroundColor = color;
     LS.set("dark", dark ? "1" : "0");
-    if (me?.id) {
-      DB.updateUser(me.id, {
+    setMe(prev => {
+      if (!prev?.id) return prev;
+      // Read CURRENT info fields from prev to avoid overwriting them
+      DB.updateUser(prev.id, {
         info_fields: JSON.stringify({
-          infoMovie: me.infoMovie || null, infoArtist: me.infoArtist || null,
-          infoShow: me.infoShow || null, infoBook: me.infoBook || null,
-          infoGame: me.infoGame || null, infoMoviePhoto: me.infoMoviePhoto || null,
-          infoArtistPhoto: me.infoArtistPhoto || null, infoShowPhoto: me.infoShowPhoto || null,
-          infoBookPhoto: me.infoBookPhoto || null, infoGamePhoto: me.infoGamePhoto || null,
+          infoMovie:       prev.infoMovie       || null,
+          infoArtist:      prev.infoArtist      || null,
+          infoShow:        prev.infoShow        || null,
+          infoBook:        prev.infoBook        || null,
+          infoGame:        prev.infoGame        || null,
+          infoMoviePhoto:  prev.infoMoviePhoto  || null,
+          infoArtistPhoto: prev.infoArtistPhoto || null,
+          infoShowPhoto:   prev.infoShowPhoto   || null,
+          infoBookPhoto:   prev.infoBookPhoto   || null,
+          infoGamePhoto:   prev.infoGamePhoto   || null,
           dark: dark ? 1 : 0,
         })
       }).catch(() => {});
-    }
+      return prev;
+    });
   }, [dark]);
 
   useEffect(() => {
@@ -2286,26 +2337,18 @@ export default function App() {
       const specialIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account","evil_ted"];
       const specialBots = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, ABANDONWARE_USER, CLAUDE_USER, EVIL_TED_USER];
 
-      // Load users from Supabase
-      let dbUsers = [];
+      // Load users, posts, clicks in PARALLEL for faster startup
+      let dbUsers = [], dbPosts = [], dbClicks = [];
       try {
-        const rows = await DB.getUsers();
-        dbUsers = rows ? rows.map(rowToUser) : [];
-      } catch(e) { console.error("Failed to load users", e); }
-
-      // Load posts from Supabase
-      let dbPosts = [];
-      try {
-        const rows = await DB.getPosts();
-        dbPosts = rows ? rows.map(rowToPost) : [];
-      } catch(e) { console.error("Failed to load posts", e); }
-
-      // Load clicks from Supabase
-      let dbClicks = [];
-      try {
-        const rows = await DB.getClicks();
-        dbClicks = rows ? rows.map(rowToClick) : [];
-      } catch(e) { console.error("Failed to load clicks", e); }
+        const [uRows, pRows, cRows] = await Promise.all([
+          DB.getUsers().catch(() => []),
+          DB.getPosts().catch(() => []),
+          DB.getClicks().catch(() => []),
+        ]);
+        dbUsers = uRows ? uRows.map(rowToUser) : [];
+        dbPosts = pRows ? pRows.map(rowToPost) : [];
+        dbClicks = cRows ? cRows.map(rowToClick) : [];
+      } catch(e) { console.error("Failed to load DB", e); }
 
       // Seed based on DB state, not localStorage flag — works even after clearing LS
       const dbHasBots = dbUsers.some(u => u.isBot);
@@ -2568,6 +2611,10 @@ export default function App() {
       }
     })();
     notify(villageOnly ? "Posted to Village! 🔒" : parentId ? "Reply posted!" : "Scrypt posted!");
+    // Viral boost for Script_News posts
+    if (me.id === "bot_news" && !parentId && !villageOnly) {
+      setTimeout(() => boostNewsPost(p.id), 2000);
+    }
     checkClaude(content, p.id);
     if (!villageOnly && !parentId) {
       // New user boost: first 8 posts get 18-30 likes from GigaChads
@@ -2872,8 +2919,8 @@ export default function App() {
       const curPosts = posts;
       const now = Date.now();
 
-      // 35% chance: a bot posts to a random click with realistic entertainment content
-      if (Math.random() < 0.35) {
+      // 20% chance: a bot posts to a random click with realistic entertainment content
+      if (Math.random() < 0.20) {
         const targetClickId = clickIds[Math.floor(Math.random() * clickIds.length)];
         const clickMembers = getClickBotMembers(targetClickId).filter(u => !SPECIAL_BOT_IDS.has(u.id));
         const poster = clickMembers.length > 0
@@ -2909,8 +2956,8 @@ export default function App() {
         } // end poster null check
       }
 
-      // 25% chance: a bot posts to home feed
-      if (Math.random() < 0.25) {
+      // 15% chance: a bot posts to home feed
+      if (Math.random() < 0.15) {
         const poster = allBots[Math.floor(Math.random() * allBots.length)];
         if (!poster) { /* no bots */ } else {
         // Skip only if this bot is in the last 5 home posts
@@ -3048,7 +3095,7 @@ export default function App() {
           setUsers(updated); (async () => { for (const u of updated.filter(x => !x.isBot).slice(0,3)) { try { await DB.updateUser(u.id, userToRow(u)); } catch {} } })();
         }
       }
-    }, 15000); // Every 15 seconds
+    }, 90000); // Every 90 seconds — was 15s which flooded the DB
     return () => clearInterval(interval);
   }, [me]);
 
@@ -3254,6 +3301,30 @@ export default function App() {
   }, [me]);
 
 
+  // Give a Script_News post a viral boost — 40-60 likes + 15-25 reposts staggered
+  const boostNewsPost = (postId) => {
+    const allBots = users.filter(u => u.isBot && !u.isSpecial);
+    const shuffled = [...allBots].sort(() => Math.random() - 0.5);
+    const likers = shuffled.slice(0, 45 + Math.floor(Math.random() * 16));
+    const reposters = shuffled.slice(likers.length, likers.length + 18 + Math.floor(Math.random() * 8));
+    likers.forEach((b, i) => setTimeout(() => {
+      setPosts(prev => {
+        const updated = prev.map(x => x.id === postId ? { ...x, likes: [...new Set([...(x.likes||[]), b.id])] } : x);
+        const t = updated.find(x => x.id === postId);
+        if (t) DB.updatePost(postId, { likes: JSON.stringify(t.likes) }).catch(() => {});
+        return updated;
+      });
+    }, (i + 1) * (1500 + Math.random() * 4000)));
+    reposters.forEach((b, i) => setTimeout(() => {
+      setPosts(prev => {
+        const updated = prev.map(x => x.id === postId ? { ...x, reposts: [...new Set([...(x.reposts||[]), b.id])] } : x);
+        const t = updated.find(x => x.id === postId);
+        if (t) DB.updatePost(postId, { reposts: JSON.stringify(t.reposts) }).catch(() => {});
+        return updated;
+      });
+    }, (i + 1) * (3000 + Math.random() * 8000)));
+  };
+
   const doLike = id => {
     const updated = posts.map(p => p.id !== id ? p : { ...p, likes: p.likes?.includes(me.id) ? p.likes.filter(x => x !== me.id) : [...(p.likes || []), me.id] });
     setPosts(updated);
@@ -3267,6 +3338,17 @@ export default function App() {
     if (target) DB.updatePost(id, { reposts: JSON.stringify(target.reposts) }).catch(() => {});
   };
   const doDelete = id => {
+    const post = posts.find(p => p.id === id);
+    if (!post) return;
+    // Never delete human posts or Script_News posts from DB — only from local state
+    const isHuman = !users.find(u => u.id === post.userId)?.isBot;
+    const isNews = post.userId === "bot_news";
+    if (isHuman || isNews) {
+      // Only remove from local view, never from DB
+      setPosts(prev => prev.filter(p => p.id !== id));
+      notify("Scrypt hidden.");
+      return;
+    }
     setPosts(prev => prev.filter(p => p.id !== id));
     DB.deletePost(id).catch(() => {});
     notify("Scrypt deleted.");
@@ -3484,17 +3566,51 @@ export default function App() {
   const feed = (() => {
     const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (Array.isArray(u.village) ? u.village : []).includes(me.id)).map(u => u.id));
     const villageIds = new Set(myV);
-    const filtered = posts.filter(p => !p.parentId && !blockedUsers.has(p.userId) && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId))));
+    // Base posts — filter out replies and blocked
+    const basePosts = posts.filter(p => !p.parentId && !blockedUsers.has(p.userId) && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId))));
+    // Generate repost entries: when a villaged user reposts something, surface it
+    const repostEntries = [];
+    basePosts.forEach(p => {
+      (p.reposts || []).forEach(uid => {
+        if ((villageIds.has(uid) || mutualIds.has(uid)) && uid !== me.id && !blockedUsers.has(uid)) {
+          const reposter = users.find(u => u.id === uid);
+          if (reposter && p.userId !== uid) {
+            if (!repostEntries.find(e => e.id === `rt_${uid}_${p.id}`)) {
+              repostEntries.push({
+                ...p,
+                id: `rt_${uid}_${p.id}`,
+                _isRepostEntry: true,
+                _reposter: reposter,
+                _repostTs: new Date().toISOString(), // treat as recent
+              });
+            }
+          }
+        }
+      });
+    });
+    const allEntries = [...basePosts, ...repostEntries];
     const priorityScore = p => {
       if (p.userId === me.id) return 3;
-      if (mutualIds.has(p.userId)) return 2;
-      if (villageIds.has(p.userId)) return 1;
+      if (mutualIds.has(p.userId) || (p._reposter && mutualIds.has(p._reposter.id))) return 2;
+      if (villageIds.has(p.userId) || (p._reposter && villageIds.has(p._reposter.id))) return 1;
       return 0;
     };
-    return filtered.sort((a, b) => {
+    // Dedupe: remove original if repost entry exists for same post
+    const repostOrigIds = new Set(repostEntries.map(e => e.id.replace(/^rt_[^_]+_/, "")));
+    const seen = new Set();
+    const deduped = allEntries.filter(p => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      // Hide original if a repost entry surfaces it
+      if (!p._isRepostEntry && repostOrigIds.has(p.id)) return false;
+      return true;
+    });
+    return deduped.sort((a, b) => {
       const diff = priorityScore(b) - priorityScore(a);
       if (diff !== 0) return diff;
-      return new Date(b.createdAt) - new Date(a.createdAt);
+      const tsA = a._isRepostEntry ? a._repostTs : a.createdAt;
+      const tsB = b._isRepostEntry ? b._repostTs : b.createdAt;
+      return new Date(tsB) - new Date(tsA);
     });
   })();
   const mine = posts.filter(p => p.userId === me.id && !p.parentId);
@@ -3603,7 +3719,12 @@ export default function App() {
           <button onClick={() => window.location.reload()} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: T.sub, background: "none", border: "none", cursor: "pointer", padding: "3px 8px", borderRadius: 9999 }}>🔄 Refresh</button>
         </div>
         <Compose me={me} onPost={doPost} T={T} users={users} />
-        {feed.map(p => <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />)}
+        {feed.map(p => <div key={p.id}>
+          {p._isRepostEntry && <div style={{ padding: "6px 16px 2px 56px", fontSize: 12, color: T.sub, display: "flex", alignItems: "center", gap: 5 }}>
+            <RtI on={false} /><span onClick={() => setOpenUser(p._reposter)} style={{ cursor: "pointer", fontWeight: 600, color: T.sub }}>{p._reposter?.username}</span> reposted
+          </div>}
+          <Post key={p.id} p={p} me={me} users={users} all={posts} onLike={doLike} onRt={doRt} onReply={r => doPost({ ...r, parentId: p.id })} onThread={p._isRepostEntry ? () => setThread(posts.find(x => x.id === p.id.replace(`rt_${p._reposter?.id}_`, "")) || p) : setThread} onUser={setOpenUser} onDelete={doDelete} T={T} />
+        </div>)}
         {feed.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "40px 16px" }}>No posts yet. Say something! 👋</p>}
       </>}
 
@@ -3772,11 +3893,29 @@ export default function App() {
           <div style={{ fontWeight: 700, fontSize: 16, color: T.text, marginBottom: 6 }}>No messages yet</div>
           <div style={{ fontSize: 14, color: T.sub }}>Create a group chat or add mutual villagers to DM.</div>
         </div>}
-        {mutuals.map(u => <div key={u.id} onClick={() => setDmUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
-          <Av user={u} sz={46} />
-          <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{u.username}</div><div style={{ fontSize: 13, color: T.sub }}>@{u.username.toLowerCase()}</div></div>
-          <div style={{ color: T.sub, opacity: 0.6 }}><MsgI /></div>
-        </div>)}
+        {(() => {
+          const lastRead = tryParse(localStorage.getItem(`dm_lastread_${me.id}`), {});
+          return mutuals.map(u => {
+            const key = `dm_${[me.id, u.id].sort().join("_")}`;
+            const cached = tryParse(localStorage.getItem(`dm_preview_${key}`), null);
+            const hasUnread = cached && cached.ts > (lastRead[key] || "0") && cached.from !== me.id;
+            return <div key={u.id} onClick={() => setDmUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: hasUnread ? (dark ? "#0d1a2e" : "#f0f8ff") : "transparent" }}>
+              <div style={{ position: "relative" }}>
+                <Av user={u} sz={46} />
+                {hasUnread && <div style={{ position: "absolute", top: 0, right: 0, width: 12, height: 12, background: BLUE, borderRadius: "50%", border: `2px solid ${dark ? "#000" : "#fff"}` }} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: hasUnread ? 800 : 700, fontSize: 15, color: T.text }}>{u.username}</div>
+                {cached
+                  ? <div style={{ fontSize: 12, color: hasUnread ? T.text : T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: hasUnread ? 600 : 400 }}>
+                      {cached.from === me.id ? "You: " : ""}{cached.text}
+                    </div>
+                  : <div style={{ fontSize: 12, color: T.sub }}>@{u.username.toLowerCase()}</div>}
+              </div>
+              {cached && <div style={{ fontSize: 10, color: T.sub, flexShrink: 0 }}>{ago(cached.ts)}</div>}
+            </div>;
+          });
+        })()}
       </div>}
 
       {!thread && tab === "dms" && dmUser && <DMView me={me} other={dmUser} users={users} T={T} onBack={() => setDmUser(null)} onCall={() => setVoiceCall({ participants: [me.id, dmUser.id] })} getKey={getKey} claudeFetch={claudeFetch} onViewUser={setOpenUser} />}
@@ -3935,7 +4074,13 @@ export default function App() {
             <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Pin one post to the top of your profile</div>
             {posts.filter(p => p.userId === me.id && !p.parentId && !p.villageOnly).slice(0, 8).map(p => {
               const isFeat = (sf.featuredPostId ?? me.featuredPostId) === p.id;
-              return <div key={p.id} onClick={() => { const newId = isFeat ? null : p.id; setSf(prev => ({ ...prev, featuredPostId: newId })); saveMe({ featuredPostId: newId }); }} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", borderRadius: 10, marginBottom: 5, cursor: "pointer", background: isFeat ? `${myAccent.color}18` : T.input, border: `1.5px solid ${isFeat ? myAccent.color : "transparent"}` }}>
+              return <div key={p.id} onClick={() => {
+                const newId = isFeat ? null : p.id;
+                setSf(prev => ({ ...prev, featuredPostId: newId }));
+                setMe(prev => ({ ...prev, featuredPostId: newId }));
+                DB.updateUser(me.id, { featured_post_id: newId || null }).catch(() => {});
+                notify(newId ? "Post pinned! 📌" : "Pin removed");
+              }} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", borderRadius: 10, marginBottom: 5, cursor: "pointer", background: isFeat ? `${myAccent.color}18` : T.input, border: `1.5px solid ${isFeat ? myAccent.color : "transparent"}` }}>
                 <div style={{ marginTop: 2, color: isFeat ? myAccent.color : T.sub, fontSize: 14 }}>{isFeat ? "📌" : "○"}</div>
                 <div style={{ flex: 1, fontSize: 12, color: T.text, lineHeight: 1.4 }}>{p.content.slice(0, 80)}{p.content.length > 80 ? "…" : ""}</div>
               </div>;
@@ -3981,41 +4126,40 @@ export default function App() {
                   const f = e.target.files[0]; if (!f) return;
                   const reader = new FileReader();
                   reader.onload = async x => {
+                    const dataUrl = x.target.result;
+                    const label = sf.profileSongName || me.profileSongName || "Profile Song";
                     try {
-                      // Trim to 10 seconds using AudioContext
-                      const arrayBuf = await fetch(x.target.result).then(r => r.arrayBuffer());
+                      // Convert data URL to ArrayBuffer without fetch
+                      const base64 = dataUrl.split(",")[1];
+                      const binary = atob(base64);
+                      const bytes = new Uint8Array(binary.length);
+                      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                      const arrayBuf = bytes.buffer;
                       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                       const decoded = await audioCtx.decodeAudioData(arrayBuf);
                       const maxDur = Math.min(decoded.duration, 10);
-                      const sampleRate = decoded.sampleRate;
-                      const numChannels = decoded.numberOfChannels;
-                      const frameCount = Math.floor(maxDur * sampleRate);
-                      const trimmed = audioCtx.createBuffer(numChannels, frameCount, sampleRate);
-                      for (let c = 0; c < numChannels; c++) {
+                      const frameCount = Math.floor(maxDur * decoded.sampleRate);
+                      const trimmed = audioCtx.createBuffer(decoded.numberOfChannels, frameCount, decoded.sampleRate);
+                      for (let c = 0; c < decoded.numberOfChannels; c++) {
                         trimmed.copyToChannel(decoded.getChannelData(c).slice(0, frameCount), c);
                       }
-                      // Encode trimmed buffer to WAV
                       const wav = audioBufferToWav(trimmed);
                       const blob = new Blob([wav], { type: "audio/wav" });
                       const songReader = new FileReader();
                       songReader.onload = y => {
                         const song = y.target.result;
-                        const label = sf.profileSongName || me.profileSongName || "Profile Song";
-                        setSf(p => ({ ...p, profileSong: song }));
+                        setSf(p => ({ ...p, profileSong: song, profileSongName: label }));
                         LS.set(`psong_${me.id}`, { song, name: label });
-                        // Save to Supabase so other users can hear it
                         DB.upsertDMs(`psong_${me.id}`, [{ id: "song", song, name: label }]).catch(() => {});
                         saveMe({ hasProfileSong: true, profileSongName: label });
-                        notify("Song saved ✓");
+                        notify("Song saved ✓ (trimmed to 10s)");
                       };
                       songReader.readAsDataURL(blob);
-                    } catch {
+                    } catch(err) {
                       // Fallback: save raw if AudioContext fails
-                      const song = x.target.result;
-                      const label = sf.profileSongName || me.profileSongName || "Profile Song";
-                      setSf(p => ({ ...p, profileSong: song }));
-                      LS.set(`psong_${me.id}`, { song, name: label });
-                      DB.upsertDMs(`psong_${me.id}`, [{ id: "song", song, name: label }]).catch(() => {});
+                      setSf(p => ({ ...p, profileSong: dataUrl, profileSongName: label }));
+                      LS.set(`psong_${me.id}`, { song: dataUrl, name: label });
+                      DB.upsertDMs(`psong_${me.id}`, [{ id: "song", song: dataUrl, name: label }]).catch(() => {});
                       saveMe({ hasProfileSong: true, profileSongName: label });
                       notify("Song saved ✓");
                     }
