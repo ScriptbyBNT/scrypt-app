@@ -828,17 +828,17 @@ const TedChat = ({ T, onClose, init }) => {
   return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 8900, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
     <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, height: "75vh", display: "flex", flexDirection: "column", border: `1px solid ${T.border}` }}>
       <div style={{ padding: "13px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={20} /></div>
-        <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Claude AI</div><div style={{ fontSize: 12, color: T.sub }}>Powered by Anthropic</div></div>
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#8B4513", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{fontSize:20}}>🧸</span></div>
+        <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Ted 🧸</div><div style={{ fontSize: 12, color: T.sub }}>Your AI on Scrypt</div></div>
         <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><XI /></button>
       </div>
       <div style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {msgs.map((m, i) => <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}>
-          {m.role === "assistant" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={14} /></div>}
+          {m.role === "assistant" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#8B4513", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{fontSize:14}}>🧸</span></div>}
           <div style={{ maxWidth: "78%", padding: "9px 13px", borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: m.role === "user" ? BLUE : T.input, color: m.role === "user" ? "white" : T.text, fontSize: 14, lineHeight: 1.5 }}>{m.content}</div>
         </div>)}
         {busy && <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#CC785C,#D4A27F)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0 }}><AnthropicLogo size={14} /></div>
+          <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#8B4513", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{fontSize:14}}>🧸</span></div>
           <div style={{ padding: "9px 13px", background: T.input, borderRadius: "14px 14px 14px 4px", display: "flex", gap: 4, alignItems: "center" }}>
             {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: T.sub, animation: `dot${i} 1s ${i * 0.2}s ease-in-out infinite alternate` }} />)}
           </div>
@@ -1093,13 +1093,13 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {/* Special bot profile banners */}
         {user.id === "bot_scryptbot" && <div style={{ background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div>
-          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by Claude AI. Follow for daily doses of the unexpected.</div>
+          <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Posts wild, weird and wonderful facts every 6 hours. Powered by AI. Follow for daily doses of the unexpected.</div>
           <div style={{ fontSize: 11, color: BLUE, marginTop: 5, fontWeight: 600 }}>Posts every 6h · Science, Space, History & more</div>
         </div>}
         {user.id === "bot_minerva" && <div style={{ background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Fascinating historical facts and daily "This Day in History" posts. Because knowing your past is the key to understanding the present.</div>
-          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by Claude AI</div>
+          <div style={{ fontSize: 11, color: "#7c3aed", marginTop: 5, fontWeight: 600 }}>History facts every hour · This Day in History at 12pm daily · Powered by AI</div>
         </div>}
         {user.id === "bot_news" && <div style={{ background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div>
@@ -1109,7 +1109,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
         {user.id === "bot_abandonware" && <div style={{ background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div>
           <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Hot takes, reviews and news from across the entertainment world. Video games, blockbusters, prestige TV — we cover it all.</div>
-          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by Claude AI</div>
+          <div style={{ fontSize: 11, color: "#0f766e", marginTop: 5, fontWeight: 600 }}>Posts every 4h · Games · Movies · TV · Powered by AI</div>
         </div>}
         {user.bio && <div style={{ fontSize: 14, color: T.text, marginBottom: 10 }}>{user.bio}</div>}
         <div style={{ display: "flex", gap: 18, marginBottom: 12 }}>
@@ -1750,8 +1750,8 @@ export default function App() {
   const [openClick, setOpenClick] = useState(null);
   const [openUser, setOpenUser] = useState(null);
   const [dmUser, setDmUser] = useState(null);
-  const [tedInit, setClaudeInit] = useState(null);
-  const [showTed, setShowClaude] = useState(false);
+  const [tedInit, setTedInit] = useState(null);
+  const [showTed, setShowTed] = useState(false);
   const [groupChats, setGroupChats] = useState(() => LS.get("gchat") || []);
   const [activeGroup, setActiveGroup] = useState(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -2910,7 +2910,7 @@ export default function App() {
   return <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Segoe UI',sans-serif", color: T.text }}>
     {toast && <div style={{ position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.bg, padding: "10px 20px", borderRadius: 9999, fontSize: 14, fontWeight: 600, zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
     {voiceCall && <VoiceCall me={me} participants={voiceCall.participants} users={users} T={T} onEnd={() => { setVoiceCall(null); notify("Call ended"); }} />}
-    {showTed && <TedChat T={T} onClose={() => { setShowClaude(false); setClaudeInit(null); }} init={tedInit} />}
+    {showTed && <TedChat T={T} onClose={() => { setShowTed(false); setTedInit(null); }} init={tedInit} />}
     {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} />}
     {showPP && <PicPicker onPick={doPickDef} onClose={() => setShowPP(false)} T={T} />}
     {showWallpaper && <WallpaperPicker onPick={doWallpaper} onClose={() => setShowWallpaper(false)} T={T} />}
@@ -2981,7 +2981,7 @@ export default function App() {
           <span style={{ fontWeight: 900, fontSize: 14, color: "white" }}>Scrypt</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => { setClaudeInit(null); setShowClaude(true); }} style={{ background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", borderRadius: 9999, padding: "4px 8px", fontWeight: 700, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={() => { setTedInit(null); setShowTed(true); }} style={{ background: `linear-gradient(135deg, ${BLUE}, ${PURPLE})`, color: "white", border: "none", borderRadius: 9999, padding: "4px 8px", fontWeight: 700, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <SparkI /> Ask @Ted
           </button>
           <button onClick={() => setDark(d => !d)} style={{ background: "none", border: "none", cursor: "pointer", color: T.sub }}>{dark ? <SunI /> : <MoonI />}</button>
