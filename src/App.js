@@ -270,6 +270,19 @@ const CLAUDE_USER = {
   joinedAt: new Date(Date.now() - 86400000 * 60).toISOString()
 };
 
+const EVIL_TED_USER = {
+  id: "evil_ted",
+  username: "Evil_Ted",
+  password: "evilted666!",
+  avatar: mkSpecialAvatar("#1a0a0a", "😈", "😈"),
+  bio: "Ted's evil twin. I'm not nice. Don't @ me unless you want to get cooked. 😈🔥",
+  isBot: true,
+  isSpecial: true,
+  verified: false,
+  village: [],
+  joinedAt: new Date(Date.now() - 86400000 * 13).toISOString()
+};
+
 const NEWS_USER = {
   id: "bot_news",
   username: "Script_News",
@@ -298,11 +311,13 @@ const ABANDONWARE_USER = {
 };
 
 // All special accounts in one place for easy lookup
-const SPECIAL_ACCOUNTS = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER, ABANDONWARE_USER];
+const SPECIAL_ACCOUNTS = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER, ABANDONWARE_USER, EVIL_TED_USER];
 
 // Seeded posts from bots - rich activity including Scrypt mentions
 const SP = [
   // ── SPECIAL BOT SEEDED POSTS (last 12h) ──────────────────────────────────────
+  { id: "evil_ted_seed_1", userId: "evil_ted", username: "Evil_Ted", content: "I don't post much. Mostly because nothing you people say is worth responding to. 😈", likes: ["bot_101","bot_102","bot_103","bot_150","bot_151"], reposts: [], createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 2 },
+  { id: "evil_ted_seed_2", userId: "evil_ted", username: "Evil_Ted", content: "Ted told me to be nicer. I told him to touch grass. We don't talk anymore. 😈🔥", likes: ["bot_104","bot_105","bot_106","bot_107","bot_108"], reposts: ["bot_109"], createdAt: new Date(Date.now() - 3600000 * 18).toISOString(), replyCount: 5 },
   { id: "scryptbot_seed_1", userId: "bot_scryptbot", username: "Scrypt", content: "🌊 Octopuses have three hearts, blue blood, and can edit their own RNA to adapt to temperature — essentially rewriting their own code in real time. Evolution said: why wait? 🐙", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008","bot_009","bot_010","bot_011","bot_012","bot_013","bot_014","bot_015"], reposts: ["bot_020","bot_030","bot_040","bot_050","bot_060"], createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 7 },
   { id: "scryptbot_seed_2", userId: "bot_scryptbot", username: "Scrypt", content: "⚡ A bolt of lightning is five times hotter than the surface of the sun — around 30,000 Kelvin — and lasts less than a millisecond. The universe is casually doing things we can barely measure. 🌩️", likes: ["bot_016","bot_017","bot_018","bot_019","bot_021","bot_022","bot_023","bot_024","bot_025","bot_026","bot_027","bot_028"], reposts: ["bot_031","bot_041","bot_051"], createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 4 },
   { id: "scryptbot_seed_3", userId: "bot_scryptbot", username: "Scrypt", content: "🧠 Your brain generates about 23 watts when you're awake — enough to power a dim bulb. It runs on 20% of your body's energy despite being only 2% of your weight. Efficiency king. 👑", likes: ["bot_029","bot_032","bot_033","bot_034","bot_035","bot_036","bot_037","bot_038","bot_039","bot_042","bot_043"], reposts: ["bot_044","bot_045","bot_046"], createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 5 },
@@ -1131,6 +1146,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, 
       {user.id === "bot_scryptbot" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div><div style={{ fontSize: 12, color: T.sub }}>Posts wild, weird and wonderful facts every 6 hours.</div></div>}
       {user.id === "bot_minerva" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div><div style={{ fontSize: 12, color: T.sub }}>This Day in History and historical facts daily.</div></div>}
       {user.id === "bot_news" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div><div style={{ fontSize: 12, color: T.sub }}>Real breaking news every 3 hours.</div></div>}
+      {user.id === "evil_ted" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(139,0,0,0.2),rgba(26,10,10,0.1))", border: "1px solid rgba(139,0,0,0.5)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#ff2200", marginBottom: 4 }}>😈 Evil Ted — Ted's Evil Twin</div><div style={{ fontSize: 12, color: T.sub }}>Don't DM him unless you want to get roasted. He will not be nice. You've been warned.</div></div>}
       {user.id === "bot_abandonware" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div><div style={{ fontSize: 12, color: T.sub }}>Entertainment news and hot takes every 4 hours.</div></div>}
 
       {/* Info cards */}
@@ -1165,12 +1181,51 @@ const DMView = ({ me, other, users, T, onBack, onCall }) => {
       if (rows && rows[0]) { try { setMsgs(JSON.parse(rows[0].messages) || []); } catch {} }
     });
   }, [key]);
+
+  const isEvilTed = other.id === "evil_ted";
+
   const send = async () => {
     if (!input.trim()) return;
     const m = { id: Date.now().toString(), from: me.id, text: input, ts: new Date().toISOString() };
     const next = [...msgs, m];
     setMsgs(next); setInput("");
     await DB.upsertDMs(key, next);
+
+    // Evil Ted roasts back in DMs
+    if (isEvilTed) {
+      const ROASTS = [
+        `Wow. That's the best you've got? My grandma texts more interesting things and she's been dead for 6 years. 😈`,
+        `Bro just DMed Evil Ted. The self-destruction is impressive actually. 💀`,
+        `I've seen smarter takes from a fortune cookie. A crumbled one. In a bin. 😈`,
+        `You type like you're using your elbows. 💀`,
+        `That message needed a trigger warning for bad ideas. 😈🔥`,
+        `Not you trying to have a conversation with me like I asked for this. 💀`,
+        `I'm not saying you're boring but my wifi disconnected and honestly preferred it. 😈`,
+        `The audacity of texting this to someone who didn't ask. Respect the chaos though. 🔥`,
+        `If stupidity was currency you'd be a billionaire. 😈`,
+        `Checking my DMs, seeing this, closing my DMs. 💀`,
+        `This is why Ted drinks. 😈🧸`,
+        `You really said that out loud huh. To ME. Wild. 💀🔥`,
+      ];
+      setTimeout(async () => {
+        try {
+          let roast = "";
+          const key2 = getKey ? getKey() : localStorage.getItem("sharedApiKey") || "";
+          if (key2) {
+            const r = await claudeFetch({
+              model: "claude-sonnet-4-6",
+              max_tokens: 100,
+              system: `You are Evil Ted 😈, a savage roast bot. You roast the person mercilessly with dark humor. Keep it under 2 sentences. Be brutal but funny — no slurs, no genuine cruelty, just savage wit. The person just sent you a DM saying: "${input.slice(0,100)}"`,
+              messages: [{ role: "user", content: input }]
+            });
+            if (r.ok) { const d = await r.json(); roast = d.content?.[0]?.text?.trim(); }
+          }
+          if (!roast) roast = ROASTS[Math.floor(Math.random() * ROASTS.length)];
+          const reply = { id: `et_${Date.now()}`, from: "evil_ted", text: roast, ts: new Date().toISOString() };
+          setMsgs(prev => { const u = [...prev, reply]; DB.upsertDMs(key, u).catch(() => {}); return u; });
+        } catch {}
+      }, 800 + Math.random() * 1500);
+    }
   };
   return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
     <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
@@ -1211,12 +1266,31 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
   useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
 
   const tedInGroup = group.members.includes("claude_account");
+  const evilTedInGroup = group.members.includes("evil_ted");
 
   const send = () => {
     if (!input.trim()) return;
     const m = { id: Date.now().toString(), from: me.id, text: input, ts: new Date().toISOString() };
     const next = [...msgs, m];
     setMsgs(next); LS.set(key, next); setInput("");
+
+    // Evil Ted roasts in group chat (always responds, savage)
+    if (evilTedInGroup) {
+      const ET_ROASTS = [
+        "This group chat is the saddest thing I've seen all day and I've been on the internet all day. 😈",
+        "Nobody asked but here we are. 💀",
+        "The bar was on the floor and you walked under it. Impressive. 😈🔥",
+        "I'd tell you to be yourself but that clearly hasn't worked. 💀",
+        "This message was a choice. A bad one. 😈",
+        "Group chats were a mistake. This one specifically. 💀🔥",
+        "Logged on just to see this. Logging off. 😈",
+        "The audacity is the only interesting thing here. 🔥",
+      ];
+      setTimeout(() => {
+        const roast = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: ET_ROASTS[Math.floor(Math.random() * ET_ROASTS.length)], ts: new Date().toISOString() };
+        setMsgs(prev => { const updated = [...prev, roast]; LS.set(key, updated); return updated; });
+      }, 1200 + Math.random() * 2000);
+    }
 
     // Ted replies if he's in the group — either when @ted is mentioned or randomly (30% chance)
     if (tedInGroup && (/@ted\b/i.test(input) || Math.random() < 0.30)) {
@@ -1257,7 +1331,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
   };
 
   const members = group.members.map(id => users.find(u => u.id === id)).filter(Boolean);
-  const searchable = users.filter(u => !group.members.includes(u.id) && u.username.toLowerCase().includes(addSearch.toLowerCase()) && (!u.isBot || u.id === "claude_account")).slice(0, 5);
+  const searchable = users.filter(u => !group.members.includes(u.id) && u.username.toLowerCase().includes(addSearch.toLowerCase()) && (!u.isBot || u.id === "claude_account" || u.id === "evil_ted")).slice(0, 5);
 
   return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
     <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
@@ -1787,7 +1861,7 @@ const HomeTrending = ({ posts, users, T, onThread, onUser }) => {
   if (topPosts.length === 0) return null;
 
   const timeLabel = recent12.length >= 5 ? "last 12h" : recent24.length >= 3 ? "last 24h" : "all time";
-  const SPECIAL_COLORS = { bot_scryptbot: BLUE, bot_minerva: "#7c3aed", bot_news: "#e11d48", bot_abandonware: "#0f766e", claude_account: "#8B4513" };
+  const SPECIAL_COLORS = { bot_scryptbot: BLUE, bot_minerva: "#7c3aed", bot_news: "#e11d48", bot_abandonware: "#0f766e", claude_account: "#8B4513", evil_ted: "#8b0000" };
 
   return <div style={{ borderBottom: `1px solid ${T.border}` }}>
     <div style={{ padding: "11px 16px 6px", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1880,8 +1954,8 @@ export default function App() {
       // Restore session
       const sessionUid = LS.get("session_uid");
       const V = "v23";
-      const specialIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"];
-      const specialBots = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, ABANDONWARE_USER, CLAUDE_USER];
+      const specialIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account","evil_ted"];
+      const specialBots = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, ABANDONWARE_USER, CLAUDE_USER, EVIL_TED_USER];
 
       // Load users from Supabase
       let dbUsers = [];
@@ -1941,7 +2015,7 @@ export default function App() {
         const nonSpecial = dbUsers.filter(u => !specialIds.includes(u.id));
         const resolvedSpecial = await Promise.all(specialBots.map(async (b) => {
           const existing = dbUsers.find(u => u.id === b.id);
-          if (existing) { if (b.id==="claude_account"&&existing.username!==b.username){try{await DB.updateUser(b.id,{username:b.username,avatar:b.avatar,bio:b.bio});}catch{}} return {...existing,username:b.id==="claude_account"?b.username:existing.username,avatar:b.id==="claude_account"?b.avatar:existing.avatar}; }
+          if (existing) { if ((b.id==="claude_account"||b.id==="evil_ted")&&existing.username!==b.username){try{await DB.updateUser(b.id,{username:b.username,avatar:b.avatar,bio:b.bio});}catch{}} return {...existing,username:(b.id==="claude_account"||b.id==="evil_ted")?b.username:existing.username,avatar:(b.id==="claude_account"||b.id==="evil_ted")?b.avatar:existing.avatar}; }
           try { await DB.upsertUser(userToRow(b)); } catch(e) {}
           return b;
         }));
@@ -1956,7 +2030,7 @@ export default function App() {
       // Restore session after data is loaded
       if (sessionUid) {
         // Special accounts — load from DB (preserves custom avatar/bio), fall back to hardcoded
-        const isSpecialId = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"].includes(sessionUid);
+        const isSpecialId = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account","evil_ted"].includes(sessionUid);
         if (isSpecialId) {
           try {
             const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
@@ -2381,7 +2455,7 @@ export default function App() {
 
     const clickIds = Object.keys(CLICK_POSTS);
 
-    const SPECIAL_BOT_IDS = new Set(["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"]);
+    const SPECIAL_BOT_IDS = new Set(["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account","evil_ted"]);
 
     const interval = setInterval(() => {
       // Only use the 200 giga chad bots — never special accounts
@@ -2514,7 +2588,7 @@ export default function App() {
       }
 
       // SPECIAL BOT BOOSTS — giga chads heavily engage with official accounts
-      const specialBotIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware"];
+      const specialBotIds = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","evil_ted"];
       const specialPosts = curPosts.filter(p => specialBotIds.includes(p.userId) && !p.parentId).slice(0, 20);
       if (specialPosts.length > 0) {
         const targetSpecial = specialPosts[Math.floor(Math.random() * Math.min(5, specialPosts.length))];
@@ -3111,7 +3185,7 @@ export default function App() {
             <button onClick={e => { e.stopPropagation(); doVillage(u.id); }} style={{ background: myV.includes(u.id) ? T.input : BLUE, color: myV.includes(u.id) ? T.text : "white", border: "none", borderRadius: 9999, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{myV.includes(u.id) ? "In Village" : "+ Village"}</button>
           </div>)}
           {/* Special accounts matching */}
-          {["bot_scryptbot","bot_minerva","bot_news","claude_account"].map(id => users.find(u => u.id === id)).filter(Boolean).filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
+          {["bot_scryptbot","bot_minerva","bot_news","claude_account","evil_ted"].map(id => users.find(u => u.id === id)).filter(Boolean).filter(u => u.username.toLowerCase().includes(search.toLowerCase())).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer", background: dark ? "#0d0d1a" : "#f0f4ff" }}>
             <Av user={u} sz={44} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
@@ -3127,7 +3201,7 @@ export default function App() {
         </> : <>
           {/* Discover — Official Accounts */}
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL SCRYPT ACCOUNTS</div>
-          {["claude_account","bot_scryptbot","bot_minerva","bot_news"].map(id => users.find(u => u.id === id)).filter(Boolean).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+          {["claude_account","evil_ted","bot_scryptbot","bot_minerva","bot_news"].map(id => users.find(u => u.id === id)).filter(Boolean).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
             <Av user={u} sz={48} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
