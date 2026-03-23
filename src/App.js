@@ -3895,7 +3895,16 @@ export default function App() {
         </div>}
         {(() => {
           const lastRead = tryParse(localStorage.getItem(`dm_lastread_${me.id}`), {});
-          return mutuals.map(u => {
+          const sorted = [...mutuals].sort((a, b) => {
+            const keyA = `dm_${[me.id, a.id].sort().join("_")}`;
+            const keyB = `dm_${[me.id, b.id].sort().join("_")}`;
+            const cachedA = tryParse(localStorage.getItem(`dm_preview_${keyA}`), null);
+            const cachedB = tryParse(localStorage.getItem(`dm_preview_${keyB}`), null);
+            const tsA = cachedA?.ts || "0";
+            const tsB = cachedB?.ts || "0";
+            return tsB.localeCompare(tsA);
+          });
+          return sorted.map(u => {
             const key = `dm_${[me.id, u.id].sort().join("_")}`;
             const cached = tryParse(localStorage.getItem(`dm_preview_${key}`), null);
             const hasUnread = cached && cached.ts > (lastRead[key] || "0") && cached.from !== me.id;
