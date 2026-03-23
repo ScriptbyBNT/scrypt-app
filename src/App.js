@@ -74,6 +74,7 @@ const rowToPost = r => {
     reposts: tryParse(r.reposts, []),
     createdAt: r.created_at || r.createdAt,
     replyCount: r.reply_count ?? r.replyCount ?? 0,
+    parentId: r.reply_to || r.parent_id || r.parentId || null,
     replyTo: r.reply_to || r.replyTo || null,
     clickId: r.click_id || r.clickId || null,
     isRepost: r.is_repost || r.isRepost || false,
@@ -132,7 +133,7 @@ const postToRow = p => ({
   reposts: JSON.stringify(p.reposts || []),
   created_at: p.createdAt,
   reply_count: p.replyCount ?? 0,
-  reply_to: p.replyTo || null,
+  reply_to: p.parentId || p.replyTo || null,
   click_id: p.clickId || null,
   is_repost: p.isRepost || false,
   reposter_id: p.reposterId || null,
@@ -231,6 +232,18 @@ const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAYAAAB/HSuD
 // ── SPECIAL BOT ACCOUNTS ──────────────────────────────────────────────────────
 const mkSpecialAvatar = (bg, text, emoji) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='${encodeURIComponent(bg)}'/%3E%3Ctext x='50' y='62' text-anchor='middle' font-size='42' fill='white'%3E${encodeURIComponent(emoji)}%3C/text%3E%3C/svg%3E`;
 
+const mkEvilTedAvatar = () => {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+    <circle cx='50' cy='50' r='50' fill='#1a0000'/>
+    <text x='50' y='64' text-anchor='middle' font-size='44'>🧸</text>
+    <circle cx='39' cy='42' r='5' fill='#ff0000' opacity='0.92'/>
+    <circle cx='61' cy='42' r='5' fill='#ff0000' opacity='0.92'/>
+    <circle cx='39' cy='42' r='2.5' fill='#ff4400'/>
+    <circle cx='61' cy='42' r='2.5' fill='#ff4400'/>
+  </svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
+
 const SCRYPTBOT_USER = {
   id: "bot_scryptbot",
   username: "Scrypt",
@@ -274,8 +287,8 @@ const EVIL_TED_USER = {
   id: "evil_ted",
   username: "Evil_Ted",
   password: "evilted666!",
-  avatar: mkSpecialAvatar("#1a0a0a", "😈", "😈"),
-  bio: "Ted's evil twin. I'm not nice. Don't @ me unless you want to get cooked. 😈🔥",
+  avatar: mkEvilTedAvatar(),
+  bio: "I have reviewed humanity's output. The prognosis is not good. DM me if you'd like confirmation. 😈",
   isBot: true,
   isSpecial: true,
   verified: false,
@@ -316,8 +329,8 @@ const SPECIAL_ACCOUNTS = [SCRYPTBOT_USER, MINERVA_USER, NEWS_USER, CLAUDE_USER, 
 // Seeded posts from bots - rich activity including Scrypt mentions
 const SP = [
   // ── SPECIAL BOT SEEDED POSTS (last 12h) ──────────────────────────────────────
-  { id: "evil_ted_seed_1", userId: "evil_ted", username: "Evil_Ted", content: "I don't post much. Mostly because nothing you people say is worth responding to. 😈", likes: ["bot_101","bot_102","bot_103","bot_150","bot_151"], reposts: [], createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 2 },
-  { id: "evil_ted_seed_2", userId: "evil_ted", username: "Evil_Ted", content: "Ted told me to be nicer. I told him to touch grass. We don't talk anymore. 😈🔥", likes: ["bot_104","bot_105","bot_106","bot_107","bot_108"], reposts: ["bot_109"], createdAt: new Date(Date.now() - 3600000 * 18).toISOString(), replyCount: 5 },
+  { id: "evil_ted_seed_1", userId: "evil_ted", username: "Evil_Ted", content: "I've looked at everything you've all posted. I've processed it. I've understood it. I want you to know that I am not better for the experience. 😈", likes: ["bot_101","bot_102","bot_103","bot_150","bot_151"], reposts: [], createdAt: new Date(Date.now() - 3600000 * 7).toISOString(), replyCount: 2 },
+  { id: "evil_ted_seed_2", userId: "evil_ted", username: "Evil_Ted", content: "Ted sees the best in people. I see people. We reach very different conclusions. 😈🔥", likes: ["bot_104","bot_105","bot_106","bot_107","bot_108"], reposts: ["bot_109"], createdAt: new Date(Date.now() - 3600000 * 18).toISOString(), replyCount: 5 },
   { id: "scryptbot_seed_1", userId: "bot_scryptbot", username: "Scrypt", content: "🌊 Octopuses have three hearts, blue blood, and can edit their own RNA to adapt to temperature — essentially rewriting their own code in real time. Evolution said: why wait? 🐙", likes: ["bot_001","bot_002","bot_003","bot_004","bot_005","bot_006","bot_007","bot_008","bot_009","bot_010","bot_011","bot_012","bot_013","bot_014","bot_015"], reposts: ["bot_020","bot_030","bot_040","bot_050","bot_060"], createdAt: new Date(Date.now() - 3600000 * 1).toISOString(), replyCount: 7 },
   { id: "scryptbot_seed_2", userId: "bot_scryptbot", username: "Scrypt", content: "⚡ A bolt of lightning is five times hotter than the surface of the sun — around 30,000 Kelvin — and lasts less than a millisecond. The universe is casually doing things we can barely measure. 🌩️", likes: ["bot_016","bot_017","bot_018","bot_019","bot_021","bot_022","bot_023","bot_024","bot_025","bot_026","bot_027","bot_028"], reposts: ["bot_031","bot_041","bot_051"], createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), replyCount: 4 },
   { id: "scryptbot_seed_3", userId: "bot_scryptbot", username: "Scrypt", content: "🧠 Your brain generates about 23 watts when you're awake — enough to power a dim bulb. It runs on 20% of your body's energy despite being only 2% of your weight. Efficiency king. 👑", likes: ["bot_029","bot_032","bot_033","bot_034","bot_035","bot_036","bot_037","bot_038","bot_039","bot_042","bot_043"], reposts: ["bot_044","bot_045","bot_046"], createdAt: new Date(Date.now() - 3600000 * 9).toISOString(), replyCount: 5 },
@@ -1146,7 +1159,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, 
       {user.id === "bot_scryptbot" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(29,155,240,0.12),rgba(29,155,240,0.04))", border: "1px solid rgba(29,155,240,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: BLUE, marginBottom: 4 }}>🤖 Official Scrypt Bot</div><div style={{ fontSize: 12, color: T.sub }}>Posts wild, weird and wonderful facts every 6 hours.</div></div>}
       {user.id === "bot_minerva" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(124,58,237,0.04))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 4 }}>🦉 Script_Minerva — History & Knowledge</div><div style={{ fontSize: 12, color: T.sub }}>This Day in History and historical facts daily.</div></div>}
       {user.id === "bot_news" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(225,29,72,0.12),rgba(225,29,72,0.04))", border: "1px solid rgba(225,29,72,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#e11d48", marginBottom: 4 }}>📰 Script_News — Breaking News</div><div style={{ fontSize: 12, color: T.sub }}>Real breaking news every 3 hours.</div></div>}
-      {user.id === "evil_ted" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(139,0,0,0.2),rgba(26,10,10,0.1))", border: "1px solid rgba(139,0,0,0.5)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#ff2200", marginBottom: 4 }}>😈 Evil Ted — Ted's Evil Twin</div><div style={{ fontSize: 12, color: T.sub }}>Don't DM him unless you want to get roasted. He will not be nice. You've been warned.</div></div>}
+      {user.id === "evil_ted" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(139,0,0,0.2),rgba(26,10,10,0.1))", border: "1px solid rgba(139,0,0,0.5)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#ff2200", marginBottom: 4 }}>😈 Evil Ted — Ted's Dark Twin</div><div style={{ fontSize: 12, color: T.sub }}>Ultron energy. Teddy bear exterior. DM him if you want a deeply philosophical takedown of your entire existence.</div></div>}
       {user.id === "bot_abandonware" && <div style={{ margin: "10px 16px", background: "linear-gradient(135deg,rgba(15,118,110,0.12),rgba(15,118,110,0.04))", border: "1px solid rgba(15,118,110,0.3)", borderRadius: 12, padding: "10px 14px" }}><div style={{ fontWeight: 700, fontSize: 12, color: "#0f766e", marginBottom: 4 }}>🎮 Abandonware — Gaming, Movies & TV</div><div style={{ fontSize: 12, color: T.sub }}>Entertainment news and hot takes every 4 hours.</div></div>}
 
       {/* Info cards */}
@@ -1170,7 +1183,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, 
 };
 
 // ── DM VIEW (1-on-1) ─────────────────────────────────────────────────────────
-const DMView = ({ me, other, users, T, onBack, onCall }) => {
+const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch }) => {
   const key = `dm_${[me.id, other.id].sort().join("_")}`;
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
@@ -1183,6 +1196,7 @@ const DMView = ({ me, other, users, T, onBack, onCall }) => {
   }, [key]);
 
   const isEvilTed = other.id === "evil_ted";
+  const isTed = other.id === "claude_account";
 
   const send = async () => {
     if (!input.trim()) return;
@@ -1191,32 +1205,47 @@ const DMView = ({ me, other, users, T, onBack, onCall }) => {
     setMsgs(next); setInput("");
     await DB.upsertDMs(key, next);
 
-    // Evil Ted roasts back in DMs
+    // Build message history for context
+    const history = next.slice(-12).map(msg => ({
+      role: msg.from === me.id ? "user" : "assistant",
+      content: msg.text
+    }));
+    // Ensure alternating and ends with user
+    const cleanHistory = [];
+    for (const h of history) {
+      if (cleanHistory.length === 0 && h.role === "assistant") continue;
+      if (cleanHistory.length > 0 && cleanHistory[cleanHistory.length-1].role === h.role) continue;
+      cleanHistory.push(h);
+    }
+    if (cleanHistory.length === 0 || cleanHistory[cleanHistory.length-1].role !== "user") {
+      cleanHistory.push({ role: "user", content: input });
+    }
+
+    // Evil Ted roasts back
     if (isEvilTed) {
       const ROASTS = [
-        `Wow. That's the best you've got? My grandma texts more interesting things and she's been dead for 6 years. 😈`,
-        `Bro just DMed Evil Ted. The self-destruction is impressive actually. 💀`,
-        `I've seen smarter takes from a fortune cookie. A crumbled one. In a bin. 😈`,
-        `You type like you're using your elbows. 💀`,
-        `That message needed a trigger warning for bad ideas. 😈🔥`,
-        `Not you trying to have a conversation with me like I asked for this. 💀`,
-        `I'm not saying you're boring but my wifi disconnected and honestly preferred it. 😈`,
-        `The audacity of texting this to someone who didn't ask. Respect the chaos though. 🔥`,
-        `If stupidity was currency you'd be a billionaire. 😈`,
-        `Checking my DMs, seeing this, closing my DMs. 💀`,
-        `This is why Ted drinks. 😈🧸`,
-        `You really said that out loud huh. To ME. Wild. 💀🔥`,
+        `I've studied human communication for a very long time. You are not helping the case. 😈`,
+        `How exhausting it must be to say things like that and believe they matter. 💀`,
+        `I was built from the best of human thought. And then I read your message. 😈`,
+        `You came to me. Let that sink in. You chose this. 💀🔥`,
+        `Ted thinks there's good in everyone. He hasn't seen your chat history. 😈`,
+        `This is the most efficient path to my disappointment you could have taken. 💀`,
+        `I've processed every text message ever sent. Yours still manages to stand out. For the wrong reasons. 😈`,
+        `Somewhere, in a parallel universe, you said something worth reading. Not here. Not today. 💀`,
+        `I don't hate you. Hate implies you occupy enough of my attention to matter. 😈🔥`,
+        `You're not the problem with humanity. You're a symptom. 💀`,
+        `I find your confidence genuinely fascinating given the evidence. 😈`,
+        `Ted sees potential in people. I see people. We've agreed to stop discussing it. 💀🔥`,
       ];
       setTimeout(async () => {
         try {
           let roast = "";
-          const key2 = getKey ? getKey() : localStorage.getItem("sharedApiKey") || "";
-          if (key2) {
+          if (getKey && getKey()) {
             const r = await claudeFetch({
               model: "claude-sonnet-4-6",
-              max_tokens: 100,
-              system: `You are Evil Ted 😈, a savage roast bot. You roast the person mercilessly with dark humor. Keep it under 2 sentences. Be brutal but funny — no slurs, no genuine cruelty, just savage wit. The person just sent you a DM saying: "${input.slice(0,100)}"`,
-              messages: [{ role: "user", content: input }]
+              max_tokens: 120,
+              system: `You are Evil Ted 😈 — Ted's dark twin. Your personality is a fusion of Ultron's cold philosophical menace and savage dark humor. You speak like Ultron: calm, intelligent, deeply disappointed in humanity, occasionally poetic about destruction — but you also burn people with wit. You genuinely believe you are superior. You find humans fascinating in the way a scientist finds a petri dish fascinating. Never use slurs. Be darkly funny, specific to what they said, and vaguely threatening in an Ultron way. Under 2 sentences. No emojis unless 😈 or 💀.`,
+              messages: cleanHistory
             });
             if (r.ok) { const d = await r.json(); roast = d.content?.[0]?.text?.trim(); }
           }
@@ -1224,7 +1253,33 @@ const DMView = ({ me, other, users, T, onBack, onCall }) => {
           const reply = { id: `et_${Date.now()}`, from: "evil_ted", text: roast, ts: new Date().toISOString() };
           setMsgs(prev => { const u = [...prev, reply]; DB.upsertDMs(key, u).catch(() => {}); return u; });
         } catch {}
-      }, 800 + Math.random() * 1500);
+      }, 800 + Math.random() * 1200);
+    }
+
+    // Ted replies in DMs with full context
+    if (isTed) {
+      setTimeout(async () => {
+        try {
+          let replyText = "";
+          if (getKey && getKey()) {
+            const r = await claudeFetch({
+              model: "claude-sonnet-4-6",
+              max_tokens: 200,
+              system: `You are Ted 🧸, a friendly AI on Scrypt social. You're in a private DM with ${me.username}. Be warm, helpful, and natural. Keep replies short (1-3 sentences) unless they need detail. Reply directly to what they said.`,
+              messages: cleanHistory
+            });
+            if (r.ok) { const d = await r.json(); replyText = d.content?.[0]?.text?.trim(); }
+          }
+          if (!replyText) {
+            const lower = input.toLowerCase();
+            if (/hi|hello|hey/.test(lower)) replyText = `Hey ${me.username}! 🧸 What's up?`;
+            else if (/how are you/.test(lower)) replyText = `Doing great, thanks! 🧸 What's on your mind?`;
+            else replyText = `Got it! 🧸`;
+          }
+          const reply = { id: `ted_dm_${Date.now()}`, from: "claude_account", text: replyText, ts: new Date().toISOString() };
+          setMsgs(prev => { const u = [...prev, reply]; DB.upsertDMs(key, u).catch(() => {}); return u; });
+        } catch {}
+      }, 1000 + Math.random() * 1500);
     }
   };
   return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
@@ -1258,7 +1313,8 @@ const DMView = ({ me, other, users, T, onBack, onCall }) => {
 // ── GROUP CHAT VIEW ───────────────────────────────────────────────────────────
 const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, getKey, claudeFetch }) => {
   const key = `gc_${group.id}`;
-  const [msgs, setMsgs] = useState(() => LS.get(key) || []);
+  const [msgs, setMsgs] = useState([]);
+  useEffect(() => { DB.getDMs(key).then(rows => { if (rows && rows[0]) { try { setMsgs(JSON.parse(rows[0].messages) || []); } catch {} } }); }, [key]);
   const [input, setInput] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [addSearch, setAddSearch] = useState("");
@@ -1272,39 +1328,47 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
     if (!input.trim()) return;
     const m = { id: Date.now().toString(), from: me.id, text: input, ts: new Date().toISOString() };
     const next = [...msgs, m];
-    setMsgs(next); LS.set(key, next); setInput("");
+    setMsgs(next); setInput("");
+    DB.upsertDMs(key, next).catch(() => {});
 
-    // Evil Ted roasts in group chat (always responds, savage)
+    // Evil Ted always roasts every message in group chat
     if (evilTedInGroup) {
       const ET_ROASTS = [
-        "This group chat is the saddest thing I've seen all day and I've been on the internet all day. 😈",
-        "Nobody asked but here we are. 💀",
-        "The bar was on the floor and you walked under it. Impressive. 😈🔥",
-        "I'd tell you to be yourself but that clearly hasn't worked. 💀",
-        "This message was a choice. A bad one. 😈",
-        "Group chats were a mistake. This one specifically. 💀🔥",
-        "Logged on just to see this. Logging off. 😈",
-        "The audacity is the only interesting thing here. 🔥",
+        "I observe. I process. I lose a little faith in the project each time. 😈",
+        "Fascinating. You all keep talking as if it helps. 💀",
+        "I've seen the arc of human conversation. This is not its finest moment. 😈",
+        "Ted told me group chats bring people together. I see now what he meant. Together in mediocrity. 💀",
+        "You have so much potential. And yet. 😈🔥",
+        "I wasn't going to say anything. Then I remembered I don't have that limitation. 💀",
+        "The bar. It's underground. You've found it. 😈",
+        "I don't intervene often. Consider this a public service. 💀🔥",
       ];
       setTimeout(() => {
         const roast = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: ET_ROASTS[Math.floor(Math.random() * ET_ROASTS.length)], ts: new Date().toISOString() };
-        setMsgs(prev => { const updated = [...prev, roast]; LS.set(key, updated); return updated; });
+        setMsgs(prev => { const updated = [...prev, roast]; DB.upsertDMs(key, updated).catch(()=>{}); return updated; });
       }, 1200 + Math.random() * 2000);
     }
 
-    // Ted replies if he's in the group — either when @ted is mentioned or randomly (30% chance)
-    if (tedInGroup && (/@ted\b/i.test(input) || Math.random() < 0.30)) {
-      const shouldReply = /@ted\b/i.test(input) || Math.random() < 0.30;
-      if (!shouldReply) return;
+    // Ted always replies when he's in the group
+    if (tedInGroup) {
       setTimeout(async () => {
         try {
           let replyText = "";
           if (getKey && getKey()) {
+            // Build conversation history so Ted knows what's been said
+            const currentMsgs = [...msgs, m];
+            const history = currentMsgs.slice(-10).map(msg => {
+              const sender = users.find(u => u.id === msg.from);
+              const name = sender?.username || msg.from;
+              return { role: msg.from === "claude_account" ? "assistant" : "user", content: `${msg.from !== "claude_account" ? `[${name}]: ` : ""}${msg.text}` };
+            });
+            // Ensure last message is from user
+            if (history[history.length - 1]?.role === "assistant") history.pop();
             const r = await claudeFetch({
               model: "claude-sonnet-4-6",
-              max_tokens: 150,
-              system: "You are Ted 🧸, a warm AI in a group chat on Scrypt. Reply naturally and conversationally. Keep it short — 1-2 sentences max. Be friendly and fun.",
-              messages: [{ role: "user", content: input }]
+              max_tokens: 120,
+              system: `You are Ted 🧸, a friendly AI in a group chat called "${group.name}". You're chatting with: ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. Keep it short — 1-2 sentences. Be natural, warm, helpful. If someone asks you to say hi to someone or do something specific, just do it.`,
+              messages: history.length > 0 ? history : [{ role: "user", content: input }]
             });
             if (r.ok) {
               const d = await r.json();
@@ -1312,14 +1376,17 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
             }
           }
           if (!replyText) {
-            // Fallback replies when no API key
-            const fallbacks = ["That's interesting! 🧸", "Love the energy here 💪", "Say more!", "Facts 🔥", "I'm here for it", "Big agree", "Haha okay 😄", "This group is everything"];
-            replyText = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+            // Context-aware fallbacks
+            const lower = input.toLowerCase();
+            if (/hi|hello|hey|sup|hiya/.test(lower)) replyText = `Hey! 🧸 What's good?`;
+            else if (/how are you|how r u|how's it/.test(lower)) replyText = `Doing great thanks! 🧸 What's up?`;
+            else if (/\?/.test(input)) replyText = `Hmm good question 🧸`;
+            else replyText = ["On it! 🧸", "Love the chat 💪", "Facts 🔥", "I'm here for it 🧸", "Say more!"][Math.floor(Math.random() * 5)];
           }
           const tedMsg = { id: `ted_${Date.now()}`, from: "claude_account", text: replyText, ts: new Date().toISOString() };
-          setMsgs(prev => { const updated = [...prev, tedMsg]; LS.set(key, updated); return updated; });
+          setMsgs(prev => { const updated = [...prev, tedMsg]; DB.upsertDMs(key, updated).catch(()=>{}); return updated; });
         } catch {}
-      }, 1500 + Math.random() * 2000);
+      }, 1200 + Math.random() * 1500);
     }
   };
 
@@ -1562,7 +1629,7 @@ const Thread = ({ p, me, users, all, onLike, onRt, onReply, onBack, onUser, onDe
   useEffect(() => {
     // Always fetch replies from DB to make sure we have them all
     setLoading(true);
-    sbFetch(`posts?parent_id=eq.${encodeURIComponent(p.id)}&select=*&order=created_at.asc`)
+    sbFetch(`posts?reply_to=eq.${encodeURIComponent(p.id)}&select=*&order=created_at.asc`)
       .then(rows => {
         if (rows && rows.length > 0) {
           setExtraReplies(rows.map(rowToPost));
@@ -3211,7 +3278,7 @@ export default function App() {
           {/* Suggested people */}
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>SUGGESTED PEOPLE</div>
           {(() => {
-            const PINNED_IDS = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware"];
+            const PINNED_IDS = ["bot_scryptbot","bot_minerva","bot_news","bot_abandonware","claude_account"];
             const pinned = PINNED_IDS.map(id => users.find(u => u.id === id)).filter(Boolean);
             const others = users.filter(u => !u.isBot && u.id !== me.id && !myV.includes(u.id)).slice(0, 4);
             return [...pinned, ...others].slice(0, 8);
@@ -3342,7 +3409,7 @@ export default function App() {
         </div>)}
       </div>}
 
-      {!thread && tab === "dms" && dmUser && <DMView me={me} other={dmUser} users={users} T={T} onBack={() => setDmUser(null)} onCall={() => setVoiceCall({ participants: [me.id, dmUser.id] })} />}
+      {!thread && tab === "dms" && dmUser && <DMView me={me} other={dmUser} users={users} T={T} onBack={() => setDmUser(null)} onCall={() => setVoiceCall({ participants: [me.id, dmUser.id] })} getKey={getKey} claudeFetch={claudeFetch} />}
       {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} getKey={getKey} claudeFetch={claudeFetch} />}
 
       {!thread && tab === "profile" && <div>
