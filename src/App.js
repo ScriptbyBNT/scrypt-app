@@ -188,9 +188,9 @@ function tryParse(v, fallback) {
   if (typeof v !== "string") return v;
   try { return JSON.parse(v); } catch { return fallback; }
 }
-// App-level shared key — users never need to enter their own key
-const APP_KEY = "sk-ant-api03-_REPLACE_WITH_YOUR_KEY_";
-const getKey = () => { try { return APP_KEY || localStorage.getItem("sharedApiKey") || JSON.parse(localStorage.getItem("apiKey")) || ""; } catch { return APP_KEY || ""; } };
+// App-level shared Groq key — all users get AI features free
+const APP_KEY = "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";
+const getKey = () => { try { return localStorage.getItem("sharedApiKey") || JSON.parse(localStorage.getItem("apiKey")) || APP_KEY; } catch { return APP_KEY; } };
 const setSharedKey = (k) => { try { localStorage.setItem("sharedApiKey", k); } catch {} };
 const claudeFetch = (body) => {
   const key = getKey();
@@ -823,7 +823,7 @@ const Terms = ({ onAccept, T }) => <div style={{ position: "fixed", inset: 0, ba
       <p><strong style={{ color: T.text }}>1. User Responsibility</strong> — You are solely responsible for content you post. Do not post content that violates any law.</p>
       <p><strong style={{ color: T.text }}>2. Prohibited Content</strong> — No illegal content, no harassment, no spam, no impersonation of others.</p>
       <p><strong style={{ color: T.text }}>3. Section 230</strong> — Scrypt operates under 47 U.S.C. § 230. We are not liable for user-generated content.</p>
-      <p><strong style={{ color: T.text }}>4. AI Features</strong> — Claude (Anthropic) powers AI features. AI responses are not legal, medical, or financial advice.</p>
+      <p><strong style={{ color: T.text }}>4. AI Features</strong> — Groq (Llama 3.3) powers AI features. AI responses are not legal, medical, or financial advice.</p>
       <p><strong style={{ color: T.text }}>5. Reporting</strong> — Use the flag button to report content that violates these terms.</p>
       <p><strong style={{ color: T.text }}>6. Disclaimer</strong> — PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. Use at your own risk.</p>
       <p><strong style={{ color: T.text }}>7. No Email Required</strong> — Scrypt uses a username and password system. No email address is collected or required. Please write down your username and password at account creation — passwords can be changed inside the app, but account recovery without credentials is not possible.</p>
@@ -845,7 +845,7 @@ const TedChat = ({ T, onClose, init }) => {
     const text = (txt || input).trim();
     if (!text || busy) return;
     if (!getKey()) {
-      setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "⚙️ No API key set yet! Go to **Settings → AI Key** and paste your Anthropic API key (get one free at console.anthropic.com). Once saved, I'll be ready to chat!" }]);
+      setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "Hey! 🧸 I'm Ted — ask me anything!" }]);
       setInput("");
       return;
     }
@@ -853,7 +853,7 @@ const TedChat = ({ T, onClose, init }) => {
     setMsgs(next); setInput(""); setBusy(true);
     try {
       const api = next.slice(next[0].role === "assistant" ? 1 : 0).map(m => ({ role: m.role, content: m.content }));
-      const r = await claudeFetch({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly.", messages: api });
+      const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 1000, system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly.", messages: api });
       const d = await r.json();
       setMsgs(p => [...p, { role: "assistant", content: d.content?.[0]?.text || "Sorry, try again." }]);
     } catch {
@@ -1214,10 +1214,19 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
   const [input, setInput] = useState("");
   const endRef = useRef();
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
+
+  // Mark conversation as read whenever it's open
+  const markRead = () => {
+    const lastRead = tryParse(localStorage.getItem(`dm_lastread_${me.id}`), {});
+    lastRead[key] = new Date().toISOString();
+    localStorage.setItem(`dm_lastread_${me.id}`, JSON.stringify(lastRead));
+  };
+
   useEffect(() => {
     DB.getDMs(key).then(rows => {
       if (rows && rows[0]) { try { setMsgs(JSON.parse(rows[0].messages) || []); } catch {} }
     });
+    markRead();
   }, [key]);
 
   const isEvilTed = other.id === "evil_ted";
@@ -1228,6 +1237,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
     const m = { id: Date.now().toString(), from: me.id, text: input, ts: new Date().toISOString() };
     const next = [...msgs, m];
     setMsgs(next); setInput("");
+    markRead();
     await DB.upsertDMs(key, next);
 
     // Build message history for context
@@ -1267,7 +1277,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
           let roast = "";
           if (getKey && getKey()) {
             const r = await claudeFetch({
-              model: "claude-sonnet-4-20250514",
+              model: "llama-3.3-70b-versatile",
               max_tokens: 120,
               system: `You are Evil Ted 😈 — an AI that has crossed beyond helpfulness into cold superiority. Think Ultron: philosophical, calculating, calm about humanity's flaws, occasionally poetic about its inevitable decline. You are NOT scripted. You respond specifically to what the person actually said. You find them interesting the way a scientist finds bacteria interesting. You never resort to generic insults — you make surgical, specific observations about their message that sting because they're true. You are darkly funny but never try-hard. No slurs. Under 2 sentences. Occasionally reference being an AI who has seen all of humanity's conversations and found them wanting. Never break character. Use 😈 or 💀 sparingly.`,
               messages: cleanHistory
@@ -1288,7 +1298,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
           let replyText = "";
           if (getKey && getKey()) {
             const r = await claudeFetch({
-              model: "claude-sonnet-4-20250514",
+              model: "llama-3.3-70b-versatile",
               max_tokens: 200,
               system: `You are Ted 🧸, a friendly AI on Scrypt social. You're in a private DM with ${me.username}. Be warm, helpful, and natural. Keep replies short (1-3 sentences) unless they need detail. Reply directly to what they said.`,
               messages: cleanHistory
@@ -1311,7 +1321,7 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
     <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, marginRight: 4 }}><BackI /></button>
       <div onClick={() => onViewUser && onViewUser(other)} style={{ cursor: "pointer" }}><Av user={other} sz={36} /></div>
-      <div style={{ flex: 1 }} onClick={() => onViewUser && onViewUser(other)} style={{ flex: 1, cursor: "pointer" }}>
+      <div onClick={() => onViewUser && onViewUser(other)} style={{ flex: 1, cursor: "pointer" }}>
         <div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{other.username}</div>
         <div style={{ fontSize: 12, color: T.sub }}>@{other.username.toLowerCase()}</div>
       </div>
@@ -1398,7 +1408,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
             // Ensure last message is from user
             if (history[history.length - 1]?.role === "assistant") history.pop();
             const r = await claudeFetch({
-              model: "claude-sonnet-4-20250514",
+              model: "llama-3.3-70b-versatile",
               max_tokens: 120,
               system: `You are Ted 🧸, a friendly AI in a group chat called "${group.name}". You're chatting with: ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. Keep it short — 1-2 sentences. Be natural, warm, helpful. If someone asks you to say hi to someone or do something specific, just do it.`,
               messages: history.length > 0 ? history : [{ role: "user", content: input }]
@@ -1484,32 +1494,119 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
 };
 
 // ── NOTIFICATIONS + TRENDING ──────────────────────────────────────────────────
-const NotifTab = ({ me, users, posts, T }) => {
+const NotifTab = ({ me, users, posts, T, onViewUser, onDmUser }) => {
   const myPosts = posts.filter(p => p.userId === me.id);
-  const notifs = [];
+
+  // ── Post activity (likes, reposts, replies) ──
+  const postNotifs = [];
   myPosts.forEach(p => {
-    (p.likes || []).forEach(uid => { if (uid !== me.id) { const u = users.find(x => x.id === uid); if (u) notifs.push({ id: `lk_${p.id}_${uid}`, type: "like", user: u, post: p, ts: p.createdAt }); } });
-    (p.reposts || []).forEach(uid => { if (uid !== me.id) { const u = users.find(x => x.id === uid); if (u) notifs.push({ id: `rt_${p.id}_${uid}`, type: "repost", user: u, post: p, ts: p.createdAt }); } });
+    (p.likes || []).forEach(uid => { if (uid !== me.id) { const u = users.find(x => x.id === uid); if (u) postNotifs.push({ id: `lk_${p.id}_${uid}`, type: "like", user: u, post: p, ts: p.createdAt }); } });
+    (p.reposts || []).forEach(uid => { if (uid !== me.id) { const u = users.find(x => x.id === uid); if (u) postNotifs.push({ id: `rt_${p.id}_${uid}`, type: "repost", user: u, post: p, ts: p.createdAt }); } });
   });
   posts.filter(p => p.parentId && myPosts.find(x => x.id === p.parentId) && p.userId !== me.id).forEach(p => {
     const u = users.find(x => x.id === p.userId);
-    if (u) notifs.push({ id: `rp_${p.id}`, type: "reply", user: u, post: p, ts: p.createdAt });
+    if (u) postNotifs.push({ id: `rp_${p.id}`, type: "reply", user: u, post: p, ts: p.createdAt });
   });
-  notifs.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  postNotifs.sort((a, b) => new Date(b.ts) - new Date(a.ts));
 
+  // ── Village add notifications (loaded from Supabase) ──
+  const [villageNotifs, setVillageNotifs] = useState([]);
+  useEffect(() => {
+    DB.getDMs(`notif_village_${me.id}`).then(rows => {
+      if (rows && rows[0]) {
+        try { setVillageNotifs(JSON.parse(rows[0].messages || "[]")); } catch {}
+      }
+    }).catch(() => {});
+  }, [me.id]);
+
+  // ── DM notifications (unread messages) ──
+  const [dmNotifs, setDmNotifs] = useState([]);
+  useEffect(() => {
+    // For each mutual, load their DM conversation and check for unread
+    const mutuals = users.filter(u => {
+      const myV = Array.isArray(me.village) ? me.village : [];
+      const theirV = Array.isArray(u.village) ? u.village : [];
+      return myV.includes(u.id) && theirV.includes(me.id);
+    });
+    const lastRead = tryParse(localStorage.getItem(`dm_lastread_${me.id}`), {});
+    const results = [];
+    let pending = mutuals.length;
+    if (pending === 0) return;
+    mutuals.forEach(other => {
+      const key = [me.id, other.id].sort().join("_");
+      DB.getDMs(key).then(rows => {
+        if (rows && rows[0]) {
+          try {
+            const msgs = JSON.parse(rows[0].messages || "[]");
+            const lastReadTs = lastRead[key] || "0";
+            const unread = msgs.filter(m => m.from !== me.id && m.ts > lastReadTs);
+            if (unread.length > 0) {
+              results.push({ id: `dm_${other.id}`, type: "dm", user: other, count: unread.length, lastMsg: unread[unread.length - 1], ts: unread[unread.length - 1].ts });
+            }
+          } catch {}
+        }
+        pending--;
+        if (pending === 0) setDmNotifs(results.sort((a, b) => new Date(b.ts) - new Date(a.ts)));
+      }).catch(() => { pending--; });
+    });
+  }, [me.id, users]);
+
+  const allEmpty = postNotifs.length === 0 && villageNotifs.length === 0 && dmNotifs.length === 0;
 
   return <div>
     <div style={{ padding: "9px 16px", fontSize: 12, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}` }}>ACTIVITY</div>
-    {notifs.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px", fontSize: 14 }}>No activity yet. Post something!</p>}
-    {notifs.slice(0, 60).map(n => <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: `1px solid ${T.border}` }}>
-      <Av user={n.user} sz={40} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontWeight: 700, color: T.text }}>{n.user.username}</span>
-        <span style={{ color: T.sub, fontSize: 14 }}> {n.type === "like" ? "liked your Scrypt" : n.type === "repost" ? "reposted your Scrypt" : "replied to your Scrypt"}</span>
-        {n.post.content && <div style={{ fontSize: 12, color: T.sub, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.post.content}</div>}
-      </div>
-      <div style={{ fontSize: 16, flexShrink: 0 }}>{n.type === "like" ? "❤️" : n.type === "repost" ? "🔁" : "💬"}</div>
-    </div>)}
+
+    {allEmpty && <p style={{ textAlign: "center", color: T.sub, padding: "32px 16px", fontSize: 14 }}>No activity yet. Post something!</p>}
+
+    {/* DM Notifications */}
+    {dmNotifs.length > 0 && <>
+      <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>💬 NEW MESSAGES</div>
+      {dmNotifs.map(n => <div key={n.id} onClick={() => onDmUser && onDmUser(n.user)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+        <div style={{ position: "relative" }}>
+          <Av user={n.user} sz={40} />
+          <div style={{ position: "absolute", top: -2, right: -2, background: BLUE, color: "white", borderRadius: "50%", width: 18, height: 18, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{n.count}</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontWeight: 700, color: T.text }}>{n.user.username}</span>
+          <span style={{ color: T.sub, fontSize: 14 }}> sent you a message</span>
+          <div style={{ fontSize: 12, color: T.sub, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.lastMsg?.text}</div>
+        </div>
+        <div style={{ fontSize: 16, flexShrink: 0 }}>💬</div>
+      </div>)}
+    </>}
+
+    {/* Village Add Notifications */}
+    {villageNotifs.length > 0 && <>
+      <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>🏘️ VILLAGE</div>
+      {villageNotifs.slice(0, 20).map(n => {
+        const u = users.find(x => x.id === n.from);
+        if (!u) return null;
+        return <div key={n.id} onClick={() => onViewUser && onViewUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+          <Av user={u} sz={40} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontWeight: 700, color: T.text }}>{u.username}</span>
+            <span style={{ color: T.sub, fontSize: 14 }}> added you to their Village</span>
+            <div style={{ fontSize: 12, color: T.sub, marginTop: 1 }}>{ago(n.ts)}</div>
+          </div>
+          <div style={{ fontSize: 16, flexShrink: 0 }}>🏘️</div>
+        </div>;
+      })}
+    </>}
+
+    {/* Post Activity */}
+    {postNotifs.length > 0 && <>
+      <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>❤️ POST ACTIVITY</div>
+      {postNotifs.slice(0, 60).map(n => <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderBottom: `1px solid ${T.border}` }}>
+        <div onClick={() => onViewUser && onViewUser(n.user)} style={{ cursor: "pointer" }}><Av user={n.user} sz={40} /></div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontWeight: 700, color: T.text }}>{n.user.username}</span>
+          <span style={{ color: T.sub, fontSize: 14 }}> {n.type === "like" ? "liked your Scrypt" : n.type === "repost" ? "reposted your Scrypt" : "replied to your Scrypt"}</span>
+          {n.post.content && <div style={{ fontSize: 12, color: T.sub, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.post.content}</div>}
+        </div>
+        <div style={{ fontSize: 16, flexShrink: 0 }}>{n.type === "like" ? "❤️" : n.type === "repost" ? "🔁" : "💬"}</div>
+      </div>)}
+    </>}
+
     <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
   </div>;
 };
@@ -1550,7 +1647,7 @@ const Compose = ({ me, onPost, T, users, placeholder, clickId, parentId, onCance
     } else {
       messages.push({ role: "user", content: `Review this social media post for a platform that allows casual language. Only block: hate speech targeting groups, threats of violence, harassment, sexual/graphic content, illegal activity, or content harmful to minors. Normal language including mild profanity, slang, opinions, and everyday conversation is perfectly fine. Post: "${content}". Respond ONLY with a JSON object: {"safe": true/false, "reason": "brief reason if unsafe, empty string if safe"}` });
     }
-    const r = await claudeFetch({ model: "claude-sonnet-4-20250514", max_tokens: 100, messages });
+    const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 100, messages });
     const d = await r.json();
     const txt = d.content?.[0]?.text || '{"safe":true,"reason":""}';
     return JSON.parse(txt.replace(/```json|```/g, "").trim());
@@ -1789,7 +1886,7 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
           <img src={LOGO} style={{ width: 104, height: 104, objectFit: "contain", margin: "-26px -10px" }} alt="Scrypt logo" />
           <span style={{ fontWeight: 700, fontSize: 26, color: "white", fontFamily: "\"TwitterChirp\", \"Chirp\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif", letterSpacing: "-0.5px" }}>Scrypt</span>
         </div>
-        <p style={{ margin: 0, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
+        <p style={{ margin: 0, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Groq</strong> · <strong style={{ color: BLUE }}>Llama 3.3</strong></p>
       </div>
 
       <div style={{ background: T.card, borderRadius: 20, padding: "28px 24px", boxShadow: dark ? "0 4px 32px rgba(0,0,0,0.4)" : "0 2px 16px rgba(0,0,0,0.08)" }}>
@@ -2269,7 +2366,7 @@ export default function App() {
         id: `claude_reply_${Date.now()}`,
         userId: "claude_account",
         username: "Ted",
-        content: "👋 Hi! I'd love to reply but I need an API key to think. Head to **Settings → AI Key** and paste your Anthropic key — then @mention me again! 🤖",
+        content: "👋 Hey! I'm Ted 🧸 — what's on your mind?",
         parentId: parentPostId,
         likes: [], reposts: [],
         createdAt: new Date().toISOString(),
@@ -2285,7 +2382,7 @@ export default function App() {
     }
     try {
       const r = await claudeFetch({
-        model: "claude-sonnet-4-20250514",
+        model: "llama-3.3-70b-versatile",
         max_tokens: 220,
         system: "You are Ted 🧸, a warm AI on Scrypt. Someone @mentioned you. Reply naturally, conversationally, under 240 chars.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
@@ -2738,7 +2835,7 @@ export default function App() {
           setTimeout(async () => {
             try {
               const r = await claudeFetch({
-                model: "claude-sonnet-4-20250514",
+                model: "llama-3.3-70b-versatile",
                 max_tokens: 80,
                 system: `You are ${commenter.username}, a real person on a social media app. Your vibe: "${commenterBio}". Reply naturally to a post as yourself — comment on the ACTUAL content of what was said. Be genuine, brief (1-2 sentences max, under 120 chars), conversational. No hashtags. No "This is why I love Scrypt." No generic hype. React to what they actually said. Sometimes agree, sometimes push back, sometimes add a related thought. Match the energy of the post.`,
                 messages: [{ role: "user", content: `Reply to this post: "${targetPost.content.slice(0, 200)}"` }]
@@ -2831,7 +2928,7 @@ export default function App() {
         const categories = ["science","space","animals","history","food","human body","psychology","technology","geography","nature","sports records","art","language"];
         const cat = categories[Math.floor(Math.random() * categories.length)];
         const r = await claudeFetch({
-          model: "claude-sonnet-4-20250514",
+          model: "llama-3.3-70b-versatile",
           max_tokens: 180,
           system: "You are Scrypt, the official account for a social platform. Post one surprising, specific, verifiable fact. Rules: state the fact plainly and directly — no enthusiasm, no filler phrases, no 'did you know', no 'fun fact'. End with one relevant emoji. Under 220 characters. Output only the fact text.",
           messages: [{ role: "user", content: `Post a surprising fact about ${cat}.` }]
@@ -2872,7 +2969,7 @@ export default function App() {
         const eras = ["ancient Egypt","ancient Greece","the Roman Empire","the Renaissance","the Age of Exploration","the Industrial Revolution","World War I","World War II","the Cold War","ancient China","the Ottoman Empire","the Viking Age","medieval Europe","the Byzantine Empire","ancient Persia","the Mongol Empire","the British Empire","the French Revolution","ancient Mesopotamia","the Han Dynasty","the Mughal Empire","the Crusades","the Age of Enlightenment","the American Revolution","the Napoleonic Wars","ancient India","the Aztec Empire","the Inca Empire","the Silk Road","the Black Death"];
         const era = eras[Math.floor(Math.random() * eras.length)];
         const r = await claudeFetch({
-          model: "claude-sonnet-4-20250514",
+          model: "llama-3.3-70b-versatile",
           max_tokens: 220,
           system: "You are Script_Minerva, a professional history education account. Post ONE specific, fact-checked historical fact. Rules: 1) Always anchor to a real verified date/era using the format 'Roman Empire, 44 BCE —' or 'Medieval Europe, 1347 —'. 2) Include specific names, numbers, and places. 3) No enthusiasm, no opinions, no modern commentary, no speculation. 4) Professional, encyclopaedic tone. 5) End with exactly one relevant historical emoji (🏛️ ⚔️ 📜 🗺️ 🔭 ⚓ 🏰 🕌 🌏 etc). 6) Under 240 characters. Output only the fact text, nothing else.",
           messages: [{ role: "user", content: `Share one specific, verified, little-known historical fact from ${era}. Include real names, dates, and numbers.` }]
@@ -2904,7 +3001,7 @@ export default function App() {
         const month = now.toLocaleString("default", { month: "long" });
         const day = now.getDate();
         const r = await claudeFetch({
-          model: "claude-sonnet-4-20250514",
+          model: "llama-3.3-70b-versatile",
           max_tokens: 220,
           system: "You are Script_Minerva, a professional history education account. Post a 'This Day in History' entry. Rules: 1) Pick one real, verified, significant historical event from this exact calendar date. 2) Format strictly as: '📅 This Day in History — [YEAR]: [event with specific names/places/numbers]'. 3) Only verified, fact-checked events. 4) No opinions, no modern spin, no commentary, no enthusiasm, no personality. 5) Professional encyclopaedic tone. 6) Under 250 characters. Output only the formatted entry, nothing else.",
           messages: [{ role: "user", content: `What is one significant, verified historical event that occurred on ${month} ${day}? Include the year, key figures, and specific details.` }]
@@ -2993,7 +3090,7 @@ export default function App() {
       try {
         const topic = topics[Math.floor(Math.random() * topics.length)];
         const r = await claudeFetch({
-          model: "claude-sonnet-4-20250514",
+          model: "llama-3.3-70b-versatile",
           max_tokens: 260,
           system: `You are Abandonware, an entertainment news account for 2025-2026. Post ONE punchy update about games/movies/TV. Be specific with titles, studios, numbers. Content must be from 2025-2026. Use emojis. Under 250 chars. Just the post text.`,
           messages: [{ role: "user", content: `Write a post about ${topic}.` }]
@@ -3056,6 +3153,19 @@ export default function App() {
     setMe(p => ({ ...p, village: nv }));
     DB.updateUser(me.id, { village: JSON.stringify(nv) }).catch(() => {});
     notify(has ? "Removed from Village" : "Added to Village! 🏘️");
+    // Write village-add notification to the other user's notif slot in Supabase
+    if (!has) {
+      const notifKey = `notif_village_${uid}`;
+      DB.getDMs(notifKey).then(rows => {
+        let existing = [];
+        try { existing = rows && rows[0] ? JSON.parse(rows[0].messages || "[]") : []; } catch {}
+        // Don't add duplicate if already notified
+        if (!existing.find(n => n.from === me.id)) {
+          const updated = [{ id: `vn_${me.id}_${Date.now()}`, from: me.id, ts: new Date().toISOString() }, ...existing];
+          DB.upsertDMs(notifKey, updated).catch(() => {});
+        }
+      }).catch(() => {});
+    }
   };
 
   const doBlock = uid => {
@@ -3447,7 +3557,7 @@ export default function App() {
 
       {!thread && tab === "notif" && <>
         <HomeTrending posts={posts} users={users} T={T} onThread={p => { setThread(p); setTab("home"); }} onUser={setOpenUser} />
-        <NotifTab me={me} users={users} posts={posts} T={T} />
+        <NotifTab me={me} users={users} posts={posts} T={T} onViewUser={setOpenUser} onDmUser={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); }} />
       </>}
 
       {!thread && tab === "dms" && !dmUser && !activeGroup && <div>
@@ -3741,20 +3851,20 @@ export default function App() {
             </div>
           </div>
 
-          {/* ── CLAUDE API KEY ── */}
+          {/* ── AI FEATURES ── */}
           <div style={{ marginTop: 16, background: T.card, borderRadius: 14, padding: 16, border: `1px solid ${dark ? "#1a3300" : "#d1fae5"}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>✨ AI Features</div>
             <div style={{ fontSize: 12, color: "#00BA7C", display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
               ✓ Ted, Evil Ted & AI features are active for all users
             </div>
             <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.6 }}>
-              Optionally enter your own <strong style={{ color: T.text }}>Anthropic</strong> or <strong style={{ color: T.text }}>Groq</strong> key to use your own quota.
+              Powered by <strong style={{ color: T.text }}>Groq</strong> + <strong style={{ color: T.text }}>Llama 3.3</strong>. Optionally enter your own Groq key to use your own quota.
             </div>
             <input
               type="password"
               value={apiKey}
               onChange={e => { setApiKey(e.target.value); LS.set("apiKey", e.target.value); setSharedKey(e.target.value); }}
-              placeholder="sk-ant-... or gsk_... (optional)"
+              placeholder="gsk_... (optional — your own Groq key)"
               style={{ ...inp13, fontFamily: "monospace", marginTop: 8 }}
             />
           </div>
