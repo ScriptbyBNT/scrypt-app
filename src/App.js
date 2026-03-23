@@ -914,6 +914,37 @@ const ACCENT_COLORS = [
 const getAccent = (user) => ACCENT_COLORS.find(a => a.id === user?.accentColor) || ACCENT_COLORS[0];
 
 // ── PROFILE SONG PLAYER ────────────────────────────────────────────────────────
+// Convert AudioBuffer to WAV ArrayBuffer
+function audioBufferToWav(buffer) {
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const format = 1; // PCM
+  const bitDepth = 16;
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = buffer.length * blockAlign;
+  const ab = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(ab);
+  const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  writeStr(0, "RIFF"); view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, "WAVE"); writeStr(12, "fmt ");
+  view.setUint32(16, 16, true); view.setUint16(20, format, true);
+  view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true); writeStr(36, "data");
+  view.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let i = 0; i < buffer.length; i++) {
+    for (let c = 0; c < numChannels; c++) {
+      const s = Math.max(-1, Math.min(1, buffer.getChannelData(c)[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+  return ab;
+}
+
 const ProfileSongPlayer = ({ songSrc, songName, accent }) => {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
@@ -923,12 +954,20 @@ const ProfileSongPlayer = ({ songSrc, songName, accent }) => {
     if (playing) { audioRef.current.pause(); setPlaying(false); }
     else { audioRef.current.currentTime = 0; audioRef.current.play(); setPlaying(true); }
   };
+  const onTimeUpdate = () => {
+    if (audioRef.current && audioRef.current.currentTime >= 10) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setPlaying(false);
+    }
+  };
+  const displayName = songName || "Profile Song";
   return <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: `${accent.color}18`, borderRadius: 10, border: `1px solid ${accent.color}40`, marginBottom: 10 }}>
-    <audio ref={audioRef} src={songSrc} onEnded={() => setPlaying(false)} />
+    <audio ref={audioRef} src={songSrc} onEnded={() => setPlaying(false)} onTimeUpdate={onTimeUpdate} />
     <button onClick={toggle} style={{ background: accent.color, border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "white", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{playing ? "⏸" : "▶"}</button>
     <div style={{ flex: 1, overflow: "hidden" }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: accent.color }}>🎵 Profile Song</div>
-      <div style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{songName || "Custom clip"}</div>
+      <div style={{ fontSize: 10, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
     </div>
   </div>;
 };
@@ -1100,6 +1139,7 @@ const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
 const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, onLike, onRt, onReply, onDelete, onBlock, blocked }) => {
   const [showConfirm, setShowConfirm] = useState(null); // 'remove' | 'block'
+  const [profileSong, setProfileSong] = useState(() => LS.get(`psong_${user.id}`) || null);
   const myV = Array.isArray(me.village) ? me.village : [];
   const inV = myV.includes(user.id);
   const isMe = user.id === me.id;
@@ -1112,7 +1152,26 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, 
   const bannerBg = wp?.type === "image" ? `url(${wp.value}) center/cover` : (wp?.value || accent.grad);
   const featured = user.featuredPostId ? posts.find(p => p.id === user.featuredPostId) : null;
   const resolvePhoto = (u, photoKey) => { const val = u[photoKey]; if (!val) return null; if (typeof val === "string" && val.startsWith("__local__")) return LS.get(`icard_${u.id}_${val.replace("__local__","")}`); return val; };
-  const profileSong = LS.get(`psong_${user.id}`) || (user.profileSong ? { song: user.profileSong, name: user.profileSongName } : null);
+
+  // Load song from Supabase if not cached
+  useEffect(() => {
+    if (!user.hasProfileSong) return;
+    const cached = LS.get(`psong_${user.id}`);
+    if (cached?.song) { setProfileSong(cached); return; }
+    DB.getDMs(`psong_${user.id}`).then(rows => {
+      if (rows && rows[0]) {
+        try {
+          const msgs = JSON.parse(rows[0].messages || "[]");
+          const entry = msgs.find(m => m.id === "song");
+          if (entry?.song) {
+            const s = { song: entry.song, name: entry.name || user.profileSongName || "Profile Song" };
+            LS.set(`psong_${user.id}`, s);
+            setProfileSong(s);
+          }
+        } catch {}
+      }
+    }).catch(() => {});
+  }, [user.id, user.hasProfileSong]);
 
   if (showConfirm === 'remove') return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -1755,38 +1814,98 @@ const Post = ({ p, me, users, all, onLike, onRt, onReply, onThread, onUser, onDe
 
 // ── THREAD ────────────────────────────────────────────────────────────────────
 const Thread = ({ p, me, users, all, onLike, onRt, onReply, onBack, onUser, onDelete, T }) => {
-  const [extraReplies, setExtraReplies] = useState([]);
+  const [focused, setFocused] = useState(p); // the post currently being viewed
+  const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState([]); // breadcrumb stack for going back
 
-  useEffect(() => {
-    // Always fetch replies from DB to make sure we have them all
+  const loadReplies = (postId) => {
     setLoading(true);
-    sbFetch(`posts?reply_to=eq.${encodeURIComponent(p.id)}&select=*&order=created_at.asc`)
+    sbFetch(`posts?reply_to=eq.${encodeURIComponent(postId)}&select=*&order=created_at.asc`)
       .then(rows => {
-        if (rows && rows.length > 0) {
-          setExtraReplies(rows.map(rowToPost));
-        }
+        const dbReplies = rows ? rows.map(rowToPost) : [];
+        const localReplies = all.filter(x => x.parentId === postId);
+        const merged = [...localReplies];
+        dbReplies.forEach(r => { if (!merged.find(x => x.id === r.id)) merged.push(r); });
+        merged.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        setReplies(merged);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [p.id]);
+  };
 
-  // Merge DB replies with local state replies, dedupe by id
-  const localReplies = all.filter(x => x.parentId === p.id);
-  const allReplies = [...localReplies];
-  extraReplies.forEach(r => { if (!allReplies.find(x => x.id === r.id)) allReplies.push(r); });
-  allReplies.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  useEffect(() => { loadReplies(focused.id); }, [focused.id]);
+
+  // When a new reply is posted, refresh
+  const handleReply = (r) => {
+    onReply(r);
+    setTimeout(() => loadReplies(focused.id), 800);
+  };
+
+  const drillInto = (post) => {
+    setHistory(h => [...h, focused]);
+    setFocused(post);
+    setReplies([]);
+  };
+
+  const goBack = () => {
+    if (history.length > 0) {
+      const prev = history[history.length - 1];
+      setHistory(h => h.slice(0, -1));
+      setFocused(prev);
+      setReplies([]);
+    } else {
+      onBack();
+    }
+  };
+
+  // Find parent post if focused is a reply
+  const parentPost = focused.parentId ? (all.find(x => x.id === focused.parentId) || null) : null;
 
   return <div>
-    <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><BackI /></button>
-      <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>Thread</span>
+    {/* Header */}
+    <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, background: T.bg, zIndex: 10 }}>
+      <button onClick={goBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.text }}><BackI /></button>
+      <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>
+        {history.length > 0 ? "Reply" : "Thread"}
+      </span>
+      {history.length > 0 && <span style={{ fontSize: 12, color: T.sub }}>· tap reply to go deeper</span>}
     </div>
-    <Post p={p} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={r => onReply({ ...r, parentId: p.id })} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />
-    <Compose me={me} onPost={onReply} T={T} users={users} compact parentId={p.id} clickId={p.clickId} />
-    {loading && <div style={{ textAlign: "center", padding: "16px", color: T.sub, fontSize: 13 }}>Loading replies...</div>}
-    {allReplies.map(r => <Post key={r.id} p={r} me={me} users={users} all={[...all, ...extraReplies]} onLike={onLike} onRt={onRt} onReply={rr => onReply({ ...rr, parentId: r.id })} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />)}
-    {!loading && allReplies.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 0", fontSize: 14 }}>No replies yet. Start the conversation!</p>}
+
+    {/* Parent context if drilling into a reply */}
+    {parentPost && <div style={{ opacity: 0.6, borderBottom: `1px solid ${T.border}`, position: "relative" }}>
+      <div style={{ position: "absolute", left: 36, top: 0, bottom: 0, width: 2, background: T.border, zIndex: 0 }} />
+      <Post p={parentPost} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={() => {}} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />
+    </div>}
+
+    {/* Focused post */}
+    <Post p={focused} me={me} users={users} all={all} onLike={onLike} onRt={onRt} onReply={r => handleReply({ ...r, parentId: focused.id })} onThread={() => {}} onUser={onUser} onDelete={onDelete} T={T} />
+
+    {/* Reply composer */}
+    <Compose me={me} onPost={r => handleReply({ ...r, parentId: focused.id })} T={T} users={users} compact parentId={focused.id} clickId={focused.clickId} />
+
+    {/* Divider */}
+    <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, borderTop: `1px solid ${T.border}` }}>
+      {loading ? "Loading replies..." : `${replies.length} ${replies.length === 1 ? "reply" : "replies"}`}
+    </div>
+
+    {/* Replies — tap to drill in */}
+    {replies.map(r => {
+      const replyCount = all.filter(x => x.parentId === r.id).length;
+      return <div key={r.id} style={{ borderBottom: `1px solid ${T.border}` }}>
+        <Post p={r} me={me} users={users} all={all} onLike={onLike} onRt={onRt}
+          onReply={rr => handleReply({ ...rr, parentId: r.id })}
+          onThread={() => drillInto(r)}
+          onUser={onUser} onDelete={onDelete} T={T} />
+        {replyCount > 0 && <div
+          onClick={() => drillInto(r)}
+          style={{ padding: "6px 16px 10px 62px", fontSize: 12, color: BLUE, cursor: "pointer", fontWeight: 600 }}>
+          View {replyCount} {replyCount === 1 ? "reply" : "replies"} →
+        </div>}
+      </div>;
+    })}
+
+    {!loading && replies.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "24px 0", fontSize: 14 }}>No replies yet. Start the conversation!</p>}
   </div>;
 };
 
@@ -3325,11 +3444,29 @@ export default function App() {
     return val; // legacy direct base64
   };
 
-  // Helper: resolve profile song
+  // Helper: resolve profile song — checks localStorage cache first, then Supabase
   const resolveProfileSong = (user) => {
     if (!user.hasProfileSong && !user.profileSong) return null;
     const stored = LS.get(`psong_${user.id}`);
-    return stored ? { song: stored.song, name: stored.name } : (user.profileSong ? { song: user.profileSong, name: user.profileSongName } : null);
+    return stored ? { song: stored.song, name: stored.name || user.profileSongName || "Profile Song" } : null;
+  };
+
+  // Load profile songs from Supabase into localStorage cache for any user we view
+  const loadProfileSong = async (userId) => {
+    const cached = LS.get(`psong_${userId}`);
+    if (cached?.song) return cached;
+    try {
+      const rows = await DB.getDMs(`psong_${userId}`);
+      if (rows && rows[0]) {
+        const msgs = JSON.parse(rows[0].messages || "[]");
+        const entry = msgs.find(m => m.id === "song");
+        if (entry?.song) {
+          LS.set(`psong_${userId}`, { song: entry.song, name: entry.name || "Profile Song" });
+          return { song: entry.song, name: entry.name || "Profile Song" };
+        }
+      }
+    } catch {}
+    return null;
   };
 
   if (pg === "loading" || (pg === "app" && dbLoading)) return <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
@@ -3809,19 +3946,91 @@ export default function App() {
           {/* ── PROFILE SONG ── */}
           <div style={{ background: T.card, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${T.border}` }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: T.text, marginBottom: 4 }}>🎵 Profile Song</div>
-            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Upload a short audio clip (up to ~10 sec) that plays on your profile</div>
-            {(me.hasProfileSong || me.profileSong || sf.profileSong) && (() => { const preview = sf.profileSong; const s = preview ? {song:preview,name:sf.profileSongName} : resolveProfileSong(me); return s ? <div style={{ marginBottom: 8 }}><ProfileSongPlayer songSrc={s.song} songName={s.name} accent={myAccent} /></div> : null; })()}
-            <label style={{ display: "inline-block", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-              🎵 {me.profileSong ? "Change Song" : "Upload Song"}
-              <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => {
-                const f = e.target.files[0]; if (!f) return;
-                const r = new FileReader();
-                r.onload = x => { const song = x.target.result, name = f.name; setSf(p => ({ ...p, profileSong: song, profileSongName: name })); LS.set(`psong_${me.id}`, { song, name }); saveMe({ hasProfileSong: true, profileSongName: name }); };
-                r.readAsDataURL(f);
-              }} />
-            </label>
-            {(sf.profileSong || me.profileSong || me.hasProfileSong) && <button onClick={() => { setSf(p => ({ ...p, profileSong: null, profileSongName: null })); LS.set(`psong_${me.id}`, null); saveMe({ hasProfileSong: false, profileSongName: null }); }} style={{ marginLeft: 8, background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
-            {sf.profileSong && <div style={{ fontSize: 11, color: T.sub, marginTop: 6 }}>Preview: {sf.profileSongName}</div>}
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 10 }}>Upload an audio clip — first 10 seconds will play on your profile</div>
+            {(me.hasProfileSong || sf.profileSong) && (() => {
+              const s = sf.profileSong ? { song: sf.profileSong, name: sf.profileSongName || "Profile Song" } : resolveProfileSong(me);
+              return s ? <div style={{ marginBottom: 8 }}><ProfileSongPlayer songSrc={s.song} songName={s.name} accent={myAccent} /></div> : null;
+            })()}
+            {/* Custom label input */}
+            {(me.hasProfileSong || sf.profileSong) && <div style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 11, color: T.sub, display: "block", marginBottom: 4 }}>SONG LABEL</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={sf.profileSongName !== undefined ? sf.profileSongName : (me.profileSongName || "")}
+                  onChange={e => setSf(p => ({ ...p, profileSongName: e.target.value }))}
+                  placeholder="e.g. My Vibe, Summer Mix..."
+                  style={{ ...inp13, flex: 1 }}
+                />
+                <button onClick={() => {
+                  const label = sf.profileSongName || me.profileSongName || "Profile Song";
+                  const existing = resolveProfileSong(me);
+                  if (existing) {
+                    const updated = { song: existing.song, name: label };
+                    LS.set(`psong_${me.id}`, updated);
+                    DB.upsertDMs(`psong_${me.id}`, [{ id: "song", song: existing.song, name: label }]).catch(() => {});
+                    saveMe({ hasProfileSong: true, profileSongName: label });
+                    notify("Label saved ✓");
+                  }
+                }} style={{ background: myAccent.color, color: "white", border: "none", borderRadius: 9999, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Save</button>
+              </div>
+            </div>}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <label style={{ display: "inline-block", background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                🎵 {me.hasProfileSong ? "Change Song" : "Upload Song"}
+                <input type="file" accept="audio/*,video/*" style={{ display: "none" }} onChange={e => {
+                  const f = e.target.files[0]; if (!f) return;
+                  const reader = new FileReader();
+                  reader.onload = async x => {
+                    try {
+                      // Trim to 10 seconds using AudioContext
+                      const arrayBuf = await fetch(x.target.result).then(r => r.arrayBuffer());
+                      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                      const decoded = await audioCtx.decodeAudioData(arrayBuf);
+                      const maxDur = Math.min(decoded.duration, 10);
+                      const sampleRate = decoded.sampleRate;
+                      const numChannels = decoded.numberOfChannels;
+                      const frameCount = Math.floor(maxDur * sampleRate);
+                      const trimmed = audioCtx.createBuffer(numChannels, frameCount, sampleRate);
+                      for (let c = 0; c < numChannels; c++) {
+                        trimmed.copyToChannel(decoded.getChannelData(c).slice(0, frameCount), c);
+                      }
+                      // Encode trimmed buffer to WAV
+                      const wav = audioBufferToWav(trimmed);
+                      const blob = new Blob([wav], { type: "audio/wav" });
+                      const songReader = new FileReader();
+                      songReader.onload = y => {
+                        const song = y.target.result;
+                        const label = sf.profileSongName || me.profileSongName || "Profile Song";
+                        setSf(p => ({ ...p, profileSong: song }));
+                        LS.set(`psong_${me.id}`, { song, name: label });
+                        // Save to Supabase so other users can hear it
+                        DB.upsertDMs(`psong_${me.id}`, [{ id: "song", song, name: label }]).catch(() => {});
+                        saveMe({ hasProfileSong: true, profileSongName: label });
+                        notify("Song saved ✓");
+                      };
+                      songReader.readAsDataURL(blob);
+                    } catch {
+                      // Fallback: save raw if AudioContext fails
+                      const song = x.target.result;
+                      const label = sf.profileSongName || me.profileSongName || "Profile Song";
+                      setSf(p => ({ ...p, profileSong: song }));
+                      LS.set(`psong_${me.id}`, { song, name: label });
+                      DB.upsertDMs(`psong_${me.id}`, [{ id: "song", song, name: label }]).catch(() => {});
+                      saveMe({ hasProfileSong: true, profileSongName: label });
+                      notify("Song saved ✓");
+                    }
+                  };
+                  reader.readAsDataURL(f);
+                  e.target.value = "";
+                }} />
+              </label>
+              {(me.hasProfileSong || sf.profileSong) && <button onClick={() => {
+                setSf(p => ({ ...p, profileSong: null, profileSongName: null }));
+                LS.set(`psong_${me.id}`, null);
+                DB.upsertDMs(`psong_${me.id}`, []).catch(() => {});
+                saveMe({ hasProfileSong: false, profileSongName: null });
+              }} style={{ background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+            </div>
           </div>
 
           {serr && <div style={{ fontSize: 13, color: PINK, padding: "8px 12px", background: dark ? "#1a0810" : "#fff0f5", borderRadius: 8, marginBottom: 12 }}>{serr}</div>}
