@@ -2117,9 +2117,30 @@ export default function App() {
             const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
             const dbVersion = rows && rows[0] ? rowToUser(rows[0]) : null;
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-            // Merge: use DB data for mutable fields (avatar, bio, wallpaper), hardcoded for fixed fields (id, username, password, isSpecial, verified)
+            // Merge: use DB data for all mutable fields, hardcoded for fixed fields (id, username, password, isSpecial, verified)
             if (dbVersion && hardcoded) {
-              setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: Array.isArray(dbVersion.village)?dbVersion.village:(hardcoded.village||[]) });
+              setMe({
+                ...hardcoded,
+                avatar: dbVersion.avatar || hardcoded.avatar,
+                bio: dbVersion.bio || hardcoded.bio,
+                mood: dbVersion.mood || null,
+                accentColor: dbVersion.accentColor || null,
+                featuredPostId: dbVersion.featuredPostId || null,
+                hasProfileSong: dbVersion.hasProfileSong || false,
+                profileSongName: dbVersion.profileSongName || null,
+                wallpaper: dbVersion.wallpaper || hardcoded.wallpaper || null,
+                village: Array.isArray(dbVersion.village) ? dbVersion.village : (hardcoded.village || []),
+                infoMovie: dbVersion.infoMovie || null,
+                infoArtist: dbVersion.infoArtist || null,
+                infoShow: dbVersion.infoShow || null,
+                infoBook: dbVersion.infoBook || null,
+                infoGame: dbVersion.infoGame || null,
+                infoMoviePhoto: dbVersion.infoMoviePhoto || null,
+                infoArtistPhoto: dbVersion.infoArtistPhoto || null,
+                infoShowPhoto: dbVersion.infoShowPhoto || null,
+                infoBookPhoto: dbVersion.infoBookPhoto || null,
+                infoGamePhoto: dbVersion.infoGamePhoto || null,
+              });
             } else if (hardcoded) {
               setMe({ ...hardcoded, village: Array.isArray(hardcoded.village)?hardcoded.village:[] });
             }
@@ -3042,14 +3063,58 @@ export default function App() {
     const updated = { ...me, ...fields };
     setMe(updated);
     setUsers(prev => prev.map(u => u.id === me.id ? updated : u));
-    // Build one single PATCH with all fields — same pattern as avatar/wallpaper saves
-    const row = userToRow(updated);
-    // Always include wallpaper as its own field (not inside info_fields)
-    const patch = { ...row };
-    if (updated.wallpaper !== undefined) {
-      patch.wallpaper = updated.wallpaper ? JSON.stringify(updated.wallpaper) : null;
+
+    // Build a minimal PATCH of only the fields that actually changed.
+    // Sending the full row caused stale-closure overwrites: if two saves fired
+    // close together (e.g. bio then mood), the second save would re-send the old
+    // bio from a stale `me` snapshot and silently undo the first save.
+    const patch = {};
+
+    const FIELD_MAP = {
+      username:        v => ({ username: v }),
+      password:        v => ({ password: v }),
+      avatar:          v => ({ avatar: v || null }),
+      bio:             v => ({ bio: v || null }),
+      mood:            v => ({ mood: v || null }),
+      accentColor:     v => ({ accent_color: v || null }),
+      featuredPostId:  v => ({ featured_post_id: v || null }),
+      hasProfileSong:  v => ({ has_profile_song: !!v }),
+      profileSongName: v => ({ profile_song_name: v || null }),
+      wallpaper:       v => ({ wallpaper: v ? JSON.stringify(v) : null }),
+      village:         v => ({ village: JSON.stringify(Array.isArray(v) ? v : []) }),
+    };
+
+    const INFO_KEYS = ["infoMovie","infoArtist","infoShow","infoBook","infoGame",
+                       "infoMoviePhoto","infoArtistPhoto","infoShowPhoto","infoBookPhoto","infoGamePhoto"];
+    let needsInfoFields = false;
+
+    for (const [key, val] of Object.entries(fields)) {
+      if (FIELD_MAP[key]) {
+        Object.assign(patch, FIELD_MAP[key](val));
+      } else if (INFO_KEYS.includes(key) || key === "dark") {
+        needsInfoFields = true;
+      }
     }
-    DB.updateUser(me.id, patch).catch(e => console.error("saveMe failed", e));
+
+    if (needsInfoFields) {
+      patch.info_fields = JSON.stringify({
+        infoMovie:       updated.infoMovie       || null,
+        infoArtist:      updated.infoArtist      || null,
+        infoShow:        updated.infoShow        || null,
+        infoBook:        updated.infoBook        || null,
+        infoGame:        updated.infoGame        || null,
+        infoMoviePhoto:  updated.infoMoviePhoto  || null,
+        infoArtistPhoto: updated.infoArtistPhoto || null,
+        infoShowPhoto:   updated.infoShowPhoto   || null,
+        infoBookPhoto:   updated.infoBookPhoto   || null,
+        infoGamePhoto:   updated.infoGamePhoto   || null,
+        dark:            updated.dark !== undefined ? updated.dark : null,
+      });
+    }
+
+    if (Object.keys(patch).length > 0) {
+      DB.updateUser(me.id, patch).catch(e => console.error("saveMe failed", e));
+    }
   };
 
   const doWallpaper = wp => {
@@ -3646,17 +3711,30 @@ export default function App() {
         setUsers(nu); setMe(p => ({ ...p, avatar: dataUrl }));
         DB.updateUser(me.id, { avatar: dataUrl }).catch(() => {});
       } else {
-        // Info card photo: store base64 in localStorage, update me state immediately so it renders
+        // Info card photo: store base64 directly in Supabase (inside info_fields) so
+        // other users can see it too. Also cache in localStorage for instant load.
         const lsKey = `icard_${me.id}_${cropKey}`;
         LS.set(lsKey, dataUrl);
-        // Update me and sf so it shows right away
-        setSf(p => ({ ...p, [cropKey]: dataUrl }));
-        const updatedMe = { ...me, [cropKey]: `__local__${cropKey}` };
+        // Store the actual base64 on `me` — NOT a __local__ marker
+        const updatedMe = { ...me, [cropKey]: dataUrl };
         setMe(updatedMe);
+        setSf(p => ({ ...p, [cropKey]: dataUrl }));
         setUsers(prev => prev.map(u => u.id === me.id ? updatedMe : u));
-        // Save the __local__ marker to DB inside info_fields
-        const row = userToRow(updatedMe);
-        DB.updateUser(me.id, row).catch(e => console.error("photo save", e));
+        // Save only the info_fields blob with the real base64
+        const info_fields = JSON.stringify({
+          infoMovie:       updatedMe.infoMovie       || null,
+          infoArtist:      updatedMe.infoArtist      || null,
+          infoShow:        updatedMe.infoShow        || null,
+          infoBook:        updatedMe.infoBook        || null,
+          infoGame:        updatedMe.infoGame        || null,
+          infoMoviePhoto:  updatedMe.infoMoviePhoto  || null,
+          infoArtistPhoto: updatedMe.infoArtistPhoto || null,
+          infoShowPhoto:   updatedMe.infoShowPhoto   || null,
+          infoBookPhoto:   updatedMe.infoBookPhoto   || null,
+          infoGamePhoto:   updatedMe.infoGamePhoto   || null,
+          dark:            updatedMe.dark !== undefined ? updatedMe.dark : null,
+        });
+        DB.updateUser(me.id, { info_fields }).catch(e => console.error("photo save", e));
       }
       setCropSrc(null); setCropKey(null);
     }} />}
