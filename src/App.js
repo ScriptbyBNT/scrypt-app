@@ -1201,7 +1201,7 @@ const DMView = ({ me, other, users, T, onBack, onCall }) => {
 };
 
 // ── GROUP CHAT VIEW ───────────────────────────────────────────────────────────
-const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup }) => {
+const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, getKey, claudeFetch }) => {
   const key = `gc_${group.id}`;
   const [msgs, setMsgs] = useState(() => LS.get(key) || []);
   const [input, setInput] = useState("");
@@ -1210,11 +1210,43 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup }) =
   const endRef = useRef();
   useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
 
+  const tedInGroup = group.members.includes("claude_account");
+
   const send = () => {
     if (!input.trim()) return;
     const m = { id: Date.now().toString(), from: me.id, text: input, ts: new Date().toISOString() };
     const next = [...msgs, m];
     setMsgs(next); LS.set(key, next); setInput("");
+
+    // Ted replies if he's in the group — either when @ted is mentioned or randomly (30% chance)
+    if (tedInGroup && (/@ted\b/i.test(input) || Math.random() < 0.30)) {
+      const shouldReply = /@ted\b/i.test(input) || Math.random() < 0.30;
+      if (!shouldReply) return;
+      setTimeout(async () => {
+        try {
+          let replyText = "";
+          if (getKey && getKey()) {
+            const r = await claudeFetch({
+              model: "claude-sonnet-4-6",
+              max_tokens: 150,
+              system: "You are Ted 🧸, a warm AI in a group chat on Scrypt. Reply naturally and conversationally. Keep it short — 1-2 sentences max. Be friendly and fun.",
+              messages: [{ role: "user", content: input }]
+            });
+            if (r.ok) {
+              const d = await r.json();
+              replyText = d.content?.[0]?.text?.trim();
+            }
+          }
+          if (!replyText) {
+            // Fallback replies when no API key
+            const fallbacks = ["That's interesting! 🧸", "Love the energy here 💪", "Say more!", "Facts 🔥", "I'm here for it", "Big agree", "Haha okay 😄", "This group is everything"];
+            replyText = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+          }
+          const tedMsg = { id: `ted_${Date.now()}`, from: "claude_account", text: replyText, ts: new Date().toISOString() };
+          setMsgs(prev => { const updated = [...prev, tedMsg]; LS.set(key, updated); return updated; });
+        } catch {}
+      }, 1500 + Math.random() * 2000);
+    }
   };
 
   const addMember = uid => {
@@ -1225,7 +1257,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup }) =
   };
 
   const members = group.members.map(id => users.find(u => u.id === id)).filter(Boolean);
-  const searchable = users.filter(u => !group.members.includes(u.id) && u.username.toLowerCase().includes(addSearch.toLowerCase()) && !u.isBot).slice(0, 5);
+  const searchable = users.filter(u => !group.members.includes(u.id) && u.username.toLowerCase().includes(addSearch.toLowerCase()) && (!u.isBot || u.id === "claude_account")).slice(0, 5);
 
   return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
     <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
@@ -3237,7 +3269,7 @@ export default function App() {
       </div>}
 
       {!thread && tab === "dms" && dmUser && <DMView me={me} other={dmUser} users={users} T={T} onBack={() => setDmUser(null)} onCall={() => setVoiceCall({ participants: [me.id, dmUser.id] })} />}
-      {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} />}
+      {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} getKey={getKey} claudeFetch={claudeFetch} />}
 
       {!thread && tab === "profile" && <div>
         {/* View as others see it */}
