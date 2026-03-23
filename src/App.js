@@ -44,7 +44,7 @@ const DB = {
   insertUser: (user) => sbFetch("users", { method: "POST", body: JSON.stringify(user) }),
 
   // POSTS
-  getPosts: () => sbFetch("posts?select=*&order=created_at.desc&limit=500"),
+  getPosts: () => sbFetch("posts?select=*&order=created_at.desc&limit=2000"),
   insertPost: (post) => sbFetch("posts", { method: "POST", body: JSON.stringify(post) }),
   updatePost: (id, data) => sbFetch(`posts?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }),
   deletePost: (id) => sbFetch(`posts?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" }),
@@ -235,11 +235,25 @@ const mkSpecialAvatar = (bg, text, emoji) => `data:image/svg+xml,%3Csvg xmlns='h
 const mkEvilTedAvatar = () => {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
     <circle cx='50' cy='50' r='50' fill='#1a0000'/>
-    <text x='50' y='64' text-anchor='middle' font-size='44'>🧸</text>
-    <circle cx='39' cy='42' r='5' fill='#ff0000' opacity='0.92'/>
-    <circle cx='61' cy='42' r='5' fill='#ff0000' opacity='0.92'/>
-    <circle cx='39' cy='42' r='2.5' fill='#ff4400'/>
-    <circle cx='61' cy='42' r='2.5' fill='#ff4400'/>
+    <!-- ears -->
+    <circle cx='24' cy='26' r='14' fill='#8B4513'/>
+    <circle cx='76' cy='26' r='14' fill='#8B4513'/>
+    <circle cx='24' cy='26' r='8' fill='#6B3410'/>
+    <circle cx='76' cy='26' r='8' fill='#6B3410'/>
+    <!-- head -->
+    <ellipse cx='50' cy='57' rx='32' ry='28' fill='#A0522D'/>
+    <!-- snout -->
+    <ellipse cx='50' cy='67' rx='14' ry='10' fill='#8B4513'/>
+    <ellipse cx='50' cy='70' rx='6' ry='3.5' fill='#2d0000'/>
+    <!-- red glowing eyes -->
+    <circle cx='39' cy='52' r='7' fill='#1a0000'/>
+    <circle cx='61' cy='52' r='7' fill='#1a0000'/>
+    <circle cx='39' cy='52' r='5' fill='#cc0000'/>
+    <circle cx='61' cy='52' r='5' fill='#cc0000'/>
+    <circle cx='39' cy='52' r='2.5' fill='#ff4400'/>
+    <circle cx='61' cy='52' r='2.5' fill='#ff4400'/>
+    <circle cx='40.5' cy='50.5' r='1' fill='#ff9966' opacity='0.8'/>
+    <circle cx='62.5' cy='50.5' r='1' fill='#ff9966' opacity='0.8'/>
   </svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
@@ -3268,7 +3282,7 @@ export default function App() {
         </> : <>
           {/* Discover — Official Accounts */}
           <div style={{ padding: "7px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}`, letterSpacing: 0.5 }}>OFFICIAL SCRYPT ACCOUNTS</div>
-          {["claude_account","evil_ted","bot_scryptbot","bot_minerva","bot_news"].map(id => users.find(u => u.id === id)).filter(Boolean).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+          {["claude_account","bot_scryptbot","bot_minerva","bot_news"].map(id => users.find(u => u.id === id)).filter(Boolean).map(u => <div key={u.id} onClick={() => setOpenUser(u)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
             <Av user={u} sz={48} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 5 }}>{u.username}<span style={{ color: BLUE, fontSize: 13 }}>✓</span></div>
