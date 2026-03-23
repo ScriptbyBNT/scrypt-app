@@ -89,37 +89,22 @@ const rowToUser = r => {
   if (!r) return null;
   const village = tryParse(r.village, []);
   const extra = tryParse(r.info_fields, {});
-  // Wallpaper: try dedicated wallpaper field first, then legacy info_fields
-  const wallpaper = (() => {
-    if (r.wallpaper) {
-      const wp = tryParse(r.wallpaper, null);
-      return wp || r.wallpaper; // support both JSON and plain string
-    }
-    return extra.wallpaper || null;
-  })();
+  const wallpaper = r.wallpaper ? (tryParse(r.wallpaper, null) || r.wallpaper) : (extra.wallpaper || null);
   return {
-    id: r.id,
-    username: r.username,
-    password: r.password,
-    avatar: r.avatar,
-    bio: r.bio,
+    id: r.id, username: r.username, password: r.password, avatar: r.avatar, bio: r.bio,
     isBot: r.is_bot ?? r.isBot ?? false,
     isSpecial: r.is_special ?? r.isSpecial ?? false,
     verified: r.verified ?? false,
     village: Array.isArray(village) ? village : [],
     joinedAt: r.joined_at || r.joinedAt || r.created_at,
-    mood: r.mood || null,
-    accentColor: r.accent_color || r.accentColor || null,
+    mood: r.mood || null, accentColor: r.accent_color || r.accentColor || null,
     featuredPostId: r.featured_post_id || r.featuredPostId || null,
     hasProfileSong: r.has_profile_song ?? r.hasProfileSong ?? false,
     profileSongName: r.profile_song_name || r.profileSongName || null,
     wallpaper,
-    infoMovie: extra.infoMovie || null,
-    infoArtist: extra.infoArtist || null,
-    infoShow: extra.infoShow || null,
-    infoBook: extra.infoBook || null,
-    infoGame: extra.infoGame || null,
-    dark: extra.dark !== undefined ? extra.dark : null,
+    infoMovie: extra.infoMovie||null, infoArtist: extra.infoArtist||null,
+    infoShow: extra.infoShow||null, infoBook: extra.infoBook||null,
+    infoGame: extra.infoGame||null, dark: extra.dark!==undefined?extra.dark:null,
   };
 };
 
@@ -170,14 +155,7 @@ const userToRow = u => ({
   featured_post_id: u.featuredPostId || null,
   has_profile_song: u.hasProfileSong || false,
   profile_song_name: u.profileSongName || null,
-  info_fields: JSON.stringify({
-    infoMovie: u.infoMovie || null,
-    infoArtist: u.infoArtist || null,
-    infoShow: u.infoShow || null,
-    infoBook: u.infoBook || null,
-    infoGame: u.infoGame || null,
-    dark: u.dark !== undefined ? u.dark : null,
-  }),
+  info_fields: JSON.stringify({ infoMovie: u.infoMovie||null, infoArtist: u.infoArtist||null, infoShow: u.infoShow||null, infoBook: u.infoBook||null, infoGame: u.infoGame||null, dark: u.dark!==undefined?u.dark:null }),
 });
 
 const clickToRow = c => ({
@@ -1052,8 +1030,8 @@ const ProfileInfoCards = ({ user, accent, resolvePhoto }) => {
 };
 
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
-const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
-  const myV = Array.isArray(me.village) ? me.village : [];
+const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts, onThread, onLike, onRt, onReply, onDelete }) => {
+  const myV = Array.isArray(me.village)?me.village:[];
   const inV = myV.includes(user.id);
   const isMe = user.id === me.id;
   const theirV = user.village || [];
@@ -1125,10 +1103,7 @@ const ProfileModal = ({ user, me, onClose, onVillage, onIM, T, posts }) => {
           <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.5 }}>{censor(featured.content)}</p>
           <div style={{ fontSize: 10, color: T.sub, marginTop: 4 }}>{featured.likes?.length || 0} likes · {ago(featured.createdAt)}</div>
         </div>}
-        {pub.slice(0, user.isSpecial ? 10 : 5).map(p => <div key={p.id} style={{ padding: "8px 0", borderTop: `1px solid ${T.border}` }}>
-          <p style={{ margin: 0, fontSize: 14, color: T.text, lineHeight: 1.5 }}>{censor(p.content)}</p>
-          <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>{ago(p.createdAt)} · {p.likes?.length || 0} likes</div>
-        </div>)}
+        {pub.slice(0, user.isSpecial ? 20 : 10).map(p => <Post key={p.id} p={p} me={me} users={[user]} all={posts} onLike={onLike || (() => {})} onRt={onRt || (() => {})} onReply={onReply || (() => {})} onThread={p => { if (onThread) { onClose(); onThread(p); } }} onUser={() => {}} onDelete={onDelete || (() => {})} T={T} />)}
         {pub.length === 0 && <p style={{ textAlign: "center", color: T.sub, padding: "14px 0", fontSize: 14 }}>No public posts yet.</p>}
       </div>
     </div>
@@ -1592,7 +1567,7 @@ const Signup = ({ onDone, onBack, dark, setDark, T }) => {
   const confirm = async () => {
     const t = u.trim().toLowerCase();
     const nu = { id: Date.now().toString(), username: t, password: pw, bio, avatar: av, village: [], joinedAt: new Date().toISOString() };
-    try { const r = await DB.insertUser(userToRow(nu)); if (!r) await DB.insertUser({ id: nu.id, username: nu.username, password: nu.password, avatar: nu.avatar||null, bio: nu.bio||null, is_bot: false, is_special: false, verified: false, village: "[]", joined_at: nu.joinedAt, mood: null, accent_color: null, featured_post_id: null, has_profile_song: false, profile_song_name: null }); } catch(e) { console.error("signup", e); }
+    try { const r=await DB.insertUser(userToRow(nu)); if(!r) await DB.insertUser({id:nu.id,username:nu.username,password:nu.password,avatar:nu.avatar||null,bio:nu.bio||null,is_bot:false,is_special:false,verified:false,village:"[]",joined_at:nu.joinedAt,mood:null,accent_color:null,featured_post_id:null,has_profile_song:false,profile_song_name:null}); } catch(e){console.error("signup",e);}
     onDone(nu);
   };
   const doAv = e => {
@@ -1789,7 +1764,7 @@ export default function App() {
     meta.content = color;
     document.body.style.backgroundColor = color;
     LS.set("dark", dark ? "1" : "0");
-    if (me?.id) { const row = userToRow({ ...me, dark: dark ? 1 : 0 }); const { info_fields, ...coreRow } = row; DB.updateUser(me.id, coreRow).catch(() => {}); if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {}); }
+    if (me?.id) { const row=userToRow({...me,dark:dark?1:0}); const {info_fields,...cr}=row; DB.updateUser(me.id,cr).catch(()=>{}); if(info_fields) DB.updateUser(me.id,{info_fields}).catch(()=>{}); }
   }, [dark]);
 
   useEffect(() => {
@@ -1859,7 +1834,7 @@ export default function App() {
         const nonSpecial = dbUsers.filter(u => !specialIds.includes(u.id));
         const resolvedSpecial = await Promise.all(specialBots.map(async (b) => {
           const existing = dbUsers.find(u => u.id === b.id);
-          if (existing) { if (b.id === "claude_account" && existing.username !== b.username) { try { await DB.updateUser(b.id, { username: b.username, avatar: b.avatar, bio: b.bio }); } catch {} } return { ...existing, username: b.id === "claude_account" ? b.username : existing.username, avatar: b.id === "claude_account" ? b.avatar : existing.avatar }; }
+          if (existing) { if (b.id==="claude_account"&&existing.username!==b.username){try{await DB.updateUser(b.id,{username:b.username,avatar:b.avatar,bio:b.bio});}catch{}} return {...existing,username:b.id==="claude_account"?b.username:existing.username,avatar:b.id==="claude_account"?b.avatar:existing.avatar}; }
           try { await DB.upsertUser(userToRow(b)); } catch(e) {}
           return b;
         }));
@@ -1882,13 +1857,13 @@ export default function App() {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
             // Merge: use DB data for mutable fields (avatar, bio, wallpaper), hardcoded for fixed fields (id, username, password, isSpecial, verified)
             if (dbVersion && hardcoded) {
-              setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: Array.isArray(dbVersion.village) ? dbVersion.village : (hardcoded.village || []) });
+              setMe({ ...hardcoded, avatar: dbVersion.avatar || hardcoded.avatar, bio: dbVersion.bio || hardcoded.bio, wallpaper: dbVersion.wallpaper || hardcoded.wallpaper, village: Array.isArray(dbVersion.village)?dbVersion.village:(hardcoded.village||[]) });
             } else if (hardcoded) {
-              setMe({ ...hardcoded, village: Array.isArray(hardcoded.village) ? hardcoded.village : [] });
+              setMe({ ...hardcoded, village: Array.isArray(hardcoded.village)?hardcoded.village:[] });
             }
           } catch {
             const hardcoded = SPECIAL_ACCOUNTS.find(x => x.id === sessionUid);
-            if (hardcoded) setMe({ ...hardcoded, village: Array.isArray(hardcoded.village) ? hardcoded.village : [] });
+            if (hardcoded) setMe({ ...hardcoded, village: Array.isArray(hardcoded.village)?hardcoded.village:[] });
           }
           setPg("app");
           return;
@@ -1898,7 +1873,7 @@ export default function App() {
           const rows = await sbFetch(`users?id=eq.${encodeURIComponent(sessionUid)}&select=*`);
           const u = rows && rows[0] ? rowToUser(rows[0]) : null;
           if (u) {
-            if (u.dark !== null && u.dark !== undefined) setDark(!!u.dark);
+            if (u.dark != null && u.dark !== undefined) setDark(!!u.dark);
             setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] });
             setDbLoading(false); setPg("app"); return;
           }
@@ -1954,7 +1929,7 @@ export default function App() {
       const r = await claudeFetch({
         model: "claude-sonnet-4-6",
         max_tokens: 220,
-        system: "You are Ted 🧸, a warm AI on Scrypt. Someone @mentioned you. Reply naturally, conversationally, under 240 chars. No hashtags unless funny.",
+        system: "You are Ted 🧸, a warm AI on Scrypt. Someone @mentioned you. Reply naturally, conversationally, under 240 chars.",
         messages: [{ role: "user", content: q || "Someone just mentioned you with no message — say something fun!" }]
       });
       if (!r.ok) return;
@@ -2457,22 +2432,11 @@ export default function App() {
         }
       }
 
-      // 30% chance: bots reply to posts (no API key needed)
       if (Math.random() < 0.30) {
-        const BOT_REPLIES = ["This is exactly the take I needed 🔥","100% agree, couldn't have said it better","Bro this goes hard 💪","Facts. No cap.","This right here 👆","Genuinely one of the best takes on here","W post fr","Say it louder 📢","I was literally just thinking this","Needed to hear this 🙏","Underrated take tbh","Okay you actually cooked 🍳","The accuracy is unreal","This slaps","Respect. Real one.","All day every day 🔥","Said what needed to be said","Top tier scrypt ngl","W take no debates","Built different mentality 💯"];
-        const replyablePosts = curPosts.filter(p => !p.parentId).slice(0, 25);
-        if (replyablePosts.length > 0) {
-          const targetPost = replyablePosts[Math.floor(Math.random() * Math.min(15, replyablePosts.length))];
-          const replierPool = allBots.filter(b => b.id !== targetPost.userId && !SPECIAL_BOT_IDS.has(b.id));
-          const replier = replierPool[Math.floor(Math.random() * replierPool.length)];
-          if (replier && !curPosts.some(p => p.parentId === targetPost.id && p.userId === replier.id)) {
-            setTimeout(() => {
-              const reply = { id: `breply2_${Date.now()}_${Math.floor(Math.random()*99999)}`, userId: replier.id, username: replier.username, content: BOT_REPLIES[Math.floor(Math.random()*BOT_REPLIES.length)], parentId: targetPost.id, likes: [], reposts: [], createdAt: new Date().toISOString(), replyCount: 0 };
-              setPosts(prev => { if (prev.some(p => p.parentId === targetPost.id && p.userId === replier.id)) return prev; return [reply, ...prev.map(x => x.id === targetPost.id ? { ...x, replyCount: (x.replyCount||0)+1 } : x)]; });
-              (async () => { try { await DB.insertPost(postToRow(reply)); } catch {} })();
-            }, 3000 + Math.random() * 12000);
-          }
-        }
+        const BOT_REPLIES=["This is exactly the take I needed 🔥","100% agree, couldn't have said it better","Bro this goes hard 💪","Facts. No cap.","W post fr","Say it louder 📢","Needed to hear this 🙏","Okay you actually cooked 🍳","This slaps","Respect. Real one.","All day every day 🔥","Top tier scrypt ngl","W take no debates","Built different 💯","The accuracy is unreal"];
+        const tp=curPosts.filter(p=>!p.parentId).slice(0,25);
+        if(tp.length>0){const tgt=tp[Math.floor(Math.random()*Math.min(15,tp.length))];const rp=allBots.filter(b=>b.id!==tgt.userId&&!SPECIAL_BOT_IDS.has(b.id));const rr=rp[Math.floor(Math.random()*rp.length)];
+        if(rr&&!curPosts.some(p=>p.parentId===tgt.id&&p.userId===rr.id)){setTimeout(()=>{const reply={id:`br2_${Date.now()}_${Math.floor(Math.random()*99999)}`,userId:rr.id,username:rr.username,content:BOT_REPLIES[Math.floor(Math.random()*BOT_REPLIES.length)],parentId:tgt.id,likes:[],reposts:[],createdAt:new Date().toISOString(),replyCount:0};setPosts(prev=>{if(prev.some(p=>p.parentId===tgt.id&&p.userId===rr.id))return prev;return[reply,...prev.map(x=>x.id===tgt.id?{...x,replyCount:(x.replyCount||0)+1}:x)];});(async()=>{try{await DB.insertPost(postToRow(reply));}catch{}})();},3000+Math.random()*12000);}}
       }
 
       // 15% chance: bots add each other to village
@@ -2660,14 +2624,9 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 280,
-          system: `You are Script_News, a wire-service news bot posting in 2025-2026. Output ONLY a formatted bulletin. Rules:
-- Format: 📰 [Source] [Headline] — [one specific detail: number, name, place]. [emoji]
-- Source must be one of: BBC, Reuters, AP, CNN, Bloomberg, WSJ, AFP, Guardian
-- The story must be set in 2025 or 2026. Never reference events from before 2025.
-- Tone: dry wire-service. No personality. No exclamations. No commentary.
-- Output ONLY the bulletin. Nothing else. Under 260 characters.`,
-          messages: [{ role: "user", content: `Post a realistic 2025-2026 news bulletin about ${cat}. Must feel like today's news, not historical.` }],
-          ...(getKey() && !getKey().startsWith("gsk_") ? { tools: [{ type: "web_search_20250305", name: "web_search" }] } : {})
+          system: `You are Script_News. Output ONE news bulletin set in 2025-2026. Format: 📰 [Source] [Headline] — [detail]. [emoji]. Source: BBC/Reuters/AP/CNN/Bloomberg/WSJ/AFP. Never reference pre-2025 events as current. Under 260 chars. Just the bulletin text.`,
+          messages: [{ role: "user", content: `Post a realistic 2025-2026 news bulletin about ${cat}. Must feel current.` }],
+          ...(getKey()&&!getKey().startsWith("gsk_")?{tools:[{type:"web_search_20250305",name:"web_search"}]}:{})
         });
         const d = await r.json();
         // Extract text from potentially mixed content (tool_use + text blocks)
@@ -2717,8 +2676,8 @@ export default function App() {
         const r = await claudeFetch({
           model: "claude-sonnet-4-6",
           max_tokens: 260,
-          system: `You are Abandonware, an entertainment news account covering games, movies, and TV in 2025-2026. Post ONE punchy update. Rules: Be specific with real titles, studios, directors, actors, numbers. Content must be from 2025 or 2026 — never reference events as future if they happened before 2025. Use relevant emojis. Under 250 chars. Lead with the most interesting fact. Just the post text, nothing else.`,
-          messages: [{ role: "user", content: `Write a 2025-2026 post about ${topic}. Must feel current, not historical.` }]
+          system: `You are Abandonware, an entertainment news account for 2025-2026. Post ONE punchy update about games/movies/TV. Be specific with titles, studios, numbers. Content must be from 2025-2026. Use emojis. Under 250 chars. Just the post text.`,
+          messages: [{ role: "user", content: `Write a post about ${topic}.` }]
         });
         const d = await r.json();
         const content = d.content?.[0]?.text;
@@ -2800,8 +2759,9 @@ export default function App() {
     setUsers(prev => prev.map(u => u.id === me.id ? updated : u));
     const row = userToRow(updated);
     const { info_fields, ...coreRow } = row;
-    DB.updateUser(me.id, coreRow).catch(e => console.error("saveMe core", e));
+    DB.updateUser(me.id, coreRow).catch(e => console.error("saveMe", e));
     if (info_fields) DB.updateUser(me.id, { info_fields }).catch(() => {});
+    if (updated.wallpaper !== me.wallpaper) DB.updateUser(me.id, { wallpaper: updated.wallpaper ? JSON.stringify(updated.wallpaper) : null }).catch(() => {});
   };
 
   const doWallpaper = wp => {
@@ -2809,9 +2769,7 @@ export default function App() {
     const updated = { ...me, wallpaper: wp };
     setMe(updated);
     setUsers(prev => prev.map(u => u.id === me.id ? updated : u));
-    // Save wallpaper directly to its own column (like avatar) — no info_fields needed
-    const wallpaperVal = wp ? JSON.stringify(wp) : null;
-    DB.updateUser(me.id, { wallpaper: wallpaperVal }).catch(e => console.error("wallpaper save", e));
+    DB.updateUser(me.id, { wallpaper: wp ? JSON.stringify(wp) : null }).catch(e => console.error("wallpaper", e));
     notify("Wallpaper saved! 🖼️");
   };
   const doSave = () => {
@@ -2874,12 +2832,12 @@ export default function App() {
     </div>
     <div style={{ color: T.sub, fontSize: 14 }}>Loading…</div>
   </div>;
-  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] }); LS.set("session_uid", u.id); setDbLoading(false); if (u.dark !== null && u.dark !== undefined) setDark(!!u.dark); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
-  if (pg === "signup") return <Signup onDone={u => { setMe({ ...u, village: Array.isArray(u.village) ? u.village : [] }); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "login") return <Login onLogin={u => { setMe({ ...u, village: Array.isArray(u.village)?u.village:[] }); LS.set("session_uid", u.id); setDbLoading(false); if (u.dark!=null&&u.dark!==undefined) setDark(!!u.dark); setPg("app"); setTab("home"); }} onSignup={() => setPg("signup")} dark={dark} setDark={setDark} T={T} />;
+  if (pg === "signup") return <Signup onDone={u => { setMe({...u,village:Array.isArray(u.village)?u.village:[]}); LS.set("session_uid", u.id); setDbLoading(false); setPg("app"); setTab("home"); notify("Welcome to Scrypt! 🎉"); }} onBack={() => setPg("login")} dark={dark} setDark={setDark} T={T} />;
 
-  const myV = Array.isArray(me?.village) ? me.village : [];
+  const myV = Array.isArray(me?.village)?me.village:[];
   const feed = (() => {
-    const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (Array.isArray(u.village) ? u.village : []).includes(me.id)).map(u => u.id));
+    const mutualIds = new Set(users.filter(u => myV.includes(u.id) && (Array.isArray(u.village)?u.village:[]).includes(me.id)).map(u => u.id));
     const villageIds = new Set(myV);
     const filtered = posts.filter(p => !p.parentId && (!p.villageOnly || (p.userId === me.id || myV.includes(p.userId))));
     const priorityScore = p => {
@@ -2896,7 +2854,7 @@ export default function App() {
   })();
   const mine = posts.filter(p => p.userId === me.id && !p.parentId);
   const villagers = users.filter(u => myV.includes(u.id));
-  const mutuals = users.filter(u => myV.includes(u.id) && (Array.isArray(u.village) ? u.village : []).includes(me.id));
+  const mutuals = users.filter(u => myV.includes(u.id) && (Array.isArray(u.village)?u.village:[]).includes(me.id));
   const notifCount = posts.filter(p => p.userId === me.id && (((p.likes || []).filter(x => x !== me.id).length > 0) || (p.reposts || []).filter(x => x !== me.id).length > 0)).length;
 
   const inp = { width: "100%", background: T.input, border: "none", borderRadius: 10, padding: "10px 14px", color: T.text, fontSize: 14, outline: "none", boxSizing: "border-box" };
@@ -2911,7 +2869,7 @@ export default function App() {
     {toast && <div style={{ position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)", background: T.text, color: T.bg, padding: "10px 20px", borderRadius: 9999, fontSize: 14, fontWeight: 600, zIndex: 9999, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>{toast}</div>}
     {voiceCall && <VoiceCall me={me} participants={voiceCall.participants} users={users} T={T} onEnd={() => { setVoiceCall(null); notify("Call ended"); }} />}
     {showTed && <TedChat T={T} onClose={() => { setShowTed(false); setTedInit(null); }} init={tedInit} />}
-    {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} />}
+    {openUser && <ProfileModal user={openUser} me={me} onClose={() => setOpenUser(null)} onVillage={doVillage} onIM={u => { setDmUser(u); setTab("dms"); setThread(null); setActiveGroup(null); setOpenUser(null); }} T={T} posts={posts} onThread={p => { setOpenUser(null); setThread(p); setTab("home"); }} onLike={doLike} onRt={doRt} onReply={doPost} onDelete={doDelete} />}
     {showPP && <PicPicker onPick={doPickDef} onClose={() => setShowPP(false)} T={T} />}
     {showWallpaper && <WallpaperPicker onPick={doWallpaper} onClose={() => setShowWallpaper(false)} T={T} />}
 
@@ -3180,6 +3138,10 @@ export default function App() {
       {!thread && tab === "dms" && activeGroup && !dmUser && <GroupChatView me={me} group={activeGroup} users={users} T={T} onBack={() => setActiveGroup(null)} onCall={() => setVoiceCall({ participants: activeGroup.members.slice(0, 4) })} onUpdateGroup={g => { const updated = groupChats.map(x => x.id === g.id ? g : x); LS.set("gchat", updated); setGroupChats(updated); setActiveGroup(g); }} />}
 
       {!thread && tab === "profile" && <div>
+        {/* View as others see it */}
+        <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "flex-end" }}>
+          <button onClick={() => setOpenUser(me)} style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 9999, padding: "6px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>👤 View my profile</button>
+        </div>
         {/* Banner */}
         {(() => {
           const myAccent = getAccent(me);
