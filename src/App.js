@@ -823,7 +823,7 @@ const Terms = ({ onAccept, T }) => <div style={{ position: "fixed", inset: 0, ba
       <p><strong style={{ color: T.text }}>1. User Responsibility</strong> — You are solely responsible for content you post. Do not post content that violates any law.</p>
       <p><strong style={{ color: T.text }}>2. Prohibited Content</strong> — No illegal content, no harassment, no spam, no impersonation of others.</p>
       <p><strong style={{ color: T.text }}>3. Section 230</strong> — Scrypt operates under 47 U.S.C. § 230. We are not liable for user-generated content.</p>
-      <p><strong style={{ color: T.text }}>4. AI Features</strong> — Groq (Llama 3.3) powers AI features. AI responses are not legal, medical, or financial advice.</p>
+      <p><strong style={{ color: T.text }}>4. AI Features</strong> — Claude (Anthropic) powers AI features. AI responses are not legal, medical, or financial advice.</p>
       <p><strong style={{ color: T.text }}>5. Reporting</strong> — Use the flag button to report content that violates these terms.</p>
       <p><strong style={{ color: T.text }}>6. Disclaimer</strong> — PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. Use at your own risk.</p>
       <p><strong style={{ color: T.text }}>7. No Email Required</strong> — Scrypt uses a username and password system. No email address is collected or required. Please write down your username and password at account creation — passwords can be changed inside the app, but account recovery without credentials is not possible.</p>
@@ -1886,7 +1886,7 @@ const Login = ({ onLogin, onSignup, dark, setDark, T }) => {
           <img src={LOGO} style={{ width: 104, height: 104, objectFit: "contain", margin: "-26px -10px" }} alt="Scrypt logo" />
           <span style={{ fontWeight: 700, fontSize: 26, color: "white", fontFamily: "\"TwitterChirp\", \"Chirp\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif", letterSpacing: "-0.5px" }}>Scrypt</span>
         </div>
-        <p style={{ margin: 0, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Groq</strong> · <strong style={{ color: BLUE }}>Llama 3.3</strong></p>
+        <p style={{ margin: 0, color: T.sub, fontSize: 14 }}>Powered by <strong style={{ color: BLUE }}>Claude</strong> · <strong style={{ color: BLUE }}>Anthropic</strong></p>
       </div>
 
       <div style={{ background: T.card, borderRadius: 20, padding: "28px 24px", boxShadow: dark ? "0 4px 32px rgba(0,0,0,0.4)" : "0 2px 16px rgba(0,0,0,0.08)" }}>
@@ -2345,7 +2345,8 @@ export default function App() {
     });
   }, []);
 
-
+  const T = {
+    bg: dark ? "#000" : "#F7F9F9",
     card: dark ? "#16181C" : "#fff",
     text: dark ? "#E7E9EA" : "#0F1419",
     sub: dark ? "#71767B" : "#536471",
