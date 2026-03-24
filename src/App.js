@@ -1577,12 +1577,12 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
 
   return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)", position: "relative" }}>
 
-    {/* Settings Modal */}
-    {showSettings && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 50, display: "flex", alignItems: "flex-end" }}>
-      <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxHeight: "85vh", overflow: "auto", padding: 20 }}>
+    {/* Settings Modal — fixed so it overlays the whole screen */}
+    {showSettings && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9000, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => { if (e.target === e.currentTarget) setShowSettings(false); }}>
+      <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 600, maxHeight: "88vh", overflow: "auto", padding: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <span style={{ fontWeight: 800, fontSize: 17, color: T.text }}>Group Settings</span>
-          <button onClick={() => setShowSettings(false)} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, fontSize: 20 }}>✕</button>
+          <button onClick={() => setShowSettings(false)} style={{ background: T.input, border: "none", cursor: "pointer", color: T.text, fontSize: 16, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>✕</button>
         </div>
 
         {/* Group Picture */}
@@ -1610,31 +1610,24 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
         {/* Wallpaper */}
         <div style={{ marginBottom: 18 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, marginBottom: 8 }}>CHAT BACKGROUND</div>
-          {/* Gradient presets — 3 rows of 6 */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+          {/* Gradient presets — 10 distinct options */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
             {[
-              "linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
-              "linear-gradient(135deg,#0a0a0a,#1a1a2e)",
-              "linear-gradient(135deg,#004d40,#00251a)",
-              "linear-gradient(135deg,#1a0533,#2d1b69)",
-              "linear-gradient(135deg,#1a0000,#3d0000)",
-              "linear-gradient(135deg,#002147,#001a38)",
-              "linear-gradient(135deg,#0d1b2a,#1b4332)",
-              "linear-gradient(135deg,#1a1a1a,#2d2d2d)",
-              "linear-gradient(135deg,#0a0a0a,#111111)",
-              "linear-gradient(135deg,#200122,#6f0000)",
-              "linear-gradient(135deg,#0f2027,#203a43,#2c5364)",
-              "linear-gradient(135deg,#16213e,#0f3460,#533483)",
-              "linear-gradient(135deg,#1a0a00,#3d1a00)",
-              "linear-gradient(135deg,#003300,#001a00)",
-              "linear-gradient(135deg,#1c1c2e,#2d2d44)",
-              "linear-gradient(135deg,#0d0d0d,#1a1a1a)",
-              "linear-gradient(135deg,#020024,#090979,#00d4ff)",
-              "linear-gradient(135deg,#11001c,#3d0066)",
-              "linear-gradient(135deg,#001f3f,#003366)",
-              "linear-gradient(135deg,#1a1000,#3d2800)",
-            ].map(grad => (
-              <div key={grad} onClick={() => saveGroupSettings({ wallpaper: grad })} style={{ width: 40, height: 40, borderRadius: 8, background: grad, cursor: "pointer", border: groupSettings.wallpaper === grad ? "3px solid white" : "2px solid rgba(255,255,255,0.15)", flexShrink: 0 }} />
+              { label: "Deep Space",  v: "linear-gradient(135deg,#0f0c29,#302b63)" },
+              { label: "Midnight",    v: "linear-gradient(135deg,#000000,#1a1a2e)" },
+              { label: "Forest",      v: "linear-gradient(135deg,#004d40,#1b5e20)" },
+              { label: "Violet",      v: "linear-gradient(135deg,#4a0072,#1a0033)" },
+              { label: "Blood",       v: "linear-gradient(135deg,#7f0000,#2d0000)" },
+              { label: "Ocean",       v: "linear-gradient(135deg,#006994,#001a38)" },
+              { label: "Sunset",      v: "linear-gradient(135deg,#7f3f00,#1a0a00)" },
+              { label: "Ice",         v: "linear-gradient(135deg,#0d47a1,#00bcd4)" },
+              { label: "Toxic",       v: "linear-gradient(135deg,#1b5e20,#f9a825)" },
+              { label: "Rose Gold",   v: "linear-gradient(135deg,#880e4f,#ff6f00)" },
+            ].map(({ label, v }) => (
+              <div key={v} onClick={() => saveGroupSettings({ wallpaper: v })} title={label}
+                style={{ width: 48, height: 48, borderRadius: 10, background: v, cursor: "pointer", border: groupSettings.wallpaper === v ? "3px solid white" : "2px solid rgba(255,255,255,0.15)", flexShrink: 0, position: "relative" }}>
+                {groupSettings.wallpaper === v && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✓</div>}
+              </div>
             ))}
           </div>
           {/* Background photo upload */}
