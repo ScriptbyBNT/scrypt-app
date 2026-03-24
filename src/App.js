@@ -1484,7 +1484,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
           const s = JSON.parse(rows[0].messages || "[]");
           const entry = s.find(x => x.id === "settings");
           if (entry) {
-            const gs = { pic: entry.pic || null, wallpaper: entry.wallpaper || null, song: entry.song || null, songName: entry.songName || null };
+            const gs = { pic: entry.pic || null, wallpaper: entry.wallpaper || null, song: entry.song || null, songName: entry.songName || null, myMsgColor: entry.myMsgColor || null, theirMsgColor: entry.theirMsgColor || null };
             setGroupSettings(gs);
             localStorage.setItem(settingsKey, JSON.stringify(gs));
           }
@@ -1511,6 +1511,8 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
     const next = [...msgs, m];
     setMsgs(next); setInput("");
     DB.upsertDMs(key, next).catch(() => {});
+    // Cache last message for group chat list preview
+    localStorage.setItem(`gc_preview_${group.id}`, JSON.stringify({ text: input, from: me.id, ts: m.ts }));
 
     if (evilTedInGroup) {
       setTimeout(async () => {
@@ -1522,10 +1524,10 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
           }
           if (!roast) roast = `I processed what you said. I wish I hadn't. 😈`;
           const roastMsg = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: roast, ts: new Date().toISOString() };
-          setMsgs(prev => { const updated = [...prev, roastMsg]; DB.upsertDMs(key, updated).catch(() => {}); return updated; });
+          setMsgs(prev => { const updated = [...prev, roastMsg]; DB.upsertDMs(key, updated).catch(() => {}); localStorage.setItem(`gc_preview_${group.id}`, JSON.stringify({ text: roast, from: "evil_ted", ts: roastMsg.ts })); return updated; });
         } catch {
           const roastMsg = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: `Fascinating. Even your errors are predictable. 💀`, ts: new Date().toISOString() };
-          setMsgs(prev => { const updated = [...prev, roastMsg]; DB.upsertDMs(key, updated).catch(() => {}); return updated; });
+          setMsgs(prev => { const updated = [...prev, roastMsg]; DB.upsertDMs(key, updated).catch(() => {}); localStorage.setItem(`gc_preview_${group.id}`, JSON.stringify({ text: roastMsg.text, from: "evil_ted", ts: roastMsg.ts })); return updated; });
         }
       }, 800 + Math.random() * 1200);
     }
@@ -1549,7 +1551,7 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
             else replyText = ["On it! 🧸", "Love the chat 💪", "Facts 🔥", "I'm here for it 🧸"][Math.floor(Math.random() * 4)];
           }
           const tedMsg = { id: `ted_${Date.now()}`, from: "claude_account", text: replyText, ts: new Date().toISOString() };
-          setMsgs(prev => { const updated = [...prev, tedMsg]; DB.upsertDMs(key, updated).catch(() => {}); return updated; });
+          setMsgs(prev => { const updated = [...prev, tedMsg]; DB.upsertDMs(key, updated).catch(() => {}); localStorage.setItem(`gc_preview_${group.id}`, JSON.stringify({ text: replyText, from: "claude_account", ts: tedMsg.ts })); return updated; });
         } catch {}
       }, 1200 + Math.random() * 1500);
     }
@@ -1607,13 +1609,36 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
 
         {/* Wallpaper */}
         <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, marginBottom: 8 }}>CHAT WALLPAPER</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-            {["linear-gradient(135deg,#0f0c29,#302b63,#24243e)", "linear-gradient(135deg,#0a0a0a,#1a1a2e)", "linear-gradient(135deg,#004d40,#00251a)", "linear-gradient(135deg,#1a0533,#2d1b69)", "linear-gradient(135deg,#1a0000,#3d0000)", "linear-gradient(135deg,#002147,#001a38)"].map(grad => (
-              <div key={grad} onClick={() => saveGroupSettings({ wallpaper: grad })} style={{ width: 44, height: 44, borderRadius: 10, background: grad, cursor: "pointer", border: groupSettings.wallpaper === grad ? "3px solid white" : "2px solid transparent" }} />
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, marginBottom: 8 }}>CHAT BACKGROUND</div>
+          {/* Gradient presets — 3 rows of 6 */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+            {[
+              "linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
+              "linear-gradient(135deg,#0a0a0a,#1a1a2e)",
+              "linear-gradient(135deg,#004d40,#00251a)",
+              "linear-gradient(135deg,#1a0533,#2d1b69)",
+              "linear-gradient(135deg,#1a0000,#3d0000)",
+              "linear-gradient(135deg,#002147,#001a38)",
+              "linear-gradient(135deg,#0d1b2a,#1b4332)",
+              "linear-gradient(135deg,#1a1a1a,#2d2d2d)",
+              "linear-gradient(135deg,#0a0a0a,#111111)",
+              "linear-gradient(135deg,#200122,#6f0000)",
+              "linear-gradient(135deg,#0f2027,#203a43,#2c5364)",
+              "linear-gradient(135deg,#16213e,#0f3460,#533483)",
+              "linear-gradient(135deg,#1a0a00,#3d1a00)",
+              "linear-gradient(135deg,#003300,#001a00)",
+              "linear-gradient(135deg,#1c1c2e,#2d2d44)",
+              "linear-gradient(135deg,#0d0d0d,#1a1a1a)",
+              "linear-gradient(135deg,#020024,#090979,#00d4ff)",
+              "linear-gradient(135deg,#11001c,#3d0066)",
+              "linear-gradient(135deg,#001f3f,#003366)",
+              "linear-gradient(135deg,#1a1000,#3d2800)",
+            ].map(grad => (
+              <div key={grad} onClick={() => saveGroupSettings({ wallpaper: grad })} style={{ width: 40, height: 40, borderRadius: 8, background: grad, cursor: "pointer", border: groupSettings.wallpaper === grad ? "3px solid white" : "2px solid rgba(255,255,255,0.15)", flexShrink: 0 }} />
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          {/* Background photo upload */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <label style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
               🖼️ Upload photo
               <input ref={wpRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
@@ -1624,6 +1649,76 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
               }} />
             </label>
             {groupSettings.wallpaper && <button onClick={() => saveGroupSettings({ wallpaper: null })} style={{ background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+            {groupSettings.wallpaper && groupSettings.wallpaper.startsWith("data:image") &&
+              <div style={{ width: 40, height: 40, borderRadius: 8, background: `url(${groupSettings.wallpaper}) center/cover`, border: "2px solid white", flexShrink: 0 }} />
+            }
+          </div>
+        </div>
+
+        {/* Message Colors */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, marginBottom: 4 }}>MESSAGE COLORS</div>
+          <div style={{ fontSize: 11, color: T.sub, marginBottom: 10 }}>Your sent messages · Other members' messages</div>
+          <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+            {/* My message color */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: T.sub, marginBottom: 6, fontWeight: 600 }}>MY MESSAGES</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[
+                  { label: "Blue", color: "#1D9BF0" },
+                  { label: "Purple", color: "#7c3aed" },
+                  { label: "Pink", color: "#F91880" },
+                  { label: "Green", color: "#00BA7C" },
+                  { label: "Orange", color: "#f59e0b" },
+                  { label: "Red", color: "#ef4444" },
+                  { label: "Teal", color: "#06b6d4" },
+                  { label: "Gold", color: "#eab308" },
+                  { label: "Indigo", color: "#6366f1" },
+                  { label: "Rose", color: "#f43f5e" },
+                  { label: "Lime", color: "#84cc16" },
+                  { label: "White", color: "#e2e8f0" },
+                  { label: "Black", color: "#1a1a1a" },
+                  { label: "Violet", color: "#a855f7" },
+                  { label: "Emerald", color: "#10b981" },
+                  { label: "Amber", color: "#f97316" },
+                ].map(({ label, color }) => (
+                  <div key={color} onClick={() => saveGroupSettings({ myMsgColor: color })} title={label}
+                    style={{ width: 28, height: 28, borderRadius: "50%", background: color, cursor: "pointer", border: (groupSettings.myMsgColor || "#1D9BF0") === color ? "3px solid white" : "2px solid transparent", outline: (groupSettings.myMsgColor || "#1D9BF0") === color ? `2px solid ${color}` : "none" }} />
+                ))}
+              </div>
+            </div>
+            {/* Their message color */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: T.sub, marginBottom: 6, fontWeight: 600 }}>THEIR MESSAGES</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[
+                  { label: "Default", color: "__default__" },
+                  { label: "Dark", color: "#1a1a2e" },
+                  { label: "Purple", color: "#2d1b69" },
+                  { label: "Green", color: "#004d33" },
+                  { label: "Navy", color: "#001a38" },
+                  { label: "Charcoal", color: "#2d2d2d" },
+                  { label: "Maroon", color: "#3d0000" },
+                  { label: "Forest", color: "#003300" },
+                  { label: "Midnight", color: "#0d0d1a" },
+                  { label: "Slate", color: "#1e293b" },
+                  { label: "Teal Dark", color: "#0f4c5c" },
+                  { label: "Wine", color: "#4a0030" },
+                ].map(({ label, color }) => (
+                  <div key={color} onClick={() => saveGroupSettings({ theirMsgColor: color })} title={label}
+                    style={{ width: 28, height: 28, borderRadius: "50%", background: color === "__default__" ? T.input : color, cursor: "pointer", border: (groupSettings.theirMsgColor || "__default__") === color ? "3px solid white" : "2px solid rgba(255,255,255,0.2)", outline: (groupSettings.theirMsgColor || "__default__") === color ? "2px solid #fff" : "none" }} />
+                ))}
+              </div>
+            </div>
+          </div>
+          {/* Preview */}
+          <div style={{ background: groupSettings.wallpaper && !groupSettings.wallpaper.startsWith("data:image") ? groupSettings.wallpaper : (groupSettings.wallpaper?.startsWith("data:image") ? `url(${groupSettings.wallpaper}) center/cover` : T.bg), borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ padding: "7px 12px", borderRadius: "12px 12px 3px 12px", background: groupSettings.myMsgColor || "#1D9BF0", color: (groupSettings.myMsgColor === "#e2e8f0" || groupSettings.myMsgColor === "#eab308" || groupSettings.myMsgColor === "#84cc16") ? "#000" : "white", fontSize: 13 }}>Hey what's up! 👋</div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+              <div style={{ padding: "7px 12px", borderRadius: "12px 12px 12px 3px", background: groupSettings.theirMsgColor && groupSettings.theirMsgColor !== "__default__" ? groupSettings.theirMsgColor : T.input, color: "white", fontSize: 13 }}>Not much, just vibing 🔥</div>
+            </div>
           </div>
         </div>
 
@@ -1700,11 +1795,13 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
       <button onClick={() => setShowAdd(v => !v)} style={{ background: T.input, border: "none", borderRadius: 9999, padding: "6px 12px", fontSize: 12, color: T.text, cursor: "pointer", fontWeight: 600 }}>+ Add</button>
     </div>
 
-    {/* Theme song banner */}
-    {groupSettings.song && !showSettings && <div style={{ padding: "6px 16px", background: `${BLUE}12`, borderBottom: `1px solid ${BLUE}22`, display: "flex", alignItems: "center", gap: 8 }}>
+    {/* Theme song banner — always visible below header */}
+    {groupSettings.song && !showSettings && <div style={{ padding: "7px 16px", background: dark ? "rgba(29,155,240,0.12)" : "rgba(29,155,240,0.08)", borderBottom: `1px solid ${BLUE}30`, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
       <audio ref={songRef} src={groupSettings.song} onEnded={() => setSongPlaying(false)} onTimeUpdate={onSongTime} />
-      <button onClick={() => { if (songPlaying) { songRef.current?.pause(); setSongPlaying(false); } else { if (songRef.current) { songRef.current.currentTime = 0; songRef.current.play(); setSongPlaying(true); } } }} style={{ background: BLUE, border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", color: "white", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{songPlaying ? "⏸" : "▶"}</button>
-      <span style={{ fontSize: 11, color: BLUE, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🎵 {groupSettings.songName || "Group Theme"}</span>
+      <button onClick={() => { if (songPlaying) { songRef.current?.pause(); setSongPlaying(false); } else { if (songRef.current) { songRef.current.currentTime = 0; songRef.current.play(); setSongPlaying(true); } } }} style={{ background: BLUE, border: "none", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", color: "white", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{songPlaying ? "⏸" : "▶"}</button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11, color: BLUE, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🎵 {groupSettings.songName || "Group Theme"}</div>
+      </div>
     </div>}
 
     {/* Add member panel */}
@@ -1729,12 +1826,16 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
       {msgs.map(m => {
         const mine = m.from === me.id;
         const sender = users.find(u => u.id === m.from);
+        const myColor = groupSettings.myMsgColor || BLUE;
+        const theirColor = groupSettings.theirMsgColor && groupSettings.theirMsgColor !== "__default__" ? groupSettings.theirMsgColor : (wallpaperBg ? "rgba(0,0,0,0.55)" : T.input);
+        const myTextColor = (myColor === "#e2e8f0" || myColor === "#eab308" || myColor === "#84cc16") ? "#000" : "white";
+        const theirTextColor = "white";
         return <div key={m.id} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", gap: 8, alignItems: "flex-end" }}>
           {!mine && <div onClick={() => sender && onViewUser && onViewUser(sender)} style={{ cursor: "pointer", flexShrink: 0 }}><Av user={sender} sz={28} /></div>}
           <div style={{ maxWidth: "72%" }}>
-            {!mine && <div style={{ fontSize: 11, color: T.sub, marginBottom: 2, marginLeft: 2, cursor: "pointer" }} onClick={() => sender && onViewUser && onViewUser(sender)}>{sender?.username}</div>}
-            <div style={{ padding: "9px 13px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: mine ? BLUE : (wallpaperBg ? "rgba(0,0,0,0.55)" : T.input), color: mine ? "white" : (wallpaperBg ? "white" : T.text), fontSize: 14 }}>{m.text}</div>
-            <div style={{ fontSize: 10, color: wallpaperBg ? "rgba(255,255,255,0.7)" : T.sub, marginTop: 2, textAlign: mine ? "right" : "left" }}>{ago(m.ts)}</div>
+            {!mine && <div style={{ fontSize: 11, color: wallpaperBg ? "rgba(255,255,255,0.7)" : T.sub, marginBottom: 2, marginLeft: 2, cursor: "pointer" }} onClick={() => sender && onViewUser && onViewUser(sender)}>{sender?.username}</div>}
+            <div style={{ padding: "9px 13px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: mine ? myColor : theirColor, color: mine ? myTextColor : (wallpaperBg || groupSettings.theirMsgColor ? theirTextColor : T.text), fontSize: 14 }}>{m.text}</div>
+            <div style={{ fontSize: 10, color: wallpaperBg ? "rgba(255,255,255,0.6)" : T.sub, marginTop: 2, textAlign: mine ? "right" : "left" }}>{ago(m.ts)}</div>
           </div>
         </div>;
       })}
@@ -4028,11 +4129,23 @@ export default function App() {
           <div style={{ padding: "8px 16px", fontSize: 11, fontWeight: 700, color: T.sub, borderBottom: `1px solid ${T.border}` }}>GROUP CHATS</div>
           {groupChats.filter(g => g.members.includes(me.id)).map(g => {
             const gMembers = g.members.map(id => users.find(u => u.id === id)).filter(Boolean);
-            return <div key={g.id} onClick={() => setActiveGroup(g)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
-              <div style={{ width: 46, height: 46, borderRadius: "50%", background: `linear-gradient(135deg,${BLUE},${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>👥</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{g.name}</div>
-                <div style={{ fontSize: 12, color: T.sub }}>{gMembers.map(u => u.username).join(", ")}</div>
+            // Load cached group settings (pic + song) from localStorage
+            const gSettings = tryParse(localStorage.getItem(`gchat_settings_${g.id}`), {});
+            const gPic = gSettings.pic || g.image || null;
+            const gSong = gSettings.songName || null;
+            const lastMsg = tryParse(localStorage.getItem(`gc_preview_${g.id}`), null);
+            return <div key={g.id} onClick={() => setActiveGroup(g)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
+              <div style={{ width: 50, height: 50, borderRadius: "50%", background: gPic ? "transparent" : `linear-gradient(135deg,${BLUE},${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0, overflow: "hidden", border: `2px solid ${BLUE}30` }}>
+                {gPic ? <img src={gPic} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👥"}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: T.text, display: "flex", alignItems: "center", gap: 6 }}>
+                  {g.name}
+                  {gSong && <span style={{ fontSize: 10, color: BLUE, fontWeight: 600 }}>🎵</span>}
+                </div>
+                <div style={{ fontSize: 12, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {lastMsg ? lastMsg.text : gMembers.map(u => u.username).join(", ")}
+                </div>
               </div>
             </div>;
           })}
