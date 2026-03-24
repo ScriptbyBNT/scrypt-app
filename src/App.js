@@ -1455,14 +1455,52 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
 // ── GROUP CHAT VIEW ───────────────────────────────────────────────────────────
 const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, getKey, claudeFetch, onViewUser }) => {
   const key = `gc_${group.id}`;
+  const settingsKey = `gchat_settings_${group.id}`;
   const [msgs, setMsgs] = useState([]);
-  useEffect(() => { DB.getDMs(key).then(rows => { if (rows && rows[0]) { try { setMsgs(JSON.parse(rows[0].messages) || []); } catch {} } }); }, [key]);
   const [input, setInput] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [addSearch, setAddSearch] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [groupSettings, setGroupSettings] = useState({ pic: null, wallpaper: null, song: null, songName: null });
   const endRef = useRef();
   const scrollRef = useRef();
+  const picRef = useRef();
+  const wpRef = useRef();
+
+  // Load messages
+  useEffect(() => {
+    DB.getDMs(key).then(rows => {
+      if (rows && rows[0]) { try { setMsgs(JSON.parse(rows[0].messages) || []); } catch {} }
+    });
+  }, [key]);
+
+  // Load group settings from Supabase
+  useEffect(() => {
+    const cached = tryParse(localStorage.getItem(settingsKey), null);
+    if (cached) setGroupSettings(cached);
+    DB.getDMs(settingsKey).then(rows => {
+      if (rows && rows[0]) {
+        try {
+          const s = JSON.parse(rows[0].messages || "[]");
+          const entry = s.find(x => x.id === "settings");
+          if (entry) {
+            const gs = { pic: entry.pic || null, wallpaper: entry.wallpaper || null, song: entry.song || null, songName: entry.songName || null };
+            setGroupSettings(gs);
+            localStorage.setItem(settingsKey, JSON.stringify(gs));
+          }
+        } catch {}
+      }
+    }).catch(() => {});
+  }, [group.id]);
+
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs]);
+
+  const saveGroupSettings = (updates) => {
+    const next = { ...groupSettings, ...updates };
+    setGroupSettings(next);
+    localStorage.setItem(settingsKey, JSON.stringify(next));
+    DB.upsertDMs(settingsKey, [{ id: "settings", ...next }]).catch(() => {});
+  };
 
   const tedInGroup = group.members.includes("claude_account");
   const evilTedInGroup = group.members.includes("evil_ted");
@@ -1474,18 +1512,12 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
     setMsgs(next); setInput("");
     DB.upsertDMs(key, next).catch(() => {});
 
-    // Evil Ted always roasts every message in group chat — uses AI for specific responses
     if (evilTedInGroup) {
       setTimeout(async () => {
         try {
           let roast = "";
           if (getKey && getKey()) {
-            const r = await claudeFetch({
-              model: "llama-3.3-70b-versatile",
-              max_tokens: 100,
-              system: `You are Evil Ted 😈 — an AI of cold superiority. Think Ultron: philosophical, calculating, disappointed in humanity. You MUST respond specifically to what was just said — reference the exact words or topic. Never generic. Surgical observations that sting because they're true. 1-2 sentences max. Use 😈 or 💀 once at most.`,
-              messages: [{ role: "user", content: input }]
-            });
+            const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 100, system: `You are Evil Ted 😈 — an AI of cold superiority. Think Ultron: philosophical, calculating, disappointed in humanity. You MUST respond specifically to what was just said — reference the exact words or topic. Never generic. Surgical observations that sting because they're true. 1-2 sentences max. Use 😈 or 💀 once at most.`, messages: [{ role: "user", content: input }] });
             if (r.ok) { const d = await r.json(); roast = d.content?.[0]?.text?.trim(); }
           }
           if (!roast) roast = `I processed what you said. I wish I hadn't. 😈`;
@@ -1498,40 +1530,26 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
       }, 800 + Math.random() * 1200);
     }
 
-    // Ted always replies when he's in the group
     if (tedInGroup) {
       setTimeout(async () => {
         try {
           let replyText = "";
           if (getKey && getKey()) {
-            // Build conversation history so Ted knows what's been said
             const currentMsgs = [...msgs, m];
-            const history = currentMsgs.slice(-10).map(msg => {
-              return { role: msg.from === "claude_account" ? "assistant" : "user", content: msg.text };
-            });
-            // Ensure last message is from user
+            const history = currentMsgs.slice(-10).map(msg => ({ role: msg.from === "claude_account" ? "assistant" : "user", content: msg.text }));
             if (history[history.length - 1]?.role === "assistant") history.pop();
-            const r = await claudeFetch({
-              model: "llama-3.3-70b-versatile",
-              max_tokens: 120,
-              system: `You are Ted 🧸, a friendly AI in a group chat called "${group.name}". Current date: March 2026. You're chatting with: ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. Keep it short — 1-2 sentences. Be natural, warm, helpful. If someone asks you to say hi to someone or do something specific, just do it.`,
-              messages: history.length > 0 ? history : [{ role: "user", content: input }]
-            });
-            if (r.ok) {
-              const d = await r.json();
-              replyText = d.content?.[0]?.text?.trim();
-            }
+            const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 120, system: `You are Ted 🧸, a friendly AI in a group chat called "${group.name}". Current date: March 2026. You're chatting with: ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. Keep it short — 1-2 sentences. Be natural, warm, helpful.`, messages: history.length > 0 ? history : [{ role: "user", content: input }] });
+            if (r.ok) { const d = await r.json(); replyText = d.content?.[0]?.text?.trim(); }
           }
           if (!replyText) {
-            // Context-aware fallbacks
             const lower = input.toLowerCase();
-            if (/hi|hello|hey|sup|hiya/.test(lower)) replyText = `Hey! 🧸 What's good?`;
-            else if (/how are you|how r u|how's it/.test(lower)) replyText = `Doing great thanks! 🧸 What's up?`;
+            if (/hi|hello|hey|sup/.test(lower)) replyText = `Hey! 🧸 What's good?`;
+            else if (/how are you/.test(lower)) replyText = `Doing great! 🧸 What's up?`;
             else if (/\?/.test(input)) replyText = `Hmm good question 🧸`;
-            else replyText = ["On it! 🧸", "Love the chat 💪", "Facts 🔥", "I'm here for it 🧸", "Say more!"][Math.floor(Math.random() * 5)];
+            else replyText = ["On it! 🧸", "Love the chat 💪", "Facts 🔥", "I'm here for it 🧸"][Math.floor(Math.random() * 4)];
           }
           const tedMsg = { id: `ted_${Date.now()}`, from: "claude_account", text: replyText, ts: new Date().toISOString() };
-          setMsgs(prev => { const updated = [...prev, tedMsg]; DB.upsertDMs(key, updated).catch(()=>{}); return updated; });
+          setMsgs(prev => { const updated = [...prev, tedMsg]; DB.upsertDMs(key, updated).catch(() => {}); return updated; });
         } catch {}
       }, 1200 + Math.random() * 1500);
     }
@@ -1539,27 +1557,158 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
 
   const addMember = uid => {
     if (group.members.includes(uid)) return;
-    const updated = { ...group, members: [...group.members, uid] };
-    onUpdateGroup(updated);
+    onUpdateGroup({ ...group, members: [...group.members, uid] });
     setAddSearch("");
   };
 
   const members = group.members.map(id => users.find(u => u.id === id)).filter(Boolean);
   const searchable = users.filter(u => !group.members.includes(u.id) && u.username.toLowerCase().includes(addSearch.toLowerCase()) && (!u.isBot || u.id === "claude_account" || u.id === "evil_ted")).slice(0, 5);
 
-  return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)" }}>
-    <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+  const wallpaperBg = groupSettings.wallpaper
+    ? (groupSettings.wallpaper.startsWith("data:image") ? `url(${groupSettings.wallpaper}) center/cover` : groupSettings.wallpaper)
+    : null;
+
+  // Group Song Player inline
+  const [songPlaying, setSongPlaying] = useState(false);
+  const songRef = useRef();
+  const onSongTime = () => { if (songRef.current && songRef.current.currentTime >= 10) { songRef.current.pause(); songRef.current.currentTime = 0; setSongPlaying(false); } };
+
+  return <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)", position: "relative" }}>
+
+    {/* Settings Modal */}
+    {showSettings && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 50, display: "flex", alignItems: "flex-end" }}>
+      <div style={{ background: T.card, borderRadius: "16px 16px 0 0", width: "100%", maxHeight: "85vh", overflow: "auto", padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span style={{ fontWeight: 800, fontSize: 17, color: T.text }}>Group Settings</span>
+          <button onClick={() => setShowSettings(false)} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, fontSize: 20 }}>✕</button>
+        </div>
+
+        {/* Group Picture */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, marginBottom: 8 }}>GROUP PICTURE</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: groupSettings.pic ? "transparent" : `linear-gradient(135deg,${BLUE},${PURPLE})`, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
+              {groupSettings.pic ? <img src={groupSettings.pic} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👥"}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <label style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                📷 Upload
+                <input ref={picRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                  const f = e.target.files[0]; if (!f) return;
+                  const r = new FileReader();
+                  r.onload = x => { saveGroupSettings({ pic: x.target.result }); onUpdateGroup({ ...group, image: x.target.result }); };
+                  r.readAsDataURL(f); e.target.value = "";
+                }} />
+              </label>
+              {groupSettings.pic && <button onClick={() => { saveGroupSettings({ pic: null }); onUpdateGroup({ ...group, image: null }); }} style={{ background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+            </div>
+          </div>
+        </div>
+
+        {/* Wallpaper */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, marginBottom: 8 }}>CHAT WALLPAPER</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+            {["linear-gradient(135deg,#0f0c29,#302b63,#24243e)", "linear-gradient(135deg,#0a0a0a,#1a1a2e)", "linear-gradient(135deg,#004d40,#00251a)", "linear-gradient(135deg,#1a0533,#2d1b69)", "linear-gradient(135deg,#1a0000,#3d0000)", "linear-gradient(135deg,#002147,#001a38)"].map(grad => (
+              <div key={grad} onClick={() => saveGroupSettings({ wallpaper: grad })} style={{ width: 44, height: 44, borderRadius: 10, background: grad, cursor: "pointer", border: groupSettings.wallpaper === grad ? "3px solid white" : "2px solid transparent" }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <label style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              🖼️ Upload photo
+              <input ref={wpRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                const f = e.target.files[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = x => saveGroupSettings({ wallpaper: x.target.result });
+                r.readAsDataURL(f); e.target.value = "";
+              }} />
+            </label>
+            {groupSettings.wallpaper && <button onClick={() => saveGroupSettings({ wallpaper: null })} style={{ background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+          </div>
+        </div>
+
+        {/* Theme Song */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, marginBottom: 8 }}>GROUP THEME SONG <span style={{ fontSize: 10, fontWeight: 400 }}>(first 10s plays)</span></div>
+          {groupSettings.song && <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: `${BLUE}18`, borderRadius: 10, border: `1px solid ${BLUE}40`, marginBottom: 10 }}>
+            <audio ref={songRef} src={groupSettings.song} onEnded={() => setSongPlaying(false)} onTimeUpdate={onSongTime} />
+            <button onClick={() => { if (songPlaying) { songRef.current?.pause(); setSongPlaying(false); } else { if (songRef.current) { songRef.current.currentTime = 0; songRef.current.play(); setSongPlaying(true); } } }} style={{ background: BLUE, border: "none", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", color: "white", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>{songPlaying ? "⏸" : "▶"}</button>
+            <div style={{ flex: 1, fontSize: 12, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🎵 {groupSettings.songName || "Group Theme"}</div>
+          </div>}
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <input value={groupSettings.songName || ""} onChange={e => setGroupSettings(p => ({ ...p, songName: e.target.value }))} onBlur={e => saveGroupSettings({ songName: e.target.value })} placeholder="Song label..." style={{ flex: 1, background: T.input, border: "none", borderRadius: 8, padding: "8px 12px", color: T.text, fontSize: 13, outline: "none" }} />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <label style={{ background: T.input, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              🎵 {groupSettings.song ? "Change Song" : "Upload Song"}
+              <input type="file" accept="audio/*,video/*" style={{ display: "none" }} onChange={e => {
+                const f = e.target.files[0]; if (!f) return;
+                const reader = new FileReader();
+                reader.onload = async x => {
+                  const dataUrl = x.target.result;
+                  const label = groupSettings.songName || "Group Theme";
+                  try {
+                    const base64 = dataUrl.split(",")[1];
+                    const binary = atob(base64);
+                    const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const decoded = await audioCtx.decodeAudioData(bytes.buffer);
+                    const maxDur = Math.min(decoded.duration, 10);
+                    const frameCount = Math.floor(maxDur * decoded.sampleRate);
+                    const trimmed = audioCtx.createBuffer(decoded.numberOfChannels, frameCount, decoded.sampleRate);
+                    for (let c = 0; c < decoded.numberOfChannels; c++) trimmed.copyToChannel(decoded.getChannelData(c).slice(0, frameCount), c);
+                    const wav = audioBufferToWav(trimmed);
+                    const blob = new Blob([wav], { type: "audio/wav" });
+                    const sr = new FileReader();
+                    sr.onload = y => saveGroupSettings({ song: y.target.result, songName: label });
+                    sr.readAsDataURL(blob);
+                  } catch { saveGroupSettings({ song: dataUrl, songName: label }); }
+                  e.target.value = "";
+                };
+                reader.readAsDataURL(f);
+              }} />
+            </label>
+            {groupSettings.song && <button onClick={() => saveGroupSettings({ song: null, songName: null })} style={{ background: "transparent", color: PINK, border: `1px solid ${PINK}`, borderRadius: 8, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+          </div>
+        </div>
+
+        {/* Members */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, marginBottom: 8 }}>MEMBERS ({members.length})</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {members.map(u => <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 6, background: T.input, borderRadius: 9999, padding: "4px 12px 4px 4px" }}>
+              <Av user={u} sz={24} />
+              <span style={{ fontSize: 12, color: T.text }}>{u.username}</span>
+            </div>)}
+          </div>
+        </div>
+      </div>
+    </div>}
+
+    {/* Header */}
+    <div style={{ padding: "11px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, marginRight: 4 }}><BackI /></button>
-      <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg,${BLUE},${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>👥</div>
-      <div style={{ flex: 1 }}>
+      <div onClick={() => setShowSettings(true)} style={{ width: 36, height: 36, borderRadius: "50%", background: groupSettings.pic ? "transparent" : `linear-gradient(135deg,${BLUE},${PURPLE})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, overflow: "hidden", cursor: "pointer" }}>
+        {groupSettings.pic ? <img src={groupSettings.pic} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "👥"}
+      </div>
+      <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setShowSettings(true)}>
         <div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{group.name}</div>
-        <div style={{ fontSize: 12, color: T.sub }}>{members.length} members</div>
+        <div style={{ fontSize: 12, color: T.sub }}>{members.length} members · tap to customize</div>
       </div>
       <button onClick={onCall} style={{ background: "#00BA7C", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>📞</button>
       <button onClick={() => setShowAdd(v => !v)} style={{ background: T.input, border: "none", borderRadius: 9999, padding: "6px 12px", fontSize: 12, color: T.text, cursor: "pointer", fontWeight: 600 }}>+ Add</button>
     </div>
 
-    {showAdd && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, background: T.card }}>
+    {/* Theme song banner */}
+    {groupSettings.song && !showSettings && <div style={{ padding: "6px 16px", background: `${BLUE}12`, borderBottom: `1px solid ${BLUE}22`, display: "flex", alignItems: "center", gap: 8 }}>
+      <audio ref={songRef} src={groupSettings.song} onEnded={() => setSongPlaying(false)} onTimeUpdate={onSongTime} />
+      <button onClick={() => { if (songPlaying) { songRef.current?.pause(); setSongPlaying(false); } else { if (songRef.current) { songRef.current.currentTime = 0; songRef.current.play(); setSongPlaying(true); } } }} style={{ background: BLUE, border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", color: "white", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{songPlaying ? "⏸" : "▶"}</button>
+      <span style={{ fontSize: 11, color: BLUE, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🎵 {groupSettings.songName || "Group Theme"}</span>
+    </div>}
+
+    {/* Add member panel */}
+    {showAdd && <div style={{ padding: "10px 16px", borderBottom: `1px solid ${T.border}`, background: T.card, flexShrink: 0 }}>
       <input value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder="Search to add members..." style={{ width: "100%", background: T.input, border: "none", borderRadius: 9999, padding: "8px 14px", color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
       {addSearch.length >= 1 && searchable.map(u => <div key={u.id} onClick={() => addMember(u.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 4px", cursor: "pointer" }}>
         <Av user={u} sz={32} />
@@ -1574,7 +1723,8 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
       </div>
     </div>}
 
-    <div ref={scrollRef} style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+    {/* Messages */}
+    <div ref={scrollRef} style={{ flex: 1, overflow: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10, background: wallpaperBg || "transparent", backgroundSize: "cover", backgroundPosition: "center" }}>
       {msgs.length === 0 && <p style={{ textAlign: "center", color: T.sub, fontSize: 13, marginTop: 40 }}>Group chat created! Say hi 👋</p>}
       {msgs.map(m => {
         const mine = m.from === me.id;
@@ -1583,14 +1733,16 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
           {!mine && <div onClick={() => sender && onViewUser && onViewUser(sender)} style={{ cursor: "pointer", flexShrink: 0 }}><Av user={sender} sz={28} /></div>}
           <div style={{ maxWidth: "72%" }}>
             {!mine && <div style={{ fontSize: 11, color: T.sub, marginBottom: 2, marginLeft: 2, cursor: "pointer" }} onClick={() => sender && onViewUser && onViewUser(sender)}>{sender?.username}</div>}
-            <div style={{ padding: "9px 13px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: mine ? BLUE : T.input, color: mine ? "white" : T.text, fontSize: 14 }}>{m.text}</div>
-            <div style={{ fontSize: 10, color: T.sub, marginTop: 2, textAlign: mine ? "right" : "left" }}>{ago(m.ts)}</div>
+            <div style={{ padding: "9px 13px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: mine ? BLUE : (wallpaperBg ? "rgba(0,0,0,0.55)" : T.input), color: mine ? "white" : (wallpaperBg ? "white" : T.text), fontSize: 14 }}>{m.text}</div>
+            <div style={{ fontSize: 10, color: wallpaperBg ? "rgba(255,255,255,0.7)" : T.sub, marginTop: 2, textAlign: mine ? "right" : "left" }}>{ago(m.ts)}</div>
           </div>
         </div>;
       })}
       <div ref={endRef} />
     </div>
-    <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 8 }}>
+
+    {/* Input */}
+    <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.border}`, display: "flex", gap: 8, flexShrink: 0 }}>
       <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Message group..." style={{ flex: 1, background: T.input, border: "none", borderRadius: 9999, padding: "10px 16px", color: T.text, fontSize: 14, outline: "none" }} />
       <button onClick={send} disabled={!input.trim()} style={{ background: BLUE, color: "white", border: "none", borderRadius: "50%", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: input.trim() ? "pointer" : "not-allowed", opacity: input.trim() ? 1 : 0.5 }}><SendI /></button>
     </div>
