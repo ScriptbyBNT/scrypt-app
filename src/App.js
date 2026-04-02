@@ -197,7 +197,11 @@ const claudeFetch = (body) => {
   if (!key) return Promise.resolve({ ok: true, json: () => Promise.resolve({ content: [{ type: "text", text: "" }] }) });
   if (key.startsWith("gsk_")) {
     const groqBody = { model: "llama-3.3-70b-versatile", max_tokens: body.max_tokens || 500, messages: body.system ? [{ role: "system", content: body.system }, ...(body.messages || [])] : (body.messages || []) };
-    return fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key }, body: JSON.stringify(groqBody) }).then(r => ({ ok: r.ok, json: async () => { const d = await r.json(); return { content: [{ type: "text", text: d.choices?.[0]?.message?.content || "" }] }; } }));
+    return fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key }, body: JSON.stringify(groqBody) }).then(async r => {
+      const d = await r.json();
+      const text = d.choices?.[0]?.message?.content || "";
+      return { ok: r.ok, json: async () => r.ok ? { content: [{ type: "text", text }] } : { content: [{ type: "text", text: "" }], error: d.error } };
+    });
   }
   return fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify(body) });
 };
@@ -872,25 +876,27 @@ const TedChat = ({ T, onClose, init }) => {
       const trimmed = clean.slice(-10);
       const r = await claudeFetch({
         model: "llama-3.3-70b-versatile",
-        max_tokens: 800,
-        system: "You are Ted 🧸, a helpful AI on Scrypt. Be helpful, concise, and friendly. Current date: March 2026.",
+        max_tokens: 600,
+        system: `You are Ted 🧸, a helpful and friendly AI on Scrypt social. Be warm, concise, and natural. Current date: April 2026.`,
         messages: trimmed
       });
-      if (!r.ok) {
-        const errData = await r.json().catch(() => ({}));
-        const errMsg = errData?.error?.message || "";
-        if (errMsg.includes("rate") || errMsg.includes("limit")) {
-          setMsgs(p => [...p, { role: "assistant", content: "Slow down a bit! 🧸 I'm getting too many messages at once. Try again in a moment." }]);
+      const d = await r.json();
+      // Handle both Groq (choices) and Anthropic (content) response shapes
+      const reply = d.choices?.[0]?.message?.content?.trim()
+        || d.content?.[0]?.text?.trim()
+        || "";
+      if (!reply) {
+        const errMsg = d?.error?.message || "";
+        if (errMsg.includes("rate") || errMsg.includes("limit") || errMsg.includes("429")) {
+          setMsgs(p => [...p, { role: "assistant", content: "Getting lots of messages right now! 🧸 Give me a second and try again." }]);
         } else {
-          setMsgs(p => [...p, { role: "assistant", content: "Something went wrong 🧸 — try again!" }]);
+          setMsgs(p => [...p, { role: "assistant", content: "Hmm, I didn't get a response. Try asking again! 🧸" }]);
         }
         setBusy(false); return;
       }
-      const d = await r.json();
-      const reply = d.content?.[0]?.text?.trim();
-      setMsgs(p => [...p, { role: "assistant", content: reply || "Hmm, I didn't catch that. Try asking again! 🧸" }]);
+      setMsgs(p => [...p, { role: "assistant", content: reply }]);
     } catch(e) {
-      setMsgs(p => [...p, { role: "assistant", content: "Connection hiccup 🧸 — try again!" }]);
+      setMsgs(p => [...p, { role: "assistant", content: "Hmm, something went sideways 🧸 — try again!" }]);
     }
     setBusy(false);
   };
