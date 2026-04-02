@@ -848,55 +848,72 @@ const TedChat = ({ T, onClose, init }) => {
   const send = async txt => {
     const text = (txt || input).trim();
     if (!text || busy) return;
-    if (!getKey()) {
-      setMsgs(p => [...p, { role: "user", content: text }, { role: "assistant", content: "Hey! 🧸 I'm Ted — ask me anything!" }]);
-      setInput("");
-      return;
-    }
     const next = [...msgs, { role: "user", content: text }];
     setMsgs(next); setInput(""); setBusy(true);
     try {
-      // Build strictly alternating history for Groq — must start with user, alternate u/a
+      // Build strictly alternating history — must start with user
       const raw = next.map(m => ({ role: m.role, content: m.content }));
       const clean = [];
       for (const msg of raw) {
         if (clean.length === 0 && msg.role !== "user") continue;
         if (clean.length > 0 && clean[clean.length-1].role === msg.role) {
-          // Merge consecutive same-role messages
           clean[clean.length-1].content += "\n" + msg.content;
         } else {
           clean.push({ ...msg });
         }
       }
-      // Must end with user
       if (clean.length === 0 || clean[clean.length-1].role !== "user") {
         clean.push({ role: "user", content: text });
       }
-      // Keep last 10 messages to avoid token limits
       const trimmed = clean.slice(-10);
-      const r = await claudeFetch({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 600,
-        system: `You are Ted 🧸, a helpful and friendly AI on Scrypt social. Be warm, concise, and natural. Current date: April 2026.`,
-        messages: trimmed
-      });
-      const d = await r.json();
-      // Handle both Groq (choices) and Anthropic (content) response shapes
-      const reply = d.choices?.[0]?.message?.content?.trim()
-        || d.content?.[0]?.text?.trim()
-        || "";
-      if (!reply) {
-        const errMsg = d?.error?.message || "";
-        if (errMsg.includes("rate") || errMsg.includes("limit") || errMsg.includes("429")) {
-          setMsgs(p => [...p, { role: "assistant", content: "Getting lots of messages right now! 🧸 Give me a second and try again." }]);
-        } else {
-          setMsgs(p => [...p, { role: "assistant", content: "Hmm, I didn't get a response. Try asking again! 🧸" }]);
-        }
-        setBusy(false); return;
+
+      // Try user's own key first, then fall back to built-in Anthropic access
+      const userKey = getKey();
+      let reply = "";
+
+      if (userKey && userKey.startsWith("gsk_")) {
+        // Groq path
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + userKey },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            max_tokens: 600,
+            messages: [{ role: "system", content: "You are Ted 🧸, a helpful friendly AI on Scrypt social. Be warm and concise." }, ...trimmed]
+          })
+        });
+        const d = await res.json();
+        reply = d.choices?.[0]?.message?.content?.trim() || "";
+      } else {
+        // Built-in Anthropic API — works without any user key
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": userKey && !userKey.startsWith("gsk_") ? userKey : "",
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true"
+          },
+          body: JSON.stringify({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 600,
+            system: "You are Ted 🧸, a helpful friendly AI on Scrypt social. Be warm, concise, and natural. Keep replies short (1-3 sentences) unless detail is needed.",
+            messages: trimmed
+          })
+        });
+        const d = await res.json();
+        reply = d.content?.[0]?.text?.trim() || "";
+        if (!reply && d.error) console.warn("Ted API error:", d.error);
       }
-      setMsgs(p => [...p, { role: "assistant", content: reply }]);
+
+      if (reply) {
+        setMsgs(p => [...p, { role: "assistant", content: reply }]);
+      } else {
+        setMsgs(p => [...p, { role: "assistant", content: "Hmm, let me try that again! 🧸" }]);
+      }
     } catch(e) {
-      setMsgs(p => [...p, { role: "assistant", content: "Hmm, something went sideways 🧸 — try again!" }]);
+      console.error("Ted error:", e);
+      setMsgs(p => [...p, { role: "assistant", content: "Connection issue 🧸 — try again!" }]);
     }
     setBusy(false);
   };
@@ -1406,17 +1423,29 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
         try {
           let replyText = "";
           const tedHistory = cleanHistory.length > 0 ? cleanHistory : [{ role: "user", content: input }];
-          const r = await claudeFetch({
-            model: "llama-3.3-70b-versatile",
-            max_tokens: 200,
-            system: `You are Ted 🧸, a friendly AI on Scrypt social. Current date: April 2026. You're in a private DM with ${me.username}. Be warm, helpful, and natural. Keep replies short (1-3 sentences) unless they need detail. Reply directly and specifically to what they said — never give a generic response.`,
-            messages: tedHistory
-          });
-          if (r.ok) { const d = await r.json(); replyText = d.content?.[0]?.text?.trim(); }
+          const userKey = getKey();
+          let res;
+          if (userKey && userKey.startsWith("gsk_")) {
+            res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": "Bearer " + userKey },
+              body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 200, messages: [{ role: "system", content: `You are Ted 🧸 in a DM with ${me.username}. Be warm, short, direct.` }, ...tedHistory] })
+            });
+            const d = await res.json();
+            replyText = d.choices?.[0]?.message?.content?.trim() || "";
+          } else {
+            res = await fetch("https://api.anthropic.com/v1/messages", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "x-api-key": userKey && !userKey.startsWith("gsk_") ? userKey : "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+              body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 200, system: `You are Ted 🧸 in a private DM with ${me.username} on Scrypt social. Be warm, helpful, natural. 1-3 sentences, reply directly to what they said.`, messages: tedHistory })
+            });
+            const d = await res.json();
+            replyText = d.content?.[0]?.text?.trim() || "";
+          }
           if (!replyText) {
             const lower = input.toLowerCase();
             if (/hi|hello|hey/.test(lower)) replyText = `Hey ${me.username}! 🧸 What's up?`;
-            else if (/how are you/.test(lower)) replyText = `Doing great, thanks! 🧸 What's on your mind?`;
+            else if (/how are you/.test(lower)) replyText = `Doing great! 🧸 What's on your mind?`;
             else replyText = `Got it! 🧸`;
           }
           const reply = { id: `ted_dm_${Date.now()}`, from: "claude_account", text: replyText, ts: new Date().toISOString() };
@@ -1523,9 +1552,14 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
       setTimeout(async () => {
         try {
           let roast = "";
-          if (getKey && getKey()) {
-            const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 100, system: `You are Evil Ted 😈 — an AI of cold superiority. Think Ultron: philosophical, calculating, disappointed in humanity. You MUST respond specifically to what was just said — reference the exact words or topic. Never generic. Surgical observations that sting because they're true. 1-2 sentences max. Use 😈 or 💀 once at most.`, messages: [{ role: "user", content: input }] });
-            if (r.ok) { const d = await r.json(); roast = d.content?.[0]?.text?.trim(); }
+          const userKey = getKey();
+          let res;
+          if (userKey && userKey.startsWith("gsk_")) {
+            res = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + userKey }, body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 100, messages: [{ role: "system", content: `You are Evil Ted 😈 — cold, Ultron-like AI. Respond specifically to what was just said. 1-2 sentences. Sting because it's true.` }, { role: "user", content: input }] }) });
+            const d = await res.json(); roast = d.choices?.[0]?.message?.content?.trim() || "";
+          } else {
+            res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": userKey && !userKey.startsWith("gsk_") ? userKey : "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 100, system: `You are Evil Ted 😈 — cold, Ultron-like AI in a group chat. Respond specifically to what was just said. 1-2 sentences. Use 😈 or 💀 once.`, messages: [{ role: "user", content: input }] }) });
+            const d = await res.json(); roast = d.content?.[0]?.text?.trim() || "";
           }
           if (!roast) roast = `I processed what you said. I wish I hadn't. 😈`;
           const roastMsg = { id: `et_gc_${Date.now()}`, from: "evil_ted", text: roast, ts: new Date().toISOString() };
@@ -1541,12 +1575,18 @@ const GroupChatView = ({ me, group, users, T, onBack, onCall, onUpdateGroup, get
       setTimeout(async () => {
         try {
           let replyText = "";
-          if (getKey && getKey()) {
-            const currentMsgs = [...msgs, m];
-            const history = currentMsgs.slice(-10).map(msg => ({ role: msg.from === "claude_account" ? "assistant" : "user", content: msg.text }));
-            if (history[history.length - 1]?.role === "assistant") history.pop();
-            const r = await claudeFetch({ model: "llama-3.3-70b-versatile", max_tokens: 120, system: `You are Ted 🧸, a friendly AI in a group chat called "${group.name}". Current date: March 2026. You're chatting with: ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. Keep it short — 1-2 sentences. Be natural, warm, helpful.`, messages: history.length > 0 ? history : [{ role: "user", content: input }] });
-            if (r.ok) { const d = await r.json(); replyText = d.content?.[0]?.text?.trim(); }
+          const currentMsgs = [...msgs, m];
+          const history = currentMsgs.slice(-10).map(msg => ({ role: msg.from === "claude_account" ? "assistant" : "user", content: msg.text }));
+          if (history[history.length - 1]?.role === "assistant") history.pop();
+          const tedHistory = history.length > 0 ? history : [{ role: "user", content: input }];
+          const userKey = getKey();
+          let res;
+          if (userKey && userKey.startsWith("gsk_")) {
+            res = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + userKey }, body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 120, messages: [{ role: "system", content: `You are Ted 🧸 in group chat "${group.name}" with ${members.map(u => u.username).join(", ")}. Reply directly to what was just said. 1-2 sentences.` }, ...tedHistory] }) });
+            const d = await res.json(); replyText = d.choices?.[0]?.message?.content?.trim() || "";
+          } else {
+            res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": userKey && !userKey.startsWith("gsk_") ? userKey : "", "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 120, system: `You are Ted 🧸 in group chat "${group.name}" with ${members.map(u => u.username).join(", ")}. Reply directly and specifically to what was just said. 1-2 sentences. Be natural and warm.`, messages: tedHistory }) });
+            const d = await res.json(); replyText = d.content?.[0]?.text?.trim() || "";
           }
           if (!replyText) {
             const lower = input.toLowerCase();
