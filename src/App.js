@@ -1399,15 +1399,14 @@ const DMView = ({ me, other, users, T, onBack, onCall, getKey, claudeFetch, onVi
       setTimeout(async () => {
         try {
           let replyText = "";
-          if (getKey && getKey()) {
-            const r = await claudeFetch({
-              model: "llama-3.3-70b-versatile",
-              max_tokens: 200,
-              system: `You are Ted 🧸, a friendly AI on Scrypt social. Current date: March 2026. You're in a private DM with ${me.username}. Be warm, helpful, and natural. Keep replies short (1-3 sentences) unless they need detail. Reply directly to what they said.`,
-              messages: cleanHistory
-            });
-            if (r.ok) { const d = await r.json(); replyText = d.content?.[0]?.text?.trim(); }
-          }
+          const tedHistory = cleanHistory.length > 0 ? cleanHistory : [{ role: "user", content: input }];
+          const r = await claudeFetch({
+            model: "llama-3.3-70b-versatile",
+            max_tokens: 200,
+            system: `You are Ted 🧸, a friendly AI on Scrypt social. Current date: April 2026. You're in a private DM with ${me.username}. Be warm, helpful, and natural. Keep replies short (1-3 sentences) unless they need detail. Reply directly and specifically to what they said — never give a generic response.`,
+            messages: tedHistory
+          });
+          if (r.ok) { const d = await r.json(); replyText = d.content?.[0]?.text?.trim(); }
           if (!replyText) {
             const lower = input.toLowerCase();
             if (/hi|hello|hey/.test(lower)) replyText = `Hey ${me.username}! 🧸 What's up?`;
@@ -3492,8 +3491,83 @@ export default function App() {
     return () => { clearTimeout(noonTimer); clearTimeout(hourTimer); };
   }, [me]);
 
-  // ── SCRYPT NEWS: Disabled — was posting outdated/AI-generated content ──────
-  // News posts are pre-seeded in SEED_POSTS instead
+  // ── SCRYPT NEWS: Posts twice daily at 8am and 6pm with current news ─────────
+  useEffect(() => {
+    if (!me) return;
+
+    const postNewsUpdate = async () => {
+      if (!getKey()) return;
+      try {
+        const now = new Date();
+        const hour = now.getHours();
+        const slot = hour < 14 ? "morning" : "evening";
+        const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+        // Use web_search tool to fetch real current news
+        const r = await claudeFetch({
+          model: "llama-3.3-70b-versatile",
+          max_tokens: 400,
+          system: `You are Script_News 📰, a breaking news account. Today is ${dateStr}. Write ONE real, specific news headline post for the ${slot} bulletin. 
+Format: 📰 [Source] Headline — brief detail. Use a relevant emoji at the end.
+Rules: Must be CURRENT news from TODAY or this week. Be specific with real names, places, numbers. Under 260 characters. Just the post text, nothing else.
+Pick from: politics, technology, science, world events, business, climate, or sports.`,
+          messages: [{ role: "user", content: `Write today's ${slot} news bulletin post with a real current headline from ${dateStr}.` }]
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+        const content = d.content?.[0]?.text?.trim();
+        if (!content || content.length < 30) return;
+
+        const newPost = {
+          id: `news_live_${Date.now()}`,
+          userId: "bot_news",
+          username: "Script_News",
+          content: content,
+          likes: [], reposts: [],
+          createdAt: new Date().toISOString(),
+          replyCount: 0
+        };
+        // Viral boost — news gets lots of engagement
+        const allBots = users.filter(u => u.isBot && !u.isSpecial);
+        newPost.likes = allBots.sort(() => Math.random() - 0.5).slice(0, 35 + Math.floor(Math.random() * 25)).map(b => b.id);
+        newPost.reposts = allBots.sort(() => Math.random() - 0.5).slice(0, 10 + Math.floor(Math.random() * 12)).map(b => b.id);
+        setPosts(prev => [newPost, ...prev]);
+        DB.insertPost(postToRow(newPost)).catch(() => {});
+        boostNewsPost(newPost.id);
+      } catch { /* fail silently */ }
+    };
+
+    // Schedule at 8am and 6pm
+    const schedulePosts = () => {
+      const now = new Date();
+      const slots = [8, 18]; // 8am and 6pm
+      const timers = slots.map(targetHour => {
+        const next = new Date(now);
+        next.setHours(targetHour, 0, 0, 0);
+        if (next <= now) next.setDate(next.getDate() + 1);
+        const ms = next - now;
+        return setTimeout(() => {
+          postNewsUpdate();
+          setInterval(postNewsUpdate, 24 * 60 * 60 * 1000); // repeat daily at same time
+        }, ms);
+      });
+
+      // Also post once shortly after login if we haven't posted today
+      const lastPost = localStorage.getItem("script_news_last_post");
+      const todayStr = new Date().toDateString();
+      if (lastPost !== todayStr) {
+        setTimeout(() => {
+          postNewsUpdate();
+          localStorage.setItem("script_news_last_post", todayStr);
+        }, 30000); // 30s after login
+      }
+
+      return timers;
+    };
+
+    const timers = schedulePosts();
+    return () => timers.forEach(t => clearTimeout(t));
+  }, [me]);
 
 
   // ── ABANDONWARE: Video games / movies / TV shows every 4h ────────────────────
